@@ -1,0 +1,101 @@
+<main class="verify-page" aria-labelledby="verification-title">
+  <div class="background" aria-hidden="true">
+    <img
+      src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1800&q=80"
+      alt=""
+    />
+    <div class="background__overlay"></div>
+  </div>
+
+  <header class="page-header" aria-label="ReadTrack">
+    <a class="brand" [routerLink]="['/']" aria-label="ReadTrack home">
+      <span class="brand__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 7v14" />
+          <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+        </svg>
+      </span>
+      <span class="brand__copy">
+        <span class="brand__kicker">Reading platform</span>
+        <span class="brand__name">ReadTrack</span>
+      </span>
+    </a>
+  </header>
+
+  <section class="verification-card">
+    <p class="verification-badge">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2v3" />
+        <path d="M12 19v3" />
+        <path d="m4.93 4.93 2.12 2.12" />
+        <path d="m16.95 16.95 2.12 2.12" />
+        <path d="M2 12h3" />
+        <path d="M19 12h3" />
+      </svg>
+      Email verification
+    </p>
+
+    <div class="shield" aria-hidden="true">
+      <div>
+        <svg viewBox="0 0 24 24">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      </div>
+    </div>
+
+    <h1 id="verification-title">Enter your 6-digit code</h1>
+    <p class="verification-copy">
+      We sent a code to
+      <strong>{{ email || 'your email address' }}</strong>.
+      Use the latest code from your inbox.
+    </p>
+
+    <form
+      [formGroup]="verificationForm"
+      class="verification-form"
+      aria-label="Verify email"
+      (ngSubmit)="verifyCode()"
+    >
+      <div
+        class="code-inputs"
+        formArrayName="code"
+        aria-label="6-digit verification code"
+        (paste)="onCodePaste($event)"
+      >
+        @for (control of codeArray.controls; track $index) {
+          <input
+            #codeInput
+            class="code-input"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="1"
+            [formControlName]="$index"
+            [attr.aria-label]="'Digit ' + ($index + 1)"
+            (input)="onCodeInput($index, $event)"
+            (keydown)="onCodeKeydown($index, $event)"
+          />
+        }
+      </div>
+
+      <button class="button button--primary verification-button" type="submit" [disabled]="isSubmitting">
+        {{ isSubmitting ? 'Verifying...' : 'Verify Email' }}
+      </button>
+    </form>
+
+    @if (errorMessage || statusMessage) {
+      <p
+        class="form-message"
+        [class.form-message--error]="errorMessage"
+        aria-live="polite"
+      >
+        {{ errorMessage || statusMessage }}
+      </p>
+    }
+
+    <p class="resend-copy">
+      Didn't receive the code?
+      <button type="button" [disabled]="isSubmitting" (click)="resendCode()">Resend</button>
+    </p>
+  </section>
+</main>
