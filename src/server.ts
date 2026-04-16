@@ -51,6 +51,8 @@ app.post('/api/auth/request-signup', async (req, res) => {
       return;
     }
 
+    ensureVerificationDeliveryConfigured();
+
     const supabase = await getSupabaseAdminClient();
     const user = await createOrUpdatePendingUser(supabase, email, password, name);
     await upsertPublicUser(supabase, user.id, email, name);
@@ -102,6 +104,8 @@ app.post('/api/auth/resend-verification', async (req, res) => {
       res.status(400).json({ message: 'A valid email is required.' });
       return;
     }
+
+    ensureVerificationDeliveryConfigured();
 
     const supabase = await getSupabaseAdminClient();
     const existing = await findPublicUserByEmail(supabase, email);
@@ -310,9 +314,7 @@ async function issueVerificationCode(
 }
 
 async function sendVerificationEmail(email: string, code: string): Promise<void> {
-  const debugLogCodes = process.env['EMAIL_DEBUG_LOG_CODES'] === 'true';
-
-  if (debugLogCodes) {
+  if (shouldLogVerificationCodes()) {
     console.log(`ReadTrack verification code for ${email}: ${code}`);
     return;
   }
@@ -342,6 +344,22 @@ async function sendVerificationEmail(email: string, code: string): Promise<void>
   if (!response.ok) {
     throw new HttpError(502, 'Could not send verification email.');
   }
+}
+
+function ensureVerificationDeliveryConfigured(): void {
+  if (shouldLogVerificationCodes()) {
+    return;
+  }
+
+  if (process.env['RESEND_API_KEY'] && process.env['EMAIL_FROM']) {
+    return;
+  }
+
+  throw new HttpError(503, 'Email is not configured. Add RESEND_API_KEY and EMAIL_FROM to .env, or set EMAIL_DEBUG_LOG_CODES=true for local testing.');
+}
+
+function shouldLogVerificationCodes(): boolean {
+  return process.env['EMAIL_DEBUG_LOG_CODES'] === 'true';
 }
 
 async function findValidVerificationCode(

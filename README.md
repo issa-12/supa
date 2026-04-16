@@ -12,6 +12,28 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Docker
+
+Create a local `.env` file from `.env.example` and fill in the Supabase service role key before starting the container:
+
+```bash
+cp .env.example .env
+```
+
+Build and run the frontend and backend containers:
+
+```bash
+docker compose up --build
+```
+
+The Angular frontend is available at `http://localhost:4200/`. The Express API runs in its own backend container at `http://localhost:4000/`, and the frontend container proxies `/api/*` requests to it.
+
+Stop the container:
+
+```bash
+docker compose down
+```
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

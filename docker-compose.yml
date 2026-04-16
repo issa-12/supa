@@ -1,0 +1,25 @@
+services:
+  frontend:
+    build:
+      context: .
+      target: frontend
+    container_name: books-media-platform-frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      target: backend
+    container_name: books-media-platform-backend
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
