@@ -176,7 +176,7 @@ export class SupabaseService {
     return `${window.location.origin}${this.authRedirectPath}`;
   }
 
-  private getClient(): Promise<SupabaseClient> {
+  getClient(): Promise<SupabaseClient> {
     this.supabaseClientPromise ??= import('@supabase/supabase-js')
       .then(({ createClient }) => createClient(this.supabaseUrl, this.supabaseKey, {
         auth: {

@@ -1,0 +1,35 @@
+<div class="app-viewport">
+  <app-top-nav></app-top-nav>
+
+  <div class="scroll-area">
+    <div class="page-shell">
+      <!-- Hero Section -->
+      <app-hero-section *ngIf="heroBook" [book]="heroBook" (addToReading)="onAddToReading($event)"></app-hero-section>
+
+      <!-- Continue Reading Section -->
+      <app-continue-reading [books]="continueReadingBooks" (continueReading)="onContinueReading($event)"></app-continue-reading>
+
+      <!-- Main Grid Layout -->
+      <div class="home-bottom-grid">
+        <!-- Main Column -->
+        <div class="main-col">
+          <!-- Recommended For You Section -->
+          <app-recommended-books [books]="recommendedBooks" (addBook)="onAddBook($event)"></app-recommended-books>
+
+          <!-- Trending This Week Section -->
+          <app-trending-books [books]="trendingBooks"></app-trending-books>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="side-col">
+          <app-friends-activity></app-friends-activity>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button class="fab-btn" aria-label="Create new list">
+    <iconify-icon icon="lucide:plus" style="font-size: 32px"></iconify-icon>
+  </button>
+</div>

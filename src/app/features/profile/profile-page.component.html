@@ -1,0 +1,202 @@
+<div class="profile-viewport">
+  <!-- Header with Navigation -->
+  <header class="profile-header">
+    <div class="header-content">
+      <button class="back-btn" routerLink="/home" aria-label="Go back">
+        <iconify-icon icon="lucide:arrow-left" style="font-size: 20px"></iconify-icon>
+      </button>
+      <h1 class="header-title">Profile</h1>
+      <div class="header-spacer"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="profile-content">
+    <!-- Profile Card -->
+    <div class="profile-card">
+      <div class="profile-header-section">
+        <div class="profile-avatar-wrapper">
+          <img [src]="userProfile.avatarUrl" [alt]="userProfile.name" class="profile-avatar" />
+          <div class="online-indicator"></div>
+        </div>
+
+        <div class="profile-header-info">
+          <h2 class="profile-name">{{ userProfile.name }}</h2>
+          <p class="profile-joined">Joined {{ userProfile.joinDate }}</p>
+        </div>
+
+        <div class="profile-actions">
+          <button class="btn btn-primary" (click)="onEditProfile()">
+            <iconify-icon icon="lucide:edit-2" style="font-size: 16px"></iconify-icon>
+            Edit Profile
+          </button>
+          <button class="btn btn-outline">
+            <iconify-icon icon="lucide:share-2" style="font-size: 16px"></iconify-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bio Section -->
+      <div class="profile-bio">
+        <p class="bio-text">{{ userProfile.bio }}</p>
+      </div>
+
+      <!-- User Tags -->
+      <div class="tags-section">
+        <div class="tag-list">
+          <span *ngFor="let tag of userTags" class="tag">{{ tag }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reading Stats -->
+    <div class="reading-stats-grid">
+      <!-- Current Reading Streak -->
+      <div class="stat-card streak-card">
+        <div class="stat-header">
+          <div class="stat-icon fire-icon">
+            <iconify-icon icon="lucide:flame" style="font-size: 24px"></iconify-icon>
+          </div>
+          <span class="stat-label">Current Reading Streak</span>
+        </div>
+        <div class="stat-value">{{ readingStats.currentReadingStreak }} Days</div>
+        <p class="stat-description">Last read {{ readingStats.lastReadDate | date: 'short' }}</p>
+      </div>
+
+      <!-- Books Read This Year -->
+      <div class="stat-card progress-card">
+        <div class="stat-header">
+          <span class="stat-label">Books Read This Year</span>
+          <span class="stat-value-inline">{{ readingStats.booksReadThisYear }}/{{ readingStats.booksGoal }}</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-bg">
+            <div
+              class="progress-bar-fill"
+              [style.width.%]="(readingStats.booksReadThisYear / readingStats.booksGoal) * 100"
+            ></div>
+          </div>
+        </div>
+        <p class="progress-percentage">
+          {{ ((readingStats.booksReadThisYear / readingStats.booksGoal) * 100).toFixed(0) }}% Complete
+        </p>
+      </div>
+    </div>
+
+    <!-- Most Liked Section -->
+    <section class="books-section">
+      <div class="section-header">
+        <h3 class="section-title">Most Liked</h3>
+        <p class="section-description">Your five star reviews displayed like picture frames on a shelf.</p>
+      </div>
+
+      <div class="books-grid">
+        <div *ngFor="let book of mostLikedBooks" class="book-card" (click)="onViewBook(book)">
+          <div class="book-cover-container">
+            <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+            <div class="book-overlay">
+              <button class="btn-icon" (click)="onRateBook(book); $event.stopPropagation()">
+                <iconify-icon icon="lucide:star" style="font-size: 20px"></iconify-icon>
+              </button>
+            </div>
+          </div>
+          <div class="book-info">
+            <h4 class="book-title">{{ book.title }}</h4>
+            <p class="book-author">{{ book.author }}</p>
+            <div class="book-rating" *ngIf="book.rating">
+              <div class="stars">
+                <iconify-icon
+                  *ngFor="let star of [1, 2, 3, 4, 5]"
+                  icon="lucide:star"
+                  [class.filled]="star <= book.rating"
+                  style="font-size: 14px"
+                ></iconify-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- In Between Section -->
+    <section class="books-section">
+      <div class="section-header">
+        <h3 class="section-title">In Between</h3>
+        <p class="section-description">Books sitting on a shelf, average rating three-star review.</p>
+      </div>
+
+      <div class="books-grid">
+        <div *ngFor="let book of inBetweenBooks" class="book-card" (click)="onViewBook(book)">
+          <div class="book-cover-container">
+            <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+            <div class="book-overlay">
+              <button class="btn-icon" (click)="onRateBook(book); $event.stopPropagation()">
+                <iconify-icon icon="lucide:star" style="font-size: 20px"></iconify-icon>
+              </button>
+            </div>
+          </div>
+          <div class="book-info">
+            <h4 class="book-title">{{ book.title }}</h4>
+            <p class="book-author">{{ book.author }}</p>
+            <div class="book-rating" *ngIf="book.rating">
+              <div class="stars">
+                <iconify-icon
+                  *ngFor="let star of [1, 2, 3, 4, 5]"
+                  icon="lucide:star"
+                  [class.filled]="star <= book.rating"
+                  style="font-size: 14px"
+                ></iconify-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Least Liked Section -->
+    <section class="books-section">
+      <div class="section-header">
+        <h3 class="section-title">Least Liked</h3>
+        <p class="section-description">Books you found unforgettable, or a total misread.</p>
+      </div>
+
+      <div class="books-grid">
+        <div *ngFor="let book of leastLikedBooks" class="book-card" (click)="onViewBook(book)">
+          <div class="book-cover-container">
+            <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+            <div class="book-overlay">
+              <button class="btn-icon" (click)="onRateBook(book); $event.stopPropagation()">
+                <iconify-icon icon="lucide:star" style="font-size: 20px"></iconify-icon>
+              </button>
+            </div>
+          </div>
+          <div class="book-info">
+            <h4 class="book-title">{{ book.title }}</h4>
+            <p class="book-author">{{ book.author }}</p>
+            <div class="book-rating" *ngIf="book.rating">
+              <div class="stars">
+                <iconify-icon
+                  *ngFor="let star of [1, 2, 3, 4, 5]"
+                  icon="lucide:star"
+                  [class.filled]="star <= book.rating"
+                  style="font-size: 14px"
+                ></iconify-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="profile-footer">
+      <div class="footer-links">
+        <a href="#" class="footer-link">Privacy Policy</a>
+        <a href="#" class="footer-link">Terms of Service</a>
+        <a href="#" class="footer-link">Community Guidelines</a>
+        <a href="#" class="footer-link">Help & Support</a>
+      </div>
+      <p class="footer-copyright">&copy; 2026 ReadTrack. All rights reserved.</p>
+    </footer>
+  </div>
+</div>

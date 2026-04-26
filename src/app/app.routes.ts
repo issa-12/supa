@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { AuthCallbackComponent } from './features/auth-callback/auth-callback.component';
 import { AuthPageComponent } from './features/auth/auth-page.component';
 import { EmailVerificationComponent } from './features/email-verification/email-verification.component';
+import { HomePageComponent } from './features/home/home-page.component';
+import { ProfilePageComponent } from './features/profile/profile-page.component';
 
 export const routes: Routes = [
   {
@@ -25,5 +27,13 @@ export const routes: Routes = [
   {
     path: 'verify-email',
     component: EmailVerificationComponent,
+  },
+  {
+    path: 'home',
+    component: HomePageComponent,
+  },
+  {
+    path: 'profile',
+    component: ProfilePageComponent,
   },
 ];

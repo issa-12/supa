@@ -87,10 +87,10 @@ export class EmailVerificationComponent {
         email: this.email,
         code: this.codeArray.getRawValue().join(''),
       });
-      this.statusMessage = 'Email verified. You can log in now.';
+      this.statusMessage = 'Email verified. Redirecting to your home page...';
 
       window.setTimeout(() => {
-        void this.router.navigateByUrl('/');
+        void this.router.navigateByUrl('/home');
       }, 900);
     } catch (error) {
       this.errorMessage = error instanceof Error

@@ -1,0 +1,129 @@
+:root {
+  --background: #efe8df;
+  --foreground: #2e241d;
+  --border: #00000014;
+  --input: #fff9f3;
+  --primary: #e9783f;
+  --primary-foreground: #ffffff;
+  --secondary: #f4ebe0;
+  --secondary-foreground: #4a3b30;
+  --muted: #fbf7f3;
+  --muted-foreground: #7e6b5d;
+  --success: #7aa66f;
+  --success-foreground: #ffffff;
+  --accent: #8f6bd6;
+  --accent-foreground: #ffffff;
+  --destructive: #c85a4f;
+  --destructive-foreground: #ffffff;
+  --warning: #e2aa4a;
+  --warning-foreground: #3b2a16;
+  --card: #fff9f3;
+  --card-foreground: #2e241d;
+  --sidebar: #efe3d3;
+  --sidebar-foreground: #5a4738;
+  --sidebar-primary: #f7ead6;
+  --sidebar-primary-foreground: #8a4d27;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --font-family-body: 'PT Serif', serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-family-body);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+app-root {
+  display: contents;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(126, 107, 93, 0.2);
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(126, 107, 93, 0.4);
+  }
+}
+
+/* Remove default button styles */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+/* Remove default link styles */
+a {
+  color: inherit;
+  text-decoration: none;
+  background-color: transparent;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+/* Improve focus visibility */
+button:focus,
+a:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Ensure images don't overflow */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Loading and skeleton styles */
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--secondary) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

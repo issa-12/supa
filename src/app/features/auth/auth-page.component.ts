@@ -84,6 +84,11 @@ export class AuthPageComponent {
 
       this.statusMessage = 'Logged in. Your ReadTrack account is connected.';
       this.authForm.reset();
+
+      // Navigate to home page after successful login
+      window.setTimeout(() => {
+        void this.router.navigateByUrl('/home');
+      }, 900);
     } catch (error) {
       this.errorMessage = error instanceof Error
         ? error.message
