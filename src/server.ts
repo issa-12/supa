@@ -7,13 +7,15 @@ import {
 import { createHash, randomInt } from 'node:crypto';
 import express from 'express';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
 loadEnvFile('.env');
 loadEnvFile('.env.local');
 
-const browserDistFolder = join(import.meta.dirname, '../browser');
+const serverDistFolder = fileURLToPath(new URL('.', import.meta.url));
+const browserDistFolder = join(serverDistFolder, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
