@@ -5,11 +5,12 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import {
   AUTH_COPY_BY_LANGUAGE,
   AuthCopy,
-  AuthMode,
   LANGUAGE_OPTIONS,
   LanguageOption,
-} from './auth-language';
-import { LanguageSelectorComponent } from './components/language-selector.component';
+  LanguageSelectorComponent,
+} from '../../i18n';
+
+type AuthMode = 'login' | 'signup';
 
 @Component({
   selector: 'app-auth-page',

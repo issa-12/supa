@@ -1,5 +1,5 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
-import { LanguageOption } from '../auth-language';
+import { LanguageOption } from '../language.model';
 
 @Component({
   selector: 'app-language-selector',

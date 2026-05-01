@@ -1,12 +1,4 @@
-export type AuthMode = 'login' | 'signup';
-export type LanguageCode = 'en' | 'ar' | 'fr';
-
-export interface LanguageOption {
-  code: LanguageCode;
-  label: string;
-  nativeLabel: string;
-  dir: 'ltr' | 'rtl';
-}
+import { LanguageCode } from './language.model';
 
 export interface AuthCopy {
   languageLabel: string;
@@ -45,12 +37,6 @@ export interface AuthCopy {
   resetError: string;
   googleError: string;
 }
-
-export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
-  { code: 'en', label: 'English', nativeLabel: 'English', dir: 'ltr' },
-  { code: 'ar', label: 'Arabic', nativeLabel: 'العربية', dir: 'rtl' },
-  { code: 'fr', label: 'French', nativeLabel: 'Français', dir: 'ltr' },
-];
 
 export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
   en: {
