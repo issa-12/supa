@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -48,7 +47,6 @@ interface ActivityPost {
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
     TopNavComponent,
     HeroSectionComponent,
     ContinueReadingComponent,
