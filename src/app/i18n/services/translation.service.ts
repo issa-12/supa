@@ -10,7 +10,9 @@ type TranslationStore = Record<LanguageCode, TranslationDictionary>;
   providedIn: 'root',
 })
 export class TranslationService {
-  private currentLanguage$ = new BehaviorSubject<LanguageCode>('en');
+  private currentLanguage$ = new BehaviorSubject<LanguageCode>(
+    this.getInitialLanguage(),
+  );
   private translations: TranslationStore = {
     en: { auth: AUTH_COPY_BY_LANGUAGE.en },
     ar: { auth: AUTH_COPY_BY_LANGUAGE.ar },
@@ -27,7 +29,9 @@ export class TranslationService {
 
   setLanguage(language: LanguageCode): void {
     this.currentLanguage$.next(language);
-    localStorage.setItem('selectedLanguage', language);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('selectedLanguage', language);
+    }
   }
 
   getTranslation(key: string, language?: LanguageCode): string {
@@ -49,5 +53,12 @@ export class TranslationService {
 
   getAuth(key: keyof AuthCopy): string {
     return this.getTranslation(`auth.${String(key)}`);
+  }
+
+  private getInitialLanguage(): LanguageCode {
+    if (typeof localStorage === 'undefined') {
+      return 'en';
+    }
+    return (localStorage.getItem('selectedLanguage') as LanguageCode | null) ?? 'en';
   }
 }

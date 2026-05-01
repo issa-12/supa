@@ -28,7 +28,7 @@ export class AuthPageComponent {
   protected readonly languages = LANGUAGE_OPTIONS;
   protected readonly authForm = this.createAuthForm();
 
-  protected selectedLanguage = this.languages[0];
+  protected selectedLanguage = this.getInitialLanguage();
   protected isSubmitting = false;
   protected showPassword = false;
   protected errorMessage = '';
@@ -36,6 +36,17 @@ export class AuthPageComponent {
 
   constructor() {
     this.configureFormForMode();
+  }
+
+  private getInitialLanguage(): LanguageOption {
+    if (typeof localStorage === 'undefined') {
+      return this.languages[0];
+    }
+    return (
+      this.languages.find(
+        (l) => l.code === localStorage.getItem('selectedLanguage'),
+      ) ?? this.languages[0]
+    );
   }
 
   protected get isSignup(): boolean {
