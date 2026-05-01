@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -9,15 +9,15 @@ import {
   LANGUAGE_OPTIONS,
   LanguageOption,
 } from './auth-language';
+import { LanguageSelectorComponent } from './components/language-selector.component';
 
 @Component({
   selector: 'app-auth-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, LanguageSelectorComponent],
   templateUrl: './auth-page.component.html',
   styleUrl: './auth-page.component.scss',
 })
 export class AuthPageComponent {
-  private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly formBuilder = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -28,7 +28,6 @@ export class AuthPageComponent {
   protected readonly authForm = this.createAuthForm();
 
   protected selectedLanguage = this.languages[0];
-  protected isLanguageMenuOpen = false;
   protected isSubmitting = false;
   protected showPassword = false;
   protected errorMessage = '';
@@ -46,13 +45,8 @@ export class AuthPageComponent {
     return AUTH_COPY_BY_LANGUAGE[this.selectedLanguage.code];
   }
 
-  protected toggleLanguageMenu(): void {
-    this.isLanguageMenuOpen = !this.isLanguageMenuOpen;
-  }
-
   protected selectLanguage(language: LanguageOption): void {
     this.selectedLanguage = language;
-    this.isLanguageMenuOpen = false;
   }
 
   protected togglePasswordVisibility(): void {
@@ -122,18 +116,6 @@ export class AuthPageComponent {
       this.errorMessage = this.readErrorMessage(error, this.text.googleError);
       this.isSubmitting = false;
     }
-  }
-
-  @HostListener('document:click', ['$event'])
-  protected closeLanguageMenuOnOutsideClick(event: MouseEvent): void {
-    if (!this.elementRef.nativeElement.contains(event.target as Node)) {
-      this.isLanguageMenuOpen = false;
-    }
-  }
-
-  @HostListener('document:keydown.escape')
-  protected closeLanguageMenuOnEscape(): void {
-    this.isLanguageMenuOpen = false;
   }
 
   private createAuthForm() {

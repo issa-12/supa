@@ -57,23 +57,28 @@
   );
 }
 
-.page-header,
-.auth-card {
-  max-width: 1120px;
+.page-header {
+  max-width: 560px;
   position: relative;
   width: 100%;
-  z-index: 1;
+  z-index: 3;
 }
 
 .page-header {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+}
+
+.auth-card {
+  max-width: 560px;
+  position: relative;
+  width: 100%;
+  z-index: 1;
 }
 
 .brand,
-.language-button,
 .button,
 .field__control {
   align-items: center;
@@ -140,83 +145,7 @@ svg {
   line-height: 1;
 }
 
-.language-button {
-  background: rgb(255 250 245 / 88%);
-  border: 0;
-  border-radius: 8px;
-  color: var(--auth-foreground);
-  cursor: pointer;
-  font: 500 14px/1.2 inherit;
-  gap: 8px;
-  padding: 10px 16px;
-  white-space: nowrap;
-
-  svg {
-    height: 16px;
-    width: 16px;
-  }
-
-  .language-button__chevron {
-    height: 14px;
-    width: 14px;
-  }
-}
-
-.language-menu {
-  position: relative;
-}
-
-.language-button__chevron {
-  transition: transform 160ms ease;
-}
-
-.language-button[aria-expanded="true"] .language-button__chevron {
-  transform: rotate(180deg);
-}
-
-.language-menu__panel {
-  background: rgb(255 250 245 / 96%);
-  border-radius: 8px;
-  box-shadow: 0 18px 36px rgb(46 36 29 / 16%);
-  display: grid;
-  gap: 4px;
-  min-width: 172px;
-  padding: 6px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  z-index: 3;
-}
-
-.language-menu__option {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  color: var(--auth-foreground);
-  cursor: pointer;
-  display: flex;
-  font: 500 14px/1.2 inherit;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 10px 12px;
-  text-align: start;
-
-  span:last-child {
-    color: var(--auth-muted-foreground);
-    font-size: 12px;
-  }
-
-  &:hover,
-  &:focus-visible,
-  &[aria-checked="true"] {
-    background: rgb(239 226 212 / 74%);
-    outline: 0;
-  }
-}
-
 .button:focus-visible,
-.language-button:focus-visible,
 .field__icon-button:focus-visible,
 a:focus-visible,
 input:focus-visible {
@@ -232,10 +161,6 @@ input:focus-visible {
   display: flex;
   min-height: 620px;
   overflow: hidden;
-}
-
-.auth-card--single {
-  max-width: 560px;
 }
 
 .auth-card__main {
@@ -439,11 +364,6 @@ input:focus-visible {
 }
 
 .auth-page--rtl {
-  .language-menu__panel {
-    left: 0;
-    right: auto;
-  }
-
   .field__icon-button {
     margin-left: 0;
     margin-right: auto;
@@ -471,17 +391,13 @@ input:focus-visible {
   }
 
   .page-header {
-    align-items: flex-start;
+    align-items: center;
     gap: 18px;
     margin-bottom: 24px;
   }
 
   .brand__name {
     font-size: 22px;
-  }
-
-  .language-button {
-    padding: 10px 12px;
   }
 
   .auth-card {

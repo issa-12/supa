@@ -1,0 +1,130 @@
+:host {
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.language-menu {
+  position: relative;
+}
+
+.language-button {
+  align-items: center;
+  background: rgb(255 250 245 / 88%);
+  border: 0;
+  border-radius: 8px;
+  color: var(--auth-foreground);
+  cursor: pointer;
+  display: flex;
+  font: 500 14px/1.2 inherit;
+  gap: 8px;
+  height: 46px;
+  justify-content: center;
+  min-width: 162px;
+  padding: 10px 16px;
+  white-space: nowrap;
+
+  svg {
+    fill: none;
+    flex: 0 0 auto;
+    height: 16px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    width: 16px;
+  }
+
+  .language-button__chevron {
+    height: 14px;
+    transition: transform 160ms ease;
+    width: 14px;
+  }
+}
+
+.language-button[aria-expanded="true"] .language-button__chevron {
+  transform: rotate(180deg);
+}
+
+.language-button:focus-visible,
+.language-menu__option:focus-visible {
+  outline: 3px solid rgb(230 118 46 / 45%);
+  outline-offset: 3px;
+}
+
+.language-menu__panel {
+  background: rgb(255 250 245 / 98%);
+  border-radius: 10px;
+  box-shadow:
+    0 18px 36px rgb(46 36 29 / 18%),
+    inset 0 0 0 1px rgb(217 203 189 / 80%);
+  display: grid;
+  gap: 2px;
+  min-width: 100%;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+}
+
+.language-menu__option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--auth-foreground);
+  cursor: pointer;
+  display: flex;
+  font: 500 14px/1.2 inherit;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 9px 10px 9px 12px;
+  text-align: start;
+
+  .language-menu__option-copy {
+    display: grid;
+    gap: 2px;
+  }
+
+  .language-menu__option-copy span:last-child {
+    color: var(--auth-muted-foreground);
+    font-size: 12px;
+  }
+
+  &:hover,
+  &[aria-checked="true"] {
+    background: rgb(239 226 212 / 74%);
+  }
+}
+
+.language-menu__check {
+  align-items: center;
+  color: var(--auth-primary);
+  display: flex;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+
+  svg {
+    fill: none;
+    height: 16px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+    width: 16px;
+  }
+}
+
+:host-context(.auth-page--rtl) .language-menu__panel {
+  left: 0;
+  right: auto;
+}
+
+@media (max-width: 620px) {
+  .language-button {
+    padding: 10px 12px;
+  }
+}
