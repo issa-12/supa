@@ -3,6 +3,8 @@ services:
     build:
       context: .
       target: frontend
+      secrets:
+        - npmrc
     container_name: books-media-platform-frontend
     depends_on:
       - backend
@@ -14,6 +16,8 @@ services:
     build:
       context: .
       target: backend
+      secrets:
+        - npmrc
     container_name: books-media-platform-backend
     env_file:
       - .env
@@ -23,3 +27,7 @@ services:
     ports:
       - "4000:4000"
     restart: unless-stopped
+
+secrets:
+  npmrc:
+    file: ${USERPROFILE}/.npmrc

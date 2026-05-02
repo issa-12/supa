@@ -1,9 +1,11 @@
+# syntax=docker/dockerfile:1.7
+
 FROM node:20.19.2-bookworm-slim AS build
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm ci --include=dev
 
 COPY . .
 RUN npm run build

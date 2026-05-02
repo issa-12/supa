@@ -4,7 +4,6 @@ import {
   isMainModule,
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
-import { createHash, randomInt } from 'node:crypto';
 import express from 'express';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +18,7 @@ const browserDistFolder = join(serverDistFolder, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
-const codeTtlMinutes = 10;
+const defaultSupabaseUrl = 'https://qgoermeodyyfrfoyvnvo.supabase.co';
 
 interface RequestSignupBody {
   email?: string;
@@ -30,13 +29,6 @@ interface RequestSignupBody {
 interface VerifyEmailBody {
   email?: string;
   code?: string;
-}
-
-interface EmailVerificationMetadata {
-  email: string;
-  code_hash: string;
-  expires_at: string;
-  attempts: number;
 }
 
 app.use(express.json({ limit: '16kb' }));
@@ -53,12 +45,11 @@ app.post('/api/auth/request-signup', async (req, res) => {
       return;
     }
 
-    ensureVerificationDeliveryConfigured();
-
     const supabase = await getSupabaseAdminClient();
     const user = await createOrUpdatePendingUser(supabase, email, password, name);
     await upsertPublicUser(supabase, user.id, email, name);
-    await issueVerificationCode(supabase, user, email);
+    await upsertPublicProfile(supabase, user.id, name);
+    await issueVerificationCode(email);
 
     res.status(200).json({
       email,
@@ -82,10 +73,9 @@ app.post('/api/auth/verify-email', async (req, res) => {
     }
 
     const supabase = await getSupabaseAdminClient();
-    const verification = await findValidVerificationCode(supabase, email, code);
+    const verification = await verifyAuthOtp(email, code);
 
-    await markVerificationCodeConsumed(supabase, verification.userId);
-    await confirmSupabaseUser(supabase, verification.userId);
+    await syncVerifiedPublicUser(supabase, verification.user);
 
     res.status(200).json({
       email,
@@ -107,8 +97,6 @@ app.post('/api/auth/resend-verification', async (req, res) => {
       return;
     }
 
-    ensureVerificationDeliveryConfigured();
-
     const supabase = await getSupabaseAdminClient();
     const existing = await findPublicUserByEmail(supabase, email);
 
@@ -122,11 +110,11 @@ app.post('/api/auth/resend-verification', async (req, res) => {
       throw authUser.error ?? new HttpError(404, 'No pending account was found for this email.');
     }
 
-    if (authUser.data.user.email_confirmed_at) {
+    if (isAppEmailVerified(authUser.data.user)) {
       throw new HttpError(409, 'This email is already verified. You can log in.');
     }
 
-    await issueVerificationCode(supabase, authUser.data.user, email);
+    await issueVerificationCode(email);
 
     res.status(200).json({
       email,
@@ -174,7 +162,7 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
 
     console.log(`Node Express server listening on http://localhost:${port}`);
     console.log(`Supabase service role configured: ${Boolean(process.env['SUPABASE_SERVICE_ROLE_KEY'])}`);
-    console.log(`Email delivery configured: ${Boolean(process.env['RESEND_API_KEY'] && process.env['EMAIL_FROM']) || process.env['EMAIL_DEBUG_LOG_CODES'] === 'true'}`);
+    console.log(`Supabase anon key configured: ${Boolean(process.env['SUPABASE_ANON_KEY'])}`);
   });
 }
 
@@ -184,7 +172,7 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
 export const reqHandler = createNodeRequestHandler(app);
 
 async function getSupabaseAdminClient(): Promise<SupabaseClient> {
-  const supabaseUrl = process.env['SUPABASE_URL'] ?? 'https://qgoermeodyyfrfoyvnvo.supabase.co';
+  const supabaseUrl = process.env['SUPABASE_URL'] ?? defaultSupabaseUrl;
   const serviceRoleKey = process.env['SUPABASE_SERVICE_ROLE_KEY'];
 
   if (!serviceRoleKey) {
@@ -201,6 +189,24 @@ async function getSupabaseAdminClient(): Promise<SupabaseClient> {
   });
 }
 
+async function getSupabaseAuthClient(): Promise<SupabaseClient> {
+  const supabaseUrl = process.env['SUPABASE_URL'] ?? defaultSupabaseUrl;
+  const anonKey = process.env['SUPABASE_ANON_KEY'];
+
+  if (!anonKey) {
+    throw new HttpError(503, 'Auth is not configured. Add SUPABASE_ANON_KEY to .env and restart npm start.');
+  }
+
+  const { createClient } = await import('@supabase/supabase-js');
+
+  return createClient(supabaseUrl, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
 async function createOrUpdatePendingUser(
   supabase: SupabaseClient,
   email: string,
@@ -210,9 +216,10 @@ async function createOrUpdatePendingUser(
   const created = await supabase.auth.admin.createUser({
     email,
     password,
-    email_confirm: false,
+    email_confirm: true,
     user_metadata: {
       name,
+      app_email_verified: false,
     },
   });
 
@@ -232,14 +239,16 @@ async function createOrUpdatePendingUser(
     throw existingAuthUser.error ?? new HttpError(409, 'Could not find existing account.');
   }
 
-  if (existingAuthUser.data.user.email_confirmed_at) {
+  if (isAppEmailVerified(existingAuthUser.data.user)) {
     throw new HttpError(409, 'An account with this email already exists. Log in or reset your password.');
   }
 
   const updated = await supabase.auth.admin.updateUserById(existing.id, {
     password,
     user_metadata: {
+      ...existingAuthUser.data.user.user_metadata,
       name,
+      app_email_verified: false,
     },
   });
 
@@ -287,159 +296,30 @@ async function upsertPublicUser(
   }
 }
 
-async function issueVerificationCode(
-  supabase: SupabaseClient,
-  user: User,
-  email: string,
-): Promise<void> {
-  const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-  const expiresAt = new Date(Date.now() + codeTtlMinutes * 60_000).toISOString();
-  const codeHash = hashVerificationCode(email, code);
-
-  const updated = await supabase.auth.admin.updateUserById(user.id, {
-    app_metadata: {
-      ...user.app_metadata,
-      email_verification: {
-        email,
-        code_hash: codeHash,
-        expires_at: expiresAt,
-        attempts: 0,
-      },
-    },
-  });
-
-  if (updated.error) {
-    throw updated.error;
-  }
-
-  await sendVerificationEmail(email, code);
-}
-
-async function sendVerificationEmail(email: string, code: string): Promise<void> {
-  if (shouldLogVerificationCodes()) {
-    console.log(`ReadTrack verification code for ${email}: ${code}`);
-    return;
-  }
-
-  const resendApiKey = process.env['RESEND_API_KEY'];
-  const emailFrom = process.env['EMAIL_FROM'];
-
-  if (!resendApiKey || !emailFrom) {
-    throw new HttpError(503, 'Email is not configured. Add RESEND_API_KEY and EMAIL_FROM to .env, or set EMAIL_DEBUG_LOG_CODES=true for local testing.');
-  }
-
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: emailFrom,
-      to: email,
-      subject: 'Your ReadTrack verification code',
-      text: `Your ReadTrack verification code is ${code}. It expires in ${codeTtlMinutes} minutes.`,
-      html: `<p>Your ReadTrack verification code is <strong>${code}</strong>.</p><p>It expires in ${codeTtlMinutes} minutes.</p>`,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new HttpError(502, 'Could not send verification email.');
-  }
-}
-
-function ensureVerificationDeliveryConfigured(): void {
-  if (shouldLogVerificationCodes()) {
-    return;
-  }
-
-  if (process.env['RESEND_API_KEY'] && process.env['EMAIL_FROM']) {
-    return;
-  }
-
-  throw new HttpError(503, 'Email is not configured. Add RESEND_API_KEY and EMAIL_FROM to .env, or set EMAIL_DEBUG_LOG_CODES=true for local testing.');
-}
-
-function shouldLogVerificationCodes(): boolean {
-  return process.env['EMAIL_DEBUG_LOG_CODES'] === 'true';
-}
-
-async function findValidVerificationCode(
-  supabase: SupabaseClient,
-  email: string,
-  code: string,
-): Promise<{ userId: string; attempts: number }> {
-  const publicUser = await findPublicUserByEmail(supabase, email);
-
-  if (!publicUser?.id) {
-    throw new HttpError(400, 'Invalid or expired verification code.');
-  }
-
-  const authUser = await supabase.auth.admin.getUserById(publicUser.id);
-
-  if (authUser.error || !authUser.data.user) {
-    throw authUser.error ?? new HttpError(400, 'Invalid or expired verification code.');
-  }
-
-  const verification = readEmailVerificationMetadata(authUser.data.user);
-  const codeHash = hashVerificationCode(email, code);
-
-  if (
-    !verification ||
-    verification.email !== email ||
-    verification.code_hash !== codeHash ||
-    new Date(verification.expires_at).getTime() <= Date.now()
-  ) {
-    await recordFailedVerificationAttempt(supabase, authUser.data.user);
-    throw new HttpError(400, 'Invalid or expired verification code.');
-  }
-
-  if (verification.attempts >= 5) {
-    throw new HttpError(429, 'Too many attempts. Request a new code.');
-  }
-
-  return {
-    userId: authUser.data.user.id,
-    attempts: verification.attempts,
-  };
-}
-
-async function recordFailedVerificationAttempt(
-  supabase: SupabaseClient,
-  user: User,
-): Promise<void> {
-  const verification = readEmailVerificationMetadata(user);
-
-  if (!verification) {
-    return;
-  }
-
-  await supabase.auth.admin.updateUserById(user.id, {
-    app_metadata: {
-      ...user.app_metadata,
-      email_verification: {
-        ...verification,
-        attempts: verification.attempts + 1,
-      },
-    },
-  });
-}
-
-async function markVerificationCodeConsumed(
+async function upsertPublicProfile(
   supabase: SupabaseClient,
   userId: string,
+  name: string,
 ): Promise<void> {
-  const authUser = await supabase.auth.admin.getUserById(userId);
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({
+      user_id: userId,
+      name,
+    }, { onConflict: 'user_id' });
 
-  if (authUser.error || !authUser.data.user) {
-    throw authUser.error ?? new HttpError(500, 'Could not verify account.');
+  if (error) {
+    throw error;
   }
+}
 
-  const appMetadata = { ...authUser.data.user.app_metadata };
-  delete appMetadata['email_verification'];
-
-  const { error } = await supabase.auth.admin.updateUserById(userId, {
-    app_metadata: appMetadata,
+async function issueVerificationCode(email: string): Promise<void> {
+  const supabase = await getSupabaseAuthClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+    },
   });
 
   if (error) {
@@ -447,20 +327,60 @@ async function markVerificationCodeConsumed(
   }
 }
 
-async function confirmSupabaseUser(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<void> {
-  const { data, error } = await supabase.auth.admin.updateUserById(userId, {
-    email_confirm: true,
+async function verifyAuthOtp(
+  email: string,
+  code: string,
+): Promise<{ user: User }> {
+  const supabase = await getSupabaseAuthClient();
+
+  const magicLinkResult = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: 'magiclink',
   });
 
-  if (error || !data.user) {
-    throw error ?? new HttpError(500, 'Could not verify account.');
+  if (!magicLinkResult.error && magicLinkResult.data.user) {
+    return {
+      user: magicLinkResult.data.user,
+    };
   }
 
-  const email = data.user.email;
-  const metadataName = data.user.user_metadata?.['name'];
+  const emailOtpResult = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: 'email',
+  });
+
+  if (emailOtpResult.error) {
+    throw magicLinkResult.error ?? emailOtpResult.error;
+  }
+
+  if (!emailOtpResult.data.user) {
+    throw new HttpError(400, 'Invalid or expired verification code.');
+  }
+
+  return {
+    user: emailOtpResult.data.user,
+  };
+}
+
+async function syncVerifiedPublicUser(
+  supabase: SupabaseClient,
+  user: User,
+): Promise<void> {
+  const verified = await supabase.auth.admin.updateUserById(user.id, {
+    user_metadata: {
+      ...user.user_metadata,
+      app_email_verified: true,
+    },
+  });
+
+  if (verified.error) {
+    throw verified.error;
+  }
+
+  const email = user.email;
+  const metadataName = user.user_metadata?.['name'];
   const name = typeof metadataName === 'string' && metadataName.trim()
     ? metadataName.trim()
     : nameFromEmail(email ?? '');
@@ -468,7 +388,7 @@ async function confirmSupabaseUser(
   const upserted = await supabase
     .from('users')
     .upsert({
-      id: data.user.id,
+      id: user.id,
       email: email?.toLowerCase() ?? '',
       name,
       updated_at: new Date().toISOString(),
@@ -488,46 +408,11 @@ function normalizeEmail(email: string | undefined): string {
 function normalizeCode(code: string | undefined): string {
   const normalized = code?.trim() ?? '';
 
-  return /^\d{6}$/.test(normalized) ? normalized : '';
+  return /^\d{8}$/.test(normalized) ? normalized : '';
 }
 
-function hashVerificationCode(email: string, code: string): string {
-  const pepper = process.env['AUTH_CODE_PEPPER'] ?? process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? 'readtrack-dev-pepper';
-
-  return createHash('sha256')
-    .update(`${email}:${code}:${pepper}`)
-    .digest('hex');
-}
-
-function readEmailVerificationMetadata(user: User): EmailVerificationMetadata | null {
-  const metadata = user.app_metadata?.['email_verification'];
-
-  if (
-    typeof metadata !== 'object' ||
-    metadata === null ||
-    !('email' in metadata) ||
-    !('code_hash' in metadata) ||
-    !('expires_at' in metadata)
-  ) {
-    return null;
-  }
-
-  const verification = metadata as Partial<EmailVerificationMetadata>;
-
-  if (
-    typeof verification.email !== 'string' ||
-    typeof verification.code_hash !== 'string' ||
-    typeof verification.expires_at !== 'string'
-  ) {
-    return null;
-  }
-
-  return {
-    email: verification.email,
-    code_hash: verification.code_hash,
-    expires_at: verification.expires_at,
-    attempts: typeof verification.attempts === 'number' ? verification.attempts : 0,
-  };
+function isAppEmailVerified(user: User): boolean {
+  return user.user_metadata?.['app_email_verified'] === true;
 }
 
 function nameFromEmail(email: string): string {

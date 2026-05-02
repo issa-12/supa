@@ -12,6 +12,7 @@ out-tsc
 .env
 .env.*
 !.env.example
+.npmrc
 
 npm-debug.log
 yarn-error.log

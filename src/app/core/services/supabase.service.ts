@@ -52,6 +52,21 @@ export class SupabaseService {
     const response = await supabase.auth.signInWithPassword({ email, password });
 
     if (response.data.user) {
+      if (response.data.user.user_metadata?.['app_email_verified'] === false) {
+        await supabase.auth.signOut();
+
+        return {
+          data: {
+            user: null,
+            session: null,
+          },
+          error: {
+            name: 'EmailNotVerifiedError',
+            message: 'Please verify your email before logging in.',
+          },
+        } as AuthResponse;
+      }
+
       await this.ensurePublicUser(response.data.user);
     }
 

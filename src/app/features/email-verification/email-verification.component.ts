@@ -12,6 +12,8 @@ import { SupabaseService } from '../../core/services/supabase.service';
 export class EmailVerificationComponent {
   @ViewChildren('codeInput') private readonly codeInputs?: QueryList<ElementRef<HTMLInputElement>>;
 
+  protected readonly codeLength = 8;
+
   private readonly formBuilder = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -19,7 +21,7 @@ export class EmailVerificationComponent {
 
   protected readonly email = this.route.snapshot.queryParamMap.get('email') ?? '';
   protected readonly codeControls = this.formBuilder.array(
-    Array.from({ length: 6 }, () => this.formBuilder.nonNullable.control('', [
+    Array.from({ length: this.codeLength }, () => this.formBuilder.nonNullable.control('', [
       Validators.required,
       Validators.pattern(/^\d$/),
     ])),
@@ -40,7 +42,7 @@ export class EmailVerificationComponent {
     const digit = input.value.replace(/\D/g, '').slice(-1);
     this.codeArray.at(index).setValue(digit);
 
-    if (digit && index < 5) {
+    if (digit && index < this.codeLength - 1) {
       this.focusCodeInput(index + 1);
     }
   }
@@ -52,9 +54,9 @@ export class EmailVerificationComponent {
   }
 
   protected onCodePaste(event: ClipboardEvent): void {
-    const pastedCode = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 6) ?? '';
+    const pastedCode = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, this.codeLength) ?? '';
 
-    if (pastedCode.length !== 6) {
+    if (pastedCode.length !== this.codeLength) {
       return;
     }
 
@@ -62,7 +64,7 @@ export class EmailVerificationComponent {
     pastedCode.split('').forEach((digit, index) => {
       this.codeArray.at(index).setValue(digit);
     });
-    this.focusCodeInput(5);
+    this.focusCodeInput(this.codeLength - 1);
   }
 
   protected async verifyCode(): Promise<void> {
@@ -76,7 +78,7 @@ export class EmailVerificationComponent {
     }
 
     if (this.verificationForm.invalid) {
-      this.errorMessage = 'Enter the 6-digit code from your email.';
+      this.errorMessage = `Enter the ${this.codeLength}-digit code from your email.`;
       return;
     }
 

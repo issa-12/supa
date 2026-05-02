@@ -3,6 +3,9 @@
 
 create extension if not exists pgcrypto;
 
+alter table public.profiles
+add column if not exists otp integer;
+
 create table if not exists public.email_verification_codes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
