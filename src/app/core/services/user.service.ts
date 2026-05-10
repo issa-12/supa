@@ -87,11 +87,9 @@ export class UserService {
           .select('target_books')
           .eq('user_id', userId)
           .eq('year', currentYear)
-          .single();
+          .maybeSingle();
 
-        if (goalError && goalError.code !== 'PGRST116') {
-          throw goalError;
-        }
+        if (goalError) throw goalError;
 
         return {
           booksReadThisYear: readBooks?.length || 0,

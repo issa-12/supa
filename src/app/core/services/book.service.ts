@@ -49,7 +49,7 @@ export interface ReadingStatus {
 export class BookService {
   private readonly supabaseService = inject(SupabaseService);
 
-  getFeaturedBook(): Observable<Book> {
+  getFeaturedBook(): Observable<Book | null> {
     return from(
       this.supabaseService.getClient().then((supabase) =>
         supabase
@@ -58,9 +58,7 @@ export class BookService {
           .limit(1)
           .then(({ data, error }) => {
             if (error) throw error;
-            if (!data || data.length === 0) {
-              throw new Error('No featured book found');
-            }
+            if (!data || data.length === 0) return null;
             return this.mapBook(data[0]);
           })
       )
@@ -69,15 +67,106 @@ export class BookService {
 
   getContinueReadingBooks(userId: string): Observable<UserBook[]> {
     return from(
+      this.supabaseService.getClient().then(async (supabase) => {
+        // Resolve the status_id for 'currently_reading' dynamically
+        const { data: status } = await supabase
+          .from('reading_statuses')
+          .select('status_id')
+          .eq('status_name', 'currently_reading')
+          .maybeSingle();
+
+        const statusId = status?.['status_id'] ?? 3;
+
+        return supabase
+          .from('user_books')
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .eq('user_id', userId)
+          .eq('status_id', statusId)
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return (data || []).map((item) => this.mapUserBook(item));
+          });
+      })
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  getUserShelf(userId: string): Observable<UserBook[]> {
+    return from(
       this.supabaseService.getClient().then((supabase) =>
         supabase
           .from('user_books')
           .select('*, book:books(*), status:reading_statuses(*)')
           .eq('user_id', userId)
-          .eq('status_id', 1)
+          .order('added_at', { ascending: false })
           .then(({ data, error }) => {
             if (error) throw error;
             return (data || []).map((item) => this.mapUserBook(item));
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  getUserBookByGoogleId(userId: string, googleBooksId: string): Observable<UserBook | null> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .eq('user_id', userId)
+          .then(({ data, error }) => {
+            if (error) throw error;
+            const match = (data || []).find(
+              (ub) => ub.book?.google_books_id === googleBooksId,
+            );
+            return match ? this.mapUserBook(match) : null;
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  changeShelfStatus(userBookId: number, statusId: number): Observable<UserBook> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .update({ status_id: statusId, updated_at: new Date().toISOString() })
+          .eq('user_book_id', userBookId)
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            if (!data || data.length === 0) throw new Error('Failed to change status');
+            return this.mapUserBook(data[0]);
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  setRating(userBookId: number, rating: number): Observable<UserBook> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .update({ rating, updated_at: new Date().toISOString() })
+          .eq('user_book_id', userBookId)
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            if (!data || data.length === 0) throw new Error('Failed to rate book');
+            return this.mapUserBook(data[0]);
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  removeFromShelf(userBookId: number): Observable<void> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .delete()
+          .eq('user_book_id', userBookId)
+          .then(({ error }) => {
+            if (error) throw error;
           })
       )
     ).pipe(catchError((error) => throwError(() => error)));

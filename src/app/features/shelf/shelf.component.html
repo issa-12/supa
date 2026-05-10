@@ -1,0 +1,139 @@
+<div class="shelf-viewport" (click)="closeMenu()">
+
+  <!-- Header -->
+  <header class="shelf-header">
+    <div class="header-content">
+      <a class="back-btn" routerLink="/home" aria-label="Go home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </a>
+      <div class="header-center">
+        <h1 class="header-title">My Library</h1>
+        @if (!isLoading && totalBooks > 0) {
+          <span class="book-count">{{ totalBooks }} book{{ totalBooks !== 1 ? 's' : '' }}</span>
+        }
+      </div>
+      <a routerLink="/books/search" class="header-add-btn" aria-label="Find books">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  @if (isLoading) {
+    <div class="page-state">
+      <div class="spinner"></div>
+      <p>Loading your library…</p>
+    </div>
+  }
+
+  <!-- Error -->
+  @else if (error) {
+    <div class="page-state">
+      <p class="error-text">{{ error }}</p>
+    </div>
+  }
+
+  <!-- Empty library -->
+  @else if (sections.length === 0) {
+    <div class="page-state empty">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      <p class="state-title">Your library is empty</p>
+      <p class="state-hint">Search for books and add them to your shelf.</p>
+      <a routerLink="/books/search" class="btn btn-primary">Find Books</a>
+    </div>
+  }
+
+  <!-- Shelf content -->
+  @else {
+    <div class="shelf-content">
+      @for (section of sections; track section.statusName) {
+        <section class="shelf-section">
+          <div class="section-header">
+            <h2 class="section-title">{{ section.label }}</h2>
+            <span class="section-count">{{ section.books.length }}</span>
+          </div>
+
+          <div class="books-grid">
+            @for (book of section.books; track book.id) {
+              <div class="book-card" (click)="navigateToDetail(book)">
+
+                <!-- Cover -->
+                <div class="cover-wrap">
+                  @if (book.book?.coverUrl) {
+                    <img [src]="book.book!.coverUrl" [alt]="book.book!.title" class="cover-img" loading="lazy" />
+                  } @else {
+                    <div class="cover-placeholder">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                    </div>
+                  }
+
+                  @if (savingId === book.id) {
+                    <div class="cover-saving">
+                      <div class="saving-spinner"></div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Info -->
+                <div class="book-info">
+                  <h3 class="book-title">{{ book.book?.title }}</h3>
+                  <p class="book-author">{{ book.book?.author }}</p>
+
+                  <!-- Stars -->
+                  @if (book.rating) {
+                    <div class="stars">
+                      @for (filled of starsArray(book.rating); track $index) {
+                        <svg class="star" [class.star--filled]="filled" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                      }
+                    </div>
+                  }
+
+                  <!-- Menu -->
+                  <div class="card-actions" (click)="$event.stopPropagation()">
+                    <button class="menu-btn" (click)="toggleMenu(book.id)" [class.active]="openMenuId === book.id">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                      </svg>
+                    </button>
+
+                    @if (openMenuId === book.id) {
+                      <div class="dropdown">
+                        <p class="dropdown-label">Move to</p>
+                        @for (status of SHELF_STATUSES; track status.name) {
+                          @if (status.name !== section.statusName) {
+                            <button class="dropdown-item" (click)="changeStatus(book, status.name)">
+                              {{ status.label }}
+                            </button>
+                          }
+                        }
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item dropdown-item--danger" (click)="removeBook(book)">
+                          Remove from shelf
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+
+</div>

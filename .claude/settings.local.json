@@ -3,7 +3,12 @@
     "allow": [
       "Bash(supabase --version)",
       "Bash(npm --version)",
-      "Bash(npx ng *)"
+      "Bash(npx ng *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\server.ts\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\main.server.ts\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\app\\\\app.config.server.ts\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\app\\\\app.routes.server.ts\" -Force)",
+      "Bash(npm install *)"
     ]
   }
 }

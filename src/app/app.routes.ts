@@ -64,6 +64,22 @@ export const routes: Routes = [
         (m) => m.BookSearchComponent,
       ),
   },
+  {
+    path: 'books/:googleId',
+    canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/books/book-detail.component').then(
+        (m) => m.BookDetailComponent,
+      ),
+  },
+  {
+    path: 'shelf',
+    canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/shelf/shelf.component').then(
+        (m) => m.ShelfComponent,
+      ),
+  },
 
   // ── Static pages (no auth required) ──────────────────────────
   {

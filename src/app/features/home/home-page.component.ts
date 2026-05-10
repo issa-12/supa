@@ -125,7 +125,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (book) => {
-          this.heroBook = this.mapServiceBookToUI(book);
+          this.heroBook = book ? this.mapServiceBookToUI(book) : null;
         },
         error: (err) => {
           console.error('Failed to load featured book:', err);

@@ -94,8 +94,8 @@
         @for (book of results; track book.googleId) {
           <div class="book-card" (click)="$event.stopPropagation()">
 
-            <!-- Cover -->
-            <div class="cover-wrap">
+            <!-- Cover (click → detail page) -->
+            <div class="cover-wrap" (click)="goToDetail(book)" style="cursor:pointer">
               @if (book.coverUrl) {
                 <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
               } @else {

@@ -1,5 +1,5 @@
 import { Component, OnDestroy, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -27,6 +27,7 @@ const SHELF_STATUSES: ShelfStatus[] = [
 export class BookSearchComponent implements OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly router = inject(Router);
 
   readonly statuses = SHELF_STATUSES;
 
@@ -107,6 +108,10 @@ export class BookSearchComponent implements OnDestroy {
 
   getAddedLabel(googleId: string): string | null {
     return this.addedBooks.get(googleId) ?? null;
+  }
+
+  goToDetail(book: GoogleBook): void {
+    this.router.navigate(['/books', book.googleId]);
   }
 
   closeDropdown(): void {

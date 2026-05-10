@@ -22,6 +22,9 @@ import { RouterLink, Router } from '@angular/router';
       </a>
 
       <div class="nav-actions">
+        <a routerLink="/shelf" class="nav-icon-btn" aria-label="My Shelf">
+          <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
+        </a>
         <button class="nav-icon-btn" aria-label="Notifications">
           <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
           <div class="notification-badge"></div>

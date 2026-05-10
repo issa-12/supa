@@ -1,16 +1,9 @@
-import { isPlatformBrowser } from '@angular/common';
-import { inject, PLATFORM_ID } from '@angular/core';
+import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { SupabaseService } from '../services/supabase.service';
 
 export const genreOnboardingGuard: CanActivateFn = async () => {
-  const platformId = inject(PLATFORM_ID);
   const router = inject(Router);
-
-  if (!isPlatformBrowser(platformId)) {
-    return true;
-  }
-
   const supabaseService = inject(SupabaseService);
 
   try {
@@ -27,7 +20,6 @@ export const genreOnboardingGuard: CanActivateFn = async () => {
 
     if (genres && genres.length > 0) return true;
   } catch {
-    // If the check fails, don't block the user
     return true;
   }
 
