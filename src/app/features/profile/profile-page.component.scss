@@ -510,6 +510,93 @@
   margin: 0;
 }
 
+// Loading / Error state
+.page-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 24px;
+  color: var(--muted-foreground);
+  font-size: 15px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(233, 120, 63, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-text { color: var(--destructive); }
+
+// Avatar initials fallback
+.profile-avatar--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+  color: #fff;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  image-rendering: auto;
+}
+
+// Username
+.profile-username {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+// Stars (SVG inline — replaces iconify)
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  width: 14px;
+  height: 14px;
+  color: rgba(126, 107, 93, 0.3);
+
+  &--filled {
+    color: var(--warning);
+    fill: var(--warning);
+  }
+}
+
+// Empty shelves
+.empty-shelves {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 64px 24px;
+  color: var(--muted-foreground);
+  text-align: center;
+
+  svg { opacity: 0.4; }
+
+  p { font-size: 15px; margin: 0; }
+}
+
+// Book cover placeholder
+.book-cover--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(126, 107, 93, 0.1);
+  color: var(--muted-foreground);
+}
+
 // Responsive Design
 @media (max-width: 768px) {
   .profile-card {

@@ -8,7 +8,7 @@ import express from 'express';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
-import type { SupabaseClient, User } from '@supabase/supabase-js';
+import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 
 loadEnvFile('.env');
 loadEnvFile('.env.local');
@@ -80,6 +80,8 @@ app.post('/api/auth/verify-email', async (req, res) => {
     res.status(200).json({
       email,
       message: 'Email verified.',
+      access_token: verification.session?.access_token ?? null,
+      refresh_token: verification.session?.refresh_token ?? null,
     });
   } catch (error) {
     const { status, message } = authApiError(error);
@@ -123,6 +125,45 @@ app.post('/api/auth/resend-verification', async (req, res) => {
   } catch (error) {
     const { status, message } = authApiError(error);
     res.status(status).json({ message });
+  }
+});
+
+// ── Google Books search proxy ─────────────────────────────────
+app.get('/api/books/search', async (req, res) => {
+  try {
+    const q = ((req.query['q'] as string) ?? '').trim();
+
+    if (!q || q.length < 2) {
+      res.status(400).json({ message: 'Query must be at least 2 characters.' });
+      return;
+    }
+
+    const maxResults = Math.min(Number(req.query['maxResults']) || 20, 40);
+    const startIndex = Number(req.query['startIndex']) || 0;
+
+    const params = new URLSearchParams({
+      q,
+      maxResults: String(maxResults),
+      startIndex: String(startIndex),
+      printType: 'books',
+    });
+
+    const apiKey = process.env['GOOGLE_BOOKS_API_KEY'];
+    if (apiKey) params.set('key', apiKey);
+
+    const googleRes = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`);
+
+    if (!googleRes.ok) {
+      res.status(502).json({ message: 'Book search service unavailable.' });
+      return;
+    }
+
+    const data = (await googleRes.json()) as GoogleBooksApiResponse;
+    const books = (data.items ?? []).map(mapGoogleBookItem);
+
+    res.status(200).json({ books, totalItems: data.totalItems ?? 0 });
+  } catch {
+    res.status(500).json({ message: 'Book search failed.' });
   }
 });
 
@@ -330,7 +371,7 @@ async function issueVerificationCode(email: string): Promise<void> {
 async function verifyAuthOtp(
   email: string,
   code: string,
-): Promise<{ user: User }> {
+): Promise<{ user: User; session: Session | null }> {
   const supabase = await getSupabaseAuthClient();
 
   const magicLinkResult = await supabase.auth.verifyOtp({
@@ -342,6 +383,7 @@ async function verifyAuthOtp(
   if (!magicLinkResult.error && magicLinkResult.data.user) {
     return {
       user: magicLinkResult.data.user,
+      session: magicLinkResult.data.session,
     };
   }
 
@@ -361,6 +403,7 @@ async function verifyAuthOtp(
 
   return {
     user: emailOtpResult.data.user,
+    session: emailOtpResult.data.session,
   };
 }
 
@@ -471,6 +514,53 @@ class HttpError extends Error {
   ) {
     super(message);
   }
+}
+
+// ── Google Books types ────────────────────────────────────────
+interface GoogleBooksApiResponse {
+  totalItems?: number;
+  items?: GoogleBookItem[];
+}
+
+interface GoogleBookItem {
+  id: string;
+  volumeInfo: {
+    title?: string;
+    authors?: string[];
+    description?: string;
+    publishedDate?: string;
+    imageLinks?: { thumbnail?: string; smallThumbnail?: string };
+    pageCount?: number;
+    categories?: string[];
+    averageRating?: number;
+    ratingsCount?: number;
+  };
+}
+
+export interface SearchedBook {
+  googleId: string;
+  title: string;
+  author: string;
+  description: string | null;
+  publishedDate: string | null;
+  coverUrl: string | null;
+  pageCount: number | null;
+  categories: string[];
+}
+
+function mapGoogleBookItem(item: GoogleBookItem): SearchedBook {
+  const v = item.volumeInfo;
+  const thumbnail = v.imageLinks?.thumbnail ?? null;
+  return {
+    googleId: item.id,
+    title: v.title ?? 'Unknown Title',
+    author: (v.authors ?? []).join(', ') || 'Unknown Author',
+    description: v.description ?? null,
+    publishedDate: v.publishedDate ?? null,
+    coverUrl: thumbnail ? thumbnail.replace('http://', 'https://') : null,
+    pageCount: v.pageCount ?? null,
+    categories: v.categories ?? [],
+  };
 }
 
 function loadEnvFile(filename: string): void {

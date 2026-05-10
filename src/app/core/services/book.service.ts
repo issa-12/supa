@@ -5,11 +5,23 @@ import { catchError } from 'rxjs/operators';
 
 export interface Book {
   id: number;
+  googleBooksId: string | null;
   title: string;
   author: string;
   description: string | null;
   publishDate: string | null;
   coverUrl: string | null;
+}
+
+export interface GoogleBook {
+  googleId: string;
+  title: string;
+  author: string;
+  description: string | null;
+  publishedDate: string | null;
+  coverUrl: string | null;
+  pageCount: number | null;
+  categories: string[];
 }
 
 export interface UserBook {
@@ -122,6 +134,69 @@ export class BookService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
+  async searchBooks(query: string): Promise<GoogleBook[]> {
+    const params = new URLSearchParams({ q: query, maxResults: '20' });
+    const res = await fetch(`/api/books/search?${params}`);
+    const payload = await res.json() as { books?: GoogleBook[]; message?: string };
+
+    if (!res.ok) {
+      throw new Error(payload.message ?? 'Search failed.');
+    }
+
+    return payload.books ?? [];
+  }
+
+  async addGoogleBookToShelf(
+    book: GoogleBook,
+    userId: string,
+    statusId: number,
+  ): Promise<void> {
+    const supabase = await this.supabaseService.getClient();
+
+    // Find existing book or insert new one
+    let bookId: number;
+    const { data: existing } = await supabase
+      .from('books')
+      .select('book_id')
+      .eq('google_books_id', book.googleId)
+      .maybeSingle();
+
+    if (existing) {
+      bookId = existing['book_id'] as number;
+    } else {
+      const { data: inserted, error: insertErr } = await supabase
+        .from('books')
+        .insert({
+          title: book.title,
+          author_name: book.author,
+          description: book.description,
+          publish_date: book.publishedDate,
+          cover_image_url: book.coverUrl,
+          google_books_id: book.googleId,
+        })
+        .select('book_id')
+        .single();
+
+      if (insertErr || !inserted) throw insertErr ?? new Error('Failed to save book.');
+      bookId = inserted['book_id'] as number;
+    }
+
+    // Upsert user_books (handles re-adding with a different status)
+    const { error: shelfErr } = await supabase
+      .from('user_books')
+      .upsert(
+        {
+          user_id: userId,
+          book_id: bookId,
+          status_id: statusId,
+          added_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,book_id' },
+      );
+
+    if (shelfErr) throw shelfErr;
+  }
+
   getReadingStatuses(): Observable<ReadingStatus[]> {
     return from(
       this.supabaseService.getClient().then((supabase) =>
@@ -210,6 +285,7 @@ export class BookService {
   private mapBook(raw: any): Book {
     return {
       id: raw.book_id,
+      googleBooksId: raw.google_books_id ?? null,
       title: raw.title,
       author: raw.author_name,
       description: raw.description,

@@ -1,202 +1,292 @@
 <div class="profile-viewport">
-  <!-- Header with Navigation -->
+
+  <!-- Header -->
   <header class="profile-header">
     <div class="header-content">
       <button class="back-btn" routerLink="/home" aria-label="Go back">
-        <iconify-icon icon="lucide:arrow-left" style="font-size: 20px"></iconify-icon>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
       </button>
-      <h1 class="header-title">Profile</h1>
+      <h1 class="header-title">{{ isOwnProfile ? 'My Profile' : 'Profile' }}</h1>
       <div class="header-spacer"></div>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <div class="profile-content">
-    <!-- Profile Card -->
-    <div class="profile-card">
-      <div class="profile-header-section">
-        <div class="profile-avatar-wrapper">
-          <img [src]="userProfile.avatarUrl" [alt]="userProfile.name" class="profile-avatar" />
-          <div class="online-indicator"></div>
-        </div>
-
-        <div class="profile-header-info">
-          <h2 class="profile-name">{{ userProfile.name }}</h2>
-          <p class="profile-joined">Joined {{ userProfile.joinDate }}</p>
-        </div>
-
-        <div class="profile-actions">
-          <button class="btn btn-primary" (click)="onEditProfile()">
-            <iconify-icon icon="lucide:edit-2" style="font-size: 16px"></iconify-icon>
-            Edit Profile
-          </button>
-          <button class="btn btn-outline">
-            <iconify-icon icon="lucide:share-2" style="font-size: 16px"></iconify-icon>
-          </button>
-        </div>
-      </div>
-
-      <!-- Bio Section -->
-      <div class="profile-bio">
-        <p class="bio-text">{{ userProfile.bio }}</p>
-      </div>
-
-      <!-- User Tags -->
-      <div class="tags-section">
-        <div class="tag-list">
-          <span *ngFor="let tag of userTags" class="tag">{{ tag }}</span>
-        </div>
-      </div>
+  <!-- Loading -->
+  @if (isLoading) {
+    <div class="page-state">
+      <div class="spinner"></div>
+      <p>Loading profile…</p>
     </div>
+  }
 
-    <!-- Reading Stats -->
-    <div class="reading-stats-grid">
-      <!-- Current Reading Streak -->
-      <div class="stat-card streak-card">
-        <div class="stat-header">
-          <div class="stat-icon fire-icon">
-            <iconify-icon icon="lucide:flame" style="font-size: 24px"></iconify-icon>
-          </div>
-          <span class="stat-label">Current Reading Streak</span>
-        </div>
-        <div class="stat-value">{{ readingStats.currentReadingStreak }} Days</div>
-        <p class="stat-description">Last read {{ readingStats.lastReadDate | date: 'short' }}</p>
-      </div>
-
-      <!-- Books Read This Year -->
-      <div class="stat-card progress-card">
-        <div class="stat-header">
-          <span class="stat-label">Books Read This Year</span>
-          <span class="stat-value-inline">{{ readingStats.booksReadThisYear }}/{{ readingStats.booksGoal }}</span>
-        </div>
-        <div class="progress-bar-container">
-          <div class="progress-bar-bg">
-            <div
-              class="progress-bar-fill"
-              [style.width.%]="(readingStats.booksReadThisYear / readingStats.booksGoal) * 100"
-            ></div>
-          </div>
-        </div>
-        <p class="progress-percentage">
-          {{ ((readingStats.booksReadThisYear / readingStats.booksGoal) * 100).toFixed(0) }}% Complete
-        </p>
-      </div>
+  <!-- Error -->
+  @else if (error) {
+    <div class="page-state">
+      <p class="error-text">{{ error }}</p>
+      <a routerLink="/home" class="btn btn-outline">Go home</a>
     </div>
+  }
 
-    <!-- Most Liked Section -->
-    <section class="books-section">
-      <div class="section-header">
-        <h3 class="section-title">Most Liked</h3>
-        <p class="section-description">Your five star reviews displayed like picture frames on a shelf.</p>
-      </div>
+  <!-- Content -->
+  @else if (profile) {
+    <div class="profile-content">
 
-      <div class="books-grid">
-        <div *ngFor="let book of mostLikedBooks" class="book-card" (click)="onViewBook(book)">
-          <div class="book-cover-container">
-            <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
-            <div class="book-overlay">
-              <button class="btn-icon" (click)="onRateBook(book); $event.stopPropagation()">
-                <iconify-icon icon="lucide:star" style="font-size: 20px"></iconify-icon>
-              </button>
-            </div>
+      <!-- Profile Card -->
+      <div class="profile-card">
+        <div class="profile-header-section">
+
+          <!-- Avatar -->
+          <div class="profile-avatar-wrapper">
+            @if (profile.avatarUrl) {
+              <img [src]="profile.avatarUrl" [alt]="profile.name" class="profile-avatar" />
+            } @else {
+              <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
+            }
           </div>
-          <div class="book-info">
-            <h4 class="book-title">{{ book.title }}</h4>
-            <p class="book-author">{{ book.author }}</p>
-            <div class="book-rating" *ngIf="book.rating">
-              <div class="stars">
-                <iconify-icon
-                  *ngFor="let star of [1, 2, 3, 4, 5]"
-                  icon="lucide:star"
-                  [class.filled]="star <= book.rating"
-                  style="font-size: 14px"
-                ></iconify-icon>
-              </div>
-            </div>
+
+          <!-- Name & join date -->
+          <div class="profile-header-info">
+            <h2 class="profile-name">{{ profile.name }}</h2>
+            @if (profile.username) {
+              <p class="profile-username">&#64;{{ profile.username }}</p>
+            }
+            <p class="profile-joined">Reading since {{ profile.joinDate }}</p>
+          </div>
+
+          <!-- Actions -->
+          <div class="profile-actions">
+            @if (isOwnProfile) {
+              <button class="btn btn-primary" (click)="onEditProfile()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                </svg>
+                Edit Profile
+              </button>
+            } @else {
+              <button class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Add Friend
+              </button>
+              <button class="btn btn-outline">Report</button>
+            }
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- In Between Section -->
-    <section class="books-section">
-      <div class="section-header">
-        <h3 class="section-title">In Between</h3>
-        <p class="section-description">Books sitting on a shelf, average rating three-star review.</p>
-      </div>
+        <!-- Bio -->
+        @if (profile.bio) {
+          <div class="profile-bio">
+            <p class="bio-text">{{ profile.bio }}</p>
+          </div>
+        }
 
-      <div class="books-grid">
-        <div *ngFor="let book of inBetweenBooks" class="book-card" (click)="onViewBook(book)">
-          <div class="book-cover-container">
-            <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
-            <div class="book-overlay">
-              <button class="btn-icon" (click)="onRateBook(book); $event.stopPropagation()">
-                <iconify-icon icon="lucide:star" style="font-size: 20px"></iconify-icon>
-              </button>
+        <!-- Genres -->
+        @if (genres.length > 0) {
+          <div class="tags-section">
+            <div class="tag-list">
+              @for (genre of genres; track genre.id) {
+                <span class="tag">{{ genre.name }}</span>
+              }
             </div>
           </div>
-          <div class="book-info">
-            <h4 class="book-title">{{ book.title }}</h4>
-            <p class="book-author">{{ book.author }}</p>
-            <div class="book-rating" *ngIf="book.rating">
-              <div class="stars">
-                <iconify-icon
-                  *ngFor="let star of [1, 2, 3, 4, 5]"
-                  icon="lucide:star"
-                  [class.filled]="star <= book.rating"
-                  style="font-size: 14px"
-                ></iconify-icon>
+        }
+      </div>
+
+      <!-- Reading Stats -->
+      @if (readingStats) {
+        <div class="reading-stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Books Read This Year</span>
+              <span class="stat-value-inline">
+                {{ readingStats.booksReadThisYear }}/{{ readingStats.booksGoal }}
+              </span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" [style.width.%]="goalPercent"></div>
               </div>
             </div>
+            <p class="progress-percentage">{{ goalPercent }}% of {{ readingStats.currentYear }} goal</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Total Reviews</span>
+            </div>
+            <div class="stat-value">
+              {{ mostLikedBooks.length + inBetweenBooks.length + leastLikedBooks.length }}
+            </div>
+            <p class="stat-description">Across all shelves</p>
           </div>
         </div>
-      </div>
-    </section>
+      }
 
-    <!-- Least Liked Section -->
-    <section class="books-section">
-      <div class="section-header">
-        <h3 class="section-title">Least Liked</h3>
-        <p class="section-description">Books you found unforgettable, or a total misread.</p>
-      </div>
-
-      <div class="books-grid">
-        <div *ngFor="let book of leastLikedBooks" class="book-card" (click)="onViewBook(book)">
-          <div class="book-cover-container">
-            <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
-            <div class="book-overlay">
-              <button class="btn-icon" (click)="onRateBook(book); $event.stopPropagation()">
-                <iconify-icon icon="lucide:star" style="font-size: 20px"></iconify-icon>
-              </button>
-            </div>
+      <!-- Most Liked -->
+      @if (mostLikedBooks.length > 0) {
+        <section class="books-section">
+          <div class="section-header">
+            <h3 class="section-title">Most Liked</h3>
+            <p class="section-description">Five-star reads — the ones that stayed with you.</p>
           </div>
-          <div class="book-info">
-            <h4 class="book-title">{{ book.title }}</h4>
-            <p class="book-author">{{ book.author }}</p>
-            <div class="book-rating" *ngIf="book.rating">
-              <div class="stars">
-                <iconify-icon
-                  *ngFor="let star of [1, 2, 3, 4, 5]"
-                  icon="lucide:star"
-                  [class.filled]="star <= book.rating"
-                  style="font-size: 14px"
-                ></iconify-icon>
+          <div class="books-grid">
+            @for (book of mostLikedBooks; track book.userBookId) {
+              <div class="book-card">
+                <div class="book-cover-container">
+                  @if (book.coverUrl) {
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                  } @else {
+                    <div class="book-cover book-cover--placeholder">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                    </div>
+                  }
+                </div>
+                <div class="book-info">
+                  <h4 class="book-title">{{ book.title }}</h4>
+                  <p class="book-author">{{ book.author }}</p>
+                  <div class="stars">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <svg
+                        class="star"
+                        [class.star--filled]="star <= book.rating"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                    }
+                  </div>
+                </div>
               </div>
-            </div>
+            }
           </div>
-        </div>
-      </div>
-    </section>
+        </section>
+      }
 
-    <!-- Footer -->
-    <footer class="profile-footer">
-      <div class="footer-links">
-        <a href="#" class="footer-link">Privacy Policy</a>
-        <a href="#" class="footer-link">Terms of Service</a>
-        <a href="#" class="footer-link">Community Guidelines</a>
-        <a href="#" class="footer-link">Help & Support</a>
-      </div>
-      <p class="footer-copyright">&copy; 2026 ReadTrack. All rights reserved.</p>
-    </footer>
-  </div>
+      <!-- In Between -->
+      @if (inBetweenBooks.length > 0) {
+        <section class="books-section">
+          <div class="section-header">
+            <h3 class="section-title">In Between</h3>
+            <p class="section-description">Decent reads — not bad, not unforgettable.</p>
+          </div>
+          <div class="books-grid">
+            @for (book of inBetweenBooks; track book.userBookId) {
+              <div class="book-card">
+                <div class="book-cover-container">
+                  @if (book.coverUrl) {
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                  } @else {
+                    <div class="book-cover book-cover--placeholder">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                    </div>
+                  }
+                </div>
+                <div class="book-info">
+                  <h4 class="book-title">{{ book.title }}</h4>
+                  <p class="book-author">{{ book.author }}</p>
+                  <div class="stars">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <svg
+                        class="star"
+                        [class.star--filled]="star <= book.rating"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Least Liked -->
+      @if (leastLikedBooks.length > 0) {
+        <section class="books-section">
+          <div class="section-header">
+            <h3 class="section-title">Least Liked</h3>
+            <p class="section-description">Books you gave 1–2 stars.</p>
+          </div>
+          <div class="books-grid">
+            @for (book of leastLikedBooks; track book.userBookId) {
+              <div class="book-card">
+                <div class="book-cover-container">
+                  @if (book.coverUrl) {
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                  } @else {
+                    <div class="book-cover book-cover--placeholder">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                    </div>
+                  }
+                </div>
+                <div class="book-info">
+                  <h4 class="book-title">{{ book.title }}</h4>
+                  <p class="book-author">{{ book.author }}</p>
+                  <div class="stars">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <svg
+                        class="star"
+                        [class.star--filled]="star <= book.rating"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @if (mostLikedBooks.length === 0 && inBetweenBooks.length === 0 && leastLikedBooks.length === 0) {
+        <div class="empty-shelves">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <p>No rated books yet. Start reading and rating!</p>
+          <a routerLink="/books/search" class="btn btn-primary">Find Books</a>
+        </div>
+      }
+
+      <!-- Footer -->
+      <footer class="profile-footer">
+        <div class="footer-links">
+          <a routerLink="/privacy" class="footer-link">Privacy Policy</a>
+          <a routerLink="/terms" class="footer-link">Terms of Service</a>
+        </div>
+        <p class="footer-copyright">&copy; 2026 ReadTrack. All rights reserved.</p>
+      </footer>
+
+    </div>
+  }
+
 </div>

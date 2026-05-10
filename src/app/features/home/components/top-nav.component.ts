@@ -16,10 +16,10 @@ import { RouterLink, Router } from '@angular/router';
         <div class="brand-text">ReadTrack</div>
       </div>
 
-      <div class="search-bar-container">
+      <a class="search-bar-container" routerLink="/books/search" aria-label="Search books">
         <iconify-icon icon="lucide:search" class="search-icon"></iconify-icon>
         <div class="search-input">Search books or users...</div>
-      </div>
+      </a>
 
       <div class="nav-actions">
         <button class="nav-icon-btn" aria-label="Notifications">
@@ -97,6 +97,14 @@ import { RouterLink, Router } from '@angular/router';
       border-radius: 999px;
       padding: 10px 20px;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        border-color: rgba(233, 120, 63, 0.4);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02), 0 0 0 3px rgba(233, 120, 63, 0.08);
+      }
     }
 
     .search-icon {
