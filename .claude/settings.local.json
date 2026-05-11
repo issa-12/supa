@@ -8,7 +8,15 @@
       "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\main.server.ts\" -Force)",
       "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\app\\\\app.config.server.ts\" -Force)",
       "Bash(Remove-Item \"C:\\\\Users\\\\RihabAtwi_uxz2dog\\\\OneDrive - SirenAssociates\\\\Desktop\\\\supa\\\\src\\\\app\\\\app.routes.server.ts\" -Force)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Issa\\\\Desktop\\\\supabase\\\\backend\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(head *)",
+      "Bash(xargs grep -l \"CREATE TABLE\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Issa\\\\Desktop\\\\supabase\\\\supabase\" -Recurse | Where-Object { $_.Extension -eq \".sql\" -or $_.Name -match \"schema\" })",
+      "Bash(npx tsc *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Issa\\\\Desktop\\\\supabase\" -Recurse -Directory -Name \"backend\")",
+      "Bash(Select-Object -First 1)"
     ]
   }
 }

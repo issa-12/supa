@@ -5,7 +5,7 @@ ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
 Users can search books via Google Books, manage a personal shelf, follow friends,
 post about books, and receive AI-powered reading recommendations.
 
-**Current day: 4 of 15. Days 1–3 are fully complete.**
+**Current day: 6 of 15. Days 1–6 are fully complete.**
 
 ---
 
@@ -174,10 +174,17 @@ All tables have RLS enabled. Key rules:
 | POST | `/api/auth/resend-verification` | Resend OTP |
 | GET | `/api/books/search?q=&maxResults=` | Google Books proxy search |
 | GET | `/api/books/:googleId` | Book detail (DB first, then Google fallback) |
+| POST | `/api/friends/request` | Send a friend request |
+| PATCH | `/api/friends/:id/accept` | Accept an incoming request |
+| PATCH | `/api/friends/:id/reject` | Reject an incoming request |
+| DELETE | `/api/friends/:id` | Cancel sent request or remove friend |
+| GET | `/api/friends` | List accepted friends (auth user) |
+| GET | `/api/friends/requests` | List incoming pending requests |
+| GET | `/api/friends/status/:userId` | Friendship status with a specific user |
 
 ---
 
-## What is done (Days 1–3)
+## What is done (Days 1–6)
 
 ### Day 1 — Auth & Onboarding
 - Login page: email/password + Google OAuth
@@ -208,29 +215,41 @@ All tables have RLS enabled. Key rules:
 - Shelf status resolved from DB by name (dynamic, not hardcoded IDs)
 - Angular route: `/books/search` must come BEFORE `/books/:googleId` to avoid conflict
 
----
-
-## What is left (Days 4–15)
-
-### Day 4 — Friends system (START HERE)
-- Friend request: send, accept, reject, cancel
-- Friend list page or section
-- Supabase tables: `friendship` + `friendship_status` already exist
-- NestJS endpoints needed: POST /api/friends/request, PATCH /api/friends/:id/accept, etc.
-- Angular: friend request button on profile pages, friends list on profile
+### Day 4 — Friends System
+- `FriendsModule` in `backend/src/friends/` — full CRUD friend lifecycle
+- All 7 NestJS endpoints: send/accept/reject/cancel/list/requests/status
+- JWT verified per-request via `supabase.getAdmin().auth.getUser(token)`
+- Status IDs resolved dynamically (same pattern as reading_statuses)
+- `FriendshipService` in Angular (`src/app/core/services/friendship.service.ts`)
+- Profile page: dynamic friend button (Add / Cancel / Accept+Decline / Friends)
+- Own profile: pending requests section + friends grid
+- Migration: `friendship_unique_pair` index (order-independent duplicate prevention)
+- Migration: friendship FKs re-pointed to `public.users` for future join support
 
 ### Day 5 — Notifications
-- Real-time notifications via Supabase Realtime (channel subscription)
-- Triggered on: friend request, friend accepted, book recommended, post liked
-- `notifications` + `notifications_type` tables already exist
-- Bell icon in top nav (already has badge dot, needs real count)
+- Real-time notifications via Supabase Realtime (`postgres_changes` INSERT on `notifications`)
+- Bell icon in top nav with live unread count badge (capped at 9+)
+- Notification dropdown panel: actor avatar, action label, time-ago, mark-as-read
+- `NotificationsService` (Angular) — `unreadCount$` + `notifications$` as BehaviorSubjects
+- `NotificationsModule` (NestJS) — GET /api/notifications, GET /api/notifications/unread-count, PATCH read/read-all
+- Notifications fired on: friend request sent, friend request accepted
+- Migration: `ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications`
 
-### Day 6 — Community posts
-- Create a post about a book (text + book reference)
-- Home feed showing friends' posts
-- `posts` table already exists
+### Day 6 — Community Posts
+- `PostsFeedComponent` — compose card (collapsed trigger → expanded with textarea + book picker) + live feed
+- Book picker searches Google Books API; auto-upserts selected book into `public.books` at post time
+- Feed shows current user's posts + all accepted friends' posts, newest first
+- Soft-delete (own posts only) with instant UI removal
+- `ActivityService` rewritten — batch-fetches authors and books separately (no fragile PostgREST join hints)
+- Feed loads via `ngOnChanges` (correctly handles async `currentUserId` input from parent)
+- FAB button on home page opens the compose form
+- Migrations: `posts.user_id` FK re-pointed to `public.users`; `is_deleted` defaulted to `false`; RLS policy uses `IS NOT TRUE` to handle legacy NULL rows
 
-### Day 7 — Comments & likes
+---
+
+## What is left (Days 7–15)
+
+### Day 7 — Comments & Likes
 - Comment threads on posts (depth 0–3, `parent_comment_id` column exists)
 - Like posts and comments
 - `comments`, `post_likes`, `comment_likes` tables already exist

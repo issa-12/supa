@@ -31,3 +31,4 @@ services:
 secrets:
   npmrc:
     file: ${USERPROFILE}/.npmrc
+

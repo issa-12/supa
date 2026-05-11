@@ -65,15 +65,39 @@
                 Edit Profile
               </button>
             } @else {
-              <button class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <line x1="19" y1="8" x2="19" y2="14"/>
-                  <line x1="22" y1="11" x2="16" y2="11"/>
-                </svg>
-                Add Friend
-              </button>
+              <!-- Dynamic friend button based on relationship status -->
+              @if (friendshipStatus === 'none' || friendshipStatus === 'rejected') {
+                <button class="btn btn-primary" [disabled]="friendActionLoading" (click)="sendFriendRequest()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="19" y1="8" x2="19" y2="14"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                  </svg>
+                  Add Friend
+                </button>
+              } @else if (friendshipStatus === 'pending_sent') {
+                <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="cancelRequest()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                  </svg>
+                  Cancel Request
+                </button>
+              } @else if (friendshipStatus === 'pending_received') {
+                <button class="btn btn-primary" [disabled]="friendActionLoading" (click)="acceptRequest()">Accept</button>
+                <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="rejectRequest()">Decline</button>
+              } @else if (friendshipStatus === 'accepted') {
+                <button class="btn btn-outline btn-danger" [disabled]="friendActionLoading" (click)="unfriend()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                  </svg>
+                  Friends
+                </button>
+              }
               <button class="btn btn-outline">Report</button>
             }
           </div>
@@ -125,6 +149,145 @@
             </div>
             <p class="stat-description">Across all shelves</p>
           </div>
+        </div>
+      }
+
+      <!-- Find Friends Search (own profile only) -->
+      @if (isOwnProfile) {
+        <section class="find-friends-section">
+          <div class="section-header">
+            <h3 class="section-title">Find Friends</h3>
+          </div>
+          <div class="search-bar">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              class="search-input"
+              type="text"
+              placeholder="Search by name or username…"
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onSearchInput()"
+            />
+            @if (searchQuery) {
+              <button class="search-clear" (click)="clearSearch()" aria-label="Clear">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            }
+          </div>
+
+          @if (searchLoading) {
+            <div class="search-state">Searching…</div>
+          } @else if (searchResults.length > 0) {
+            <div class="search-results">
+              @for (user of searchResults; track user.id) {
+                <div class="search-result-card">
+                  <div class="request-avatar">
+                    @if (user.avatarUrl) {
+                      <img [src]="user.avatarUrl" [alt]="user.name" />
+                    } @else {
+                      <span>{{ user.name[0].toUpperCase() }}</span>
+                    }
+                  </div>
+                  <div class="request-info">
+                    <span class="request-name">{{ user.name }}</span>
+                    @if (user.username) {
+                      <p class="request-username">&#64;{{ user.username }}</p>
+                    }
+                  </div>
+                  <div class="request-actions">
+                    <a class="btn btn-outline btn-sm" [routerLink]="['/profile', user.id]">View</a>
+                    @if (sentRequestIds.has(user.id)) {
+                      <span class="sent-label">Sent</span>
+                    } @else {
+                      <button class="btn btn-primary btn-sm" (click)="sendRequestFromSearch(user)">
+                        Add Friend
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (searchQuery.trim() && !searchLoading) {
+            <div class="search-state">No users found for "{{ searchQuery }}"</div>
+          }
+        </section>
+      }
+
+      <!-- Incoming Friend Requests (own profile only) -->
+      @if (isOwnProfile && incomingRequests.length > 0) {
+        <section class="friends-section">
+          <div class="section-header">
+            <h3 class="section-title">Friend Requests</h3>
+            <span class="section-badge">{{ incomingRequests.length }}</span>
+          </div>
+          <div class="requests-list">
+            @for (req of incomingRequests; track req.friendshipId) {
+              <div class="request-card">
+                <div class="request-avatar">
+                  @if (req.avatarUrl) {
+                    <img [src]="req.avatarUrl" [alt]="req.name" />
+                  } @else {
+                    <span>{{ req.name[0].toUpperCase() }}</span>
+                  }
+                </div>
+                <div class="request-info">
+                  <a class="request-name" [routerLink]="['/profile', req.requesterId]">{{ req.name }}</a>
+                  @if (req.username) {
+                    <p class="request-username">&#64;{{ req.username }}</p>
+                  }
+                </div>
+                <div class="request-actions">
+                  <button class="btn btn-primary btn-sm" (click)="acceptIncoming(req)">Accept</button>
+                  <button class="btn btn-outline btn-sm" (click)="rejectIncoming(req)">Decline</button>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Friends List (own profile only) -->
+      @if (isOwnProfile && friends.length > 0) {
+        <section class="friends-section">
+          <div class="section-header">
+            <h3 class="section-title">Friends</h3>
+            <span class="section-count">{{ friends.length }}</span>
+          </div>
+          <div class="friends-grid">
+            @for (friend of friends; track friend.friendshipId) {
+              <a class="friend-card" [routerLink]="['/profile', friend.userId]">
+                <div class="friend-avatar">
+                  @if (friend.avatarUrl) {
+                    <img [src]="friend.avatarUrl" [alt]="friend.name" />
+                  } @else {
+                    <span>{{ friend.name[0].toUpperCase() }}</span>
+                  }
+                </div>
+                <div class="friend-info">
+                  <p class="friend-name">{{ friend.name }}</p>
+                  @if (friend.username) {
+                    <p class="friend-username">&#64;{{ friend.username }}</p>
+                  }
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
+
+      @if (isOwnProfile && friends.length === 0 && incomingRequests.length === 0) {
+        <div class="empty-friends">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <p>No friends yet. Find readers to connect with!</p>
+          <a routerLink="/books/search" class="btn btn-primary">Discover Books</a>
         </div>
       }
 

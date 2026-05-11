@@ -1,11 +1,15 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, OnDestroy, inject } from '@angular/core';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { NotificationsService, AppNotification } from '../../../core/services/notifications.service';
+import { NotificationsPanelComponent } from './notifications-panel.component';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 @Component({
   selector: 'app-top-nav',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AsyncPipe, NotificationsPanelComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <header class="top-nav">
@@ -25,12 +29,28 @@ import { RouterLink, Router } from '@angular/router';
         <a routerLink="/shelf" class="nav-icon-btn" aria-label="My Shelf">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
-        <button class="nav-icon-btn" aria-label="Notifications">
-          <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
-          <div class="notification-badge"></div>
-        </button>
+
+        <div class="bell-wrapper">
+          <button class="nav-icon-btn" aria-label="Notifications" (click)="togglePanel()">
+            <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
+            @if (unreadCount$ | async; as count) {
+              @if (count > 0) {
+                <div class="notification-badge">{{ count > 9 ? '9+' : count }}</div>
+              }
+            }
+          </button>
+
+          @if (panelOpen) {
+            <app-notifications-panel
+              [notifications]="notifications"
+              [isLoading]="panelLoading"
+              (close)="closePanel()"
+            />
+          }
+        </div>
+
         <img
-          src="https://storage.googleapis.com/banani-avatars/avatar%2Ffemale%2F25-35%2FEuropean%2F2"
+          [src]="avatarUrl || 'https://storage.googleapis.com/banani-avatars/avatar%2Ffemale%2F25-35%2FEuropean%2F2'"
           alt="Profile"
           class="nav-avatar"
           (click)="navigateToProfile()"
@@ -64,9 +84,7 @@ import { RouterLink, Router } from '@angular/router';
       text-decoration: none;
       color: inherit;
 
-      &:hover {
-        opacity: 0.8;
-      }
+      &:hover { opacity: 0.8; }
     }
 
     .brand-icon {
@@ -147,24 +165,31 @@ import { RouterLink, Router } from '@angular/router';
       cursor: pointer;
       transition: all 0.2s ease;
 
-      &:hover {
-        background: rgba(255, 250, 245, 0.8);
-      }
+      &:hover { background: rgba(255, 250, 245, 0.8); }
+      &:active { transform: scale(0.95); }
+    }
 
-      &:active {
-        transform: scale(0.95);
-      }
+    .bell-wrapper {
+      position: relative;
     }
 
     .notification-badge {
       position: absolute;
-      top: 10px;
-      right: 12px;
-      width: 8px;
-      height: 8px;
+      top: 6px;
+      right: 6px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
       background: var(--destructive);
-      border-radius: 50%;
-      border: 2px solid rgba(255, 250, 245, 0.9);
+      border-radius: 999px;
+      border: 2px solid rgba(246, 239, 230, 0.95);
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
 
     .nav-avatar {
@@ -177,35 +202,73 @@ import { RouterLink, Router } from '@angular/router';
       cursor: pointer;
       transition: all 0.2s ease;
 
-      &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 16px rgba(51, 38, 29, 0.15);
-      }
-
-      &:active {
-        transform: scale(0.95);
-      }
+      &:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(51, 38, 29, 0.15); }
+      &:active { transform: scale(0.95); }
     }
 
     @media (max-width: 768px) {
-      .top-nav {
-        padding: 12px 20px;
-        gap: 16px;
-      }
-
-      .search-bar-container {
-        max-width: 250px;
-        margin: 0 20px;
-      }
-
-      .brand-text {
-        font-size: 24px;
-      }
+      .top-nav { padding: 12px 20px; gap: 16px; }
+      .search-bar-container { max-width: 250px; margin: 0 20px; }
+      .brand-text { font-size: 24px; }
     }
   `],
 })
-export class TopNavComponent {
-  constructor(private router: Router) {}
+export class TopNavComponent implements OnInit, OnDestroy {
+  private readonly notificationsService = inject(NotificationsService);
+  private readonly supabaseService = inject(SupabaseService);
+  private readonly router = inject(Router);
+
+  readonly unreadCount$ = this.notificationsService.unreadCount$;
+  notifications: AppNotification[] = [];
+  panelOpen = false;
+  panelLoading = false;
+  avatarUrl: string | null = null;
+
+  private sub?: Subscription;
+
+  async ngOnInit(): Promise<void> {
+    this.sub = this.notificationsService.notifications$.subscribe((n) => {
+      this.notifications = n;
+    });
+
+    try {
+      const supabase = await this.supabaseService.getClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('profile_picture_url')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      this.avatarUrl = profile?.['profile_picture_url'] ?? null;
+
+      await Promise.all([
+        this.notificationsService.loadUnreadCount(),
+        this.notificationsService.subscribeToRealtime(user.id),
+      ]);
+    } catch {
+      // non-critical — nav still works
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+    this.notificationsService.unsubscribe();
+  }
+
+  async togglePanel(): Promise<void> {
+    if (this.panelOpen) { this.closePanel(); return; }
+    this.panelOpen = true;
+    this.panelLoading = true;
+    await this.notificationsService.loadNotifications();
+    this.panelLoading = false;
+  }
+
+  closePanel(): void {
+    this.panelOpen = false;
+  }
 
   navigateToProfile(): void {
     this.router.navigate(['/profile']);
