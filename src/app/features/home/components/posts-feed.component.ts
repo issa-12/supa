@@ -1,9 +1,10 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
+import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { PostCommentsComponent } from './post-comments.component';
 
 interface BookSearchResult {
   googleId: string;
@@ -15,7 +16,7 @@ interface BookSearchResult {
 @Component({
   selector: 'app-posts-feed',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, PostCommentsComponent],
   template: `
     <div class="feed-col">
 
@@ -109,14 +110,17 @@ interface BookSearchResult {
 
       <!-- Feed -->
       <div class="feed-header">
-        <h3 class="feed-title">Friends Activity</h3>
+        <div class="feed-tabs">
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'friends'" (click)="switchTab('friends')">Friends</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">Trending</button>
+        </div>
       </div>
 
       @if (loading) {
         <div class="feed-state">
           <div class="spinner"></div>
         </div>
-      } @else if (posts.length === 0) {
+      } @else if ((activeTab === 'friends' ? posts : trendingPosts).length === 0) {
         <div class="feed-state">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -124,11 +128,11 @@ interface BookSearchResult {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <p>No posts yet. Add friends and start sharing!</p>
+          <p>{{ activeTab === 'friends' ? 'No posts yet. Add friends and start sharing!' : 'No trending posts this week.' }}</p>
         </div>
       } @else {
         <div class="posts-list">
-          @for (post of posts; track post.id) {
+          @for (post of (activeTab === 'friends' ? posts : trendingPosts); track post.id) {
             <article class="post-card">
               <div class="post-header">
                 <a class="post-author-link" [routerLink]="['/profile', post.userId]">
@@ -165,13 +169,28 @@ interface BookSearchResult {
               }
 
               <div class="post-footer">
-                <span class="post-likes">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="action-btn" [class.action-btn--liked]="post.isLikedByMe" (click)="onToggleLike(post)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                   {{ post.likeCount }}
-                </span>
+                </button>
+                <button class="action-btn" [class.action-btn--active]="openCommentPostIds.has(post.id)" (click)="toggleComments(post.id)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  {{ post.commentCount }}
+                </button>
               </div>
+
+              @if (openCommentPostIds.has(post.id) && currentUserId) {
+                <app-post-comments
+                  [postId]="post.id"
+                  [currentUserId]="currentUserId"
+                  [currentUserAvatar]="currentUserAvatar"
+                  [currentUserName]="currentUserName"
+                />
+              }
             </article>
           }
         </div>
@@ -415,13 +434,23 @@ interface BookSearchResult {
 
     // ── Feed ──────────────────────────────────────────────────
 
-    .feed-header { display: flex; align-items: center; justify-content: space-between; }
+    .feed-header { display: flex; align-items: center; }
 
-    .feed-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--foreground);
-      margin: 0;
+    .feed-tabs { display: flex; gap: 4px; }
+
+    .feed-tab {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(126, 107, 93, 0.2);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover { border-color: var(--primary); color: var(--foreground); }
+      &--active { background: var(--primary); border-color: var(--primary); color: #fff; }
     }
 
     .feed-state {
@@ -558,16 +587,26 @@ interface BookSearchResult {
       text-overflow: ellipsis;
     }
 
-    .post-footer { display: flex; align-items: center; gap: 16px; }
+    .post-footer { display: flex; align-items: center; gap: 8px; }
 
-    .post-likes {
+    .action-btn {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 13px;
+      font-weight: 600;
       color: var(--muted-foreground);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: all 0.15s;
 
       svg { flex-shrink: 0; }
+      &:hover { background: rgba(126, 107, 93, 0.08); color: var(--foreground); }
+      &--liked { color: #e74c3c; }
+      &--active { color: var(--primary); }
     }
 
     @media (max-width: 1024px) {
@@ -581,10 +620,14 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   @Input() currentUserName: string | null = null;
 
   private readonly activityService = inject(ActivityService);
+  private readonly likesService = inject(LikesService);
   private readonly supabaseService = inject(SupabaseService);
 
   posts: ActivityPost[] = [];
+  trendingPosts: ActivityPost[] = [];
+  activeTab: 'friends' | 'trending' = 'friends';
   loading = false;
+  openCommentPostIds = new Set<number>();
 
   composeOpen = false;
   postContent = '';
@@ -614,10 +657,26 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     }
   }
 
+  switchTab(tab: 'friends' | 'trending'): void {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+    if (tab === 'trending' && this.trendingPosts.length === 0) {
+      this.loadTrending();
+    }
+  }
+
   private loadFeed(): void {
     this.loading = true;
     this.activityService.getFriendActivity(this.currentUserId!, 30).subscribe({
       next: (posts) => { this.posts = posts; this.loading = false; },
+      error: () => { this.loading = false; },
+    });
+  }
+
+  private loadTrending(): void {
+    this.loading = true;
+    this.activityService.getTrendingPosts(this.currentUserId!, 20).subscribe({
+      next: (posts) => { this.trendingPosts = posts; this.loading = false; },
       error: () => { this.loading = false; },
     });
   }
@@ -704,6 +763,28 @@ export class PostsFeedComponent implements OnInit, OnChanges {
 
     if (error || !inserted) throw error ?? new Error('Failed to save book');
     return inserted['book_id'] as number;
+  }
+
+  toggleComments(postId: number): void {
+    if (this.openCommentPostIds.has(postId)) {
+      this.openCommentPostIds.delete(postId);
+    } else {
+      this.openCommentPostIds.add(postId);
+    }
+    this.openCommentPostIds = new Set(this.openCommentPostIds);
+  }
+
+  onToggleLike(post: ActivityPost): void {
+    if (!this.currentUserId) return;
+    const wasLiked = post.isLikedByMe;
+    post.isLikedByMe = !wasLiked;
+    post.likeCount += wasLiked ? -1 : 1;
+    this.likesService.togglePostLike(post.id, this.currentUserId, post.userId, wasLiked).subscribe({
+      error: () => {
+        post.isLikedByMe = wasLiked;
+        post.likeCount += wasLiked ? 1 : -1;
+      },
+    });
   }
 
   deletePost(post: ActivityPost): void {

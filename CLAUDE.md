@@ -5,7 +5,7 @@ ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
 Users can search books via Google Books, manage a personal shelf, follow friends,
 post about books, and receive AI-powered reading recommendations.
 
-**Current day: 6 of 15. Days 1–6 are fully complete.**
+**Current day: 9 of 15. Days 1–9 are fully complete.**
 
 ---
 
@@ -184,7 +184,7 @@ All tables have RLS enabled. Key rules:
 
 ---
 
-## What is done (Days 1–6)
+## What is done (Days 1–9)
 
 ### Day 1 — Auth & Onboarding
 - Login page: email/password + Google OAuth
@@ -245,25 +245,34 @@ All tables have RLS enabled. Key rules:
 - FAB button on home page opens the compose form
 - Migrations: `posts.user_id` FK re-pointed to `public.users`; `is_deleted` defaulted to `false`; RLS policy uses `IS NOT TRUE` to handle legacy NULL rows
 
+### Day 7 — Comments & Likes
+- `CommentService` — flat DB fetch + client-side tree build (depth 0–3 via `parent_comment_id`)
+- `PostCommentsComponent` — threaded comments panel: top-level + replies up to depth 3, inline reply forms
+- `LikesService` — `togglePostLike` + `toggleCommentLike`, both with optimistic UI and notification side-effect
+- Like counts + `isLikedByMe` batch-fetched in `ActivityService.loadFeed` via `post_likes` join
+- Comment likes: `comment_likes` table, batch-fetched in `CommentService.getComments`
+- Migrations: RLS for `post_likes`, `comment_likes`; `is_deleted DEFAULT false` for comments
+
+### Day 8 — Community Completion
+- **Trending tab**: PostsFeedComponent now has Friends / Trending tab toggle; `getTrendingPosts` fetches last 7 days, sorts client-side by like count
+- **Book recommendations**: "Recommend to Friend" button on `BookDetailComponent` → friend picker dropdown → fires `book_recommended` notification to recipient
+- **`RecommendationService`**: ensures book is in DB, fires notification via `NotificationsService.fireNotification`
+- **Notifications for likes**: `LikesService` fires `post_liked` / `comment_liked` notifications on new likes
+- Migrations: `notifications` INSERT RLS (`actor_user_id = auth.uid() AND user_id <> auth.uid()`)
+
+### Day 9 — Profile Enhancements
+- **Bug fix**: `getUserReadingStats` was using hardcoded `status_id=2` (= want_to_read) with broken `read_at` filter — fixed to dynamic lookup of 'read' status + filter by `updated_at` this year
+- **Reading goal setting**: inline edit on own profile — click "Edit goal", enter number, save → upserts to `reading_goals`
+- **Currently Reading section**: shows books with `currently_reading` status on both own and other profiles
+- **Recent Posts section**: shows last 5 posts by the user (with like/comment counts)
+- `getUserBooksByStatus(userId, statusName, limit)` added to BookService
+- `getUserPosts(targetUserId, currentUserId, limit)` added to ActivityService
+- `setReadingGoal(userId, year, target)` added to UserService
+- Migration: `UNIQUE(user_id, year)` constraint on `reading_goals` for upsert
+
 ---
 
-## What is left (Days 7–15)
-
-### Day 7 — Comments & Likes
-- Comment threads on posts (depth 0–3, `parent_comment_id` column exists)
-- Like posts and comments
-- `comments`, `post_likes`, `comment_likes` tables already exist
-
-### Day 8 — Community completion
-- Post tags
-- Trending posts
-- Book recommendations between friends (recommend a specific book to a friend)
-
-### Day 9 — Profile enhancements
-- Real reading stats (books read this year vs goal)
-- Reading goal setting
-- User's recent activity feed on profile
-- Favourite books / reading history sections
+## What is left (Days 10–15)
 
 ### Day 10 — AI Recommendations (Claude API)
 - NestJS endpoint: `GET /api/recommendations/:userId`

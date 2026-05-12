@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -49,12 +49,34 @@ import { SupabaseService } from '../../../core/services/supabase.service';
           }
         </div>
 
-        <img
-          [src]="avatarUrl || 'https://storage.googleapis.com/banani-avatars/avatar%2Ffemale%2F25-35%2FEuropean%2F2'"
-          alt="Profile"
-          class="nav-avatar"
-          (click)="navigateToProfile()"
-        />
+        <div class="avatar-wrap" (click)="$event.stopPropagation()">
+          <img
+            [src]="avatarUrl || 'https://ui-avatars.com/api/?name=R&background=E9783F&color=fff&size=44'"
+            alt="Profile"
+            class="nav-avatar"
+            (click)="toggleUserMenu()"
+          />
+          @if (userMenuOpen) {
+            <div class="user-menu">
+              <a class="user-menu-item" routerLink="/profile" (click)="userMenuOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                My Profile
+              </a>
+              <div class="user-menu-divider"></div>
+              <button class="user-menu-item user-menu-item--danger" (click)="logout()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Logout
+              </button>
+            </div>
+          }
+        </div>
       </div>
     </header>
   `,
@@ -192,6 +214,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       line-height: 1;
     }
 
+    .avatar-wrap {
+      position: relative;
+    }
+
     .nav-avatar {
       width: 44px;
       height: 44px;
@@ -201,10 +227,51 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       box-shadow: 0 4px 12px rgba(51, 38, 29, 0.1);
       cursor: pointer;
       transition: all 0.2s ease;
+      display: block;
 
-      &:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(51, 38, 29, 0.15); }
-      &:active { transform: scale(0.95); }
+      &:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(51, 38, 29, 0.15); }
     }
+
+    .user-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      min-width: 180px;
+      background: rgba(255, 250, 245, 0.98);
+      border: 1px solid rgba(126, 107, 93, 0.15);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(51, 38, 29, 0.14);
+      backdrop-filter: blur(12px);
+      z-index: 200;
+      overflow: hidden;
+      padding: 4px 0;
+    }
+
+    .user-menu-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--foreground);
+      background: none;
+      border: none;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s;
+
+      &:hover { background: rgba(126, 107, 93, 0.07); }
+      &--danger { color: #dc2626; &:hover { background: rgba(220, 38, 38, 0.07); } }
+    }
+
+    .user-menu-divider {
+      height: 1px;
+      background: rgba(126, 107, 93, 0.1);
+      margin: 4px 0;
+    }
+
 
     @media (max-width: 768px) {
       .top-nav { padding: 12px 20px; gap: 16px; }
@@ -223,6 +290,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   panelOpen = false;
   panelLoading = false;
   avatarUrl: string | null = null;
+  userMenuOpen = false;
 
   private sub?: Subscription;
 
@@ -272,5 +340,23 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   navigateToProfile(): void {
     this.router.navigate(['/profile']);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.userMenuOpen = false;
+  }
+
+  toggleUserMenu(): void {
+    this.userMenuOpen = !this.userMenuOpen;
+    if (this.userMenuOpen) this.panelOpen = false;
+  }
+
+  async logout(): Promise<void> {
+    this.userMenuOpen = false;
+    const supabase = await this.supabaseService.getClient();
+    await supabase.auth.signOut();
+    this.notificationsService.unsubscribe();
+    this.router.navigate(['/']);
   }
 }

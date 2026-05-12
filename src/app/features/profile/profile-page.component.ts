@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { UserService, UserProfile, ReadingStats, UserGenre } from '../../core/services/user.service';
 import { BookService, UserBook } from '../../core/services/book.service';
+import { ActivityService, ActivityPost } from '../../core/services/activity.service';
 import {
   FriendshipService,
   FriendUser,
@@ -31,6 +32,7 @@ export class ProfilePageComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly userService = inject(UserService);
   private readonly bookService = inject(BookService);
+  private readonly activityService = inject(ActivityService);
   private readonly friendshipService = inject(FriendshipService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -41,6 +43,18 @@ export class ProfilePageComponent implements OnInit {
   mostLikedBooks: ProfileBook[] = [];
   inBetweenBooks: ProfileBook[] = [];
   leastLikedBooks: ProfileBook[] = [];
+  currentlyReadingBooks: ProfileBook[] = [];
+  recentPosts: ActivityPost[] = [];
+
+  editingGoal = false;
+  goalInput = 20;
+  savingGoal = false;
+
+  editingProfile = false;
+  editName = '';
+  editUsername = '';
+  editBio = '';
+  savingProfile = false;
 
   friendshipStatus: FriendshipStatusValue = 'none';
   friendshipId: number | null = null;
@@ -74,25 +88,27 @@ export class ProfilePageComponent implements OnInit {
         return;
       }
 
-      const baseLoads: Promise<unknown>[] = [
-        firstValueFrom(this.userService.getUserProfileById(targetId)),
-        firstValueFrom(this.userService.getUserReadingStats(targetId)),
-        firstValueFrom(this.userService.getUserGenres(targetId)),
-        firstValueFrom(this.bookService.getUserBooksByRating(targetId, 5, 5)),
-        firstValueFrom(this.bookService.getUserBooksByRating(targetId, 3, 4)),
-        firstValueFrom(this.bookService.getUserBooksByRating(targetId, 1, 2)),
-      ];
-
-      const [profile, stats, genres, mostLiked, inBetween, leastLiked] = await Promise.all(baseLoads) as [
-        UserProfile, ReadingStats, UserGenre[], UserBook[], UserBook[], UserBook[]
-      ];
+      const [profile, stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
+        await Promise.all([
+          firstValueFrom(this.userService.getUserProfileById(targetId)),
+          firstValueFrom(this.userService.getUserReadingStats(targetId)),
+          firstValueFrom(this.userService.getUserGenres(targetId)),
+          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 5, 5)),
+          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 3, 4)),
+          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 1, 2)),
+          firstValueFrom(this.bookService.getUserBooksByStatus(targetId, 'currently_reading', 6)),
+          firstValueFrom(this.activityService.getUserPosts(targetId, this.currentUserId ?? targetId, 5)),
+        ]);
 
       this.profile = profile;
       this.readingStats = stats;
+      this.goalInput = stats.booksGoal;
       this.genres = genres;
       this.mostLikedBooks = this.toProfileBooks(mostLiked);
       this.inBetweenBooks = this.toProfileBooks(inBetween);
       this.leastLikedBooks = this.toProfileBooks(leastLiked);
+      this.currentlyReadingBooks = this.toProfileBooks(currentlyReading);
+      this.recentPosts = recentPosts;
 
       if (this.isOwnProfile) {
         const [friends, requests] = await Promise.all([
@@ -255,7 +271,71 @@ export class ProfilePageComponent implements OnInit {
   }
 
   onEditProfile(): void {
-    this.router.navigate(['/profile/edit']);
+    if (!this.profile) return;
+    this.editName = this.profile.name;
+    this.editUsername = this.profile.username ?? '';
+    this.editBio = this.profile.bio ?? '';
+    this.editingProfile = true;
+  }
+
+  cancelEditProfile(): void {
+    this.editingProfile = false;
+  }
+
+  async saveProfile(): Promise<void> {
+    if (!this.currentUserId || this.savingProfile) return;
+    this.savingProfile = true;
+    try {
+      const updated = await firstValueFrom(
+        this.userService.updateUserProfile(this.currentUserId, {
+          name: this.editName.trim() || this.profile!.name,
+          username: this.editUsername.trim() || null,
+          bio: this.editBio.trim() || null,
+        }),
+      );
+      this.profile = updated;
+      this.editingProfile = false;
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      this.savingProfile = false;
+    }
+  }
+
+  startEditGoal(): void {
+    this.goalInput = this.readingStats?.booksGoal ?? 20;
+    this.editingGoal = true;
+  }
+
+  cancelGoalEdit(): void {
+    this.editingGoal = false;
+  }
+
+  async saveGoal(): Promise<void> {
+    if (!this.currentUserId || this.savingGoal) return;
+    const target = Math.max(1, Math.round(this.goalInput));
+    this.savingGoal = true;
+    try {
+      await firstValueFrom(
+        this.userService.setReadingGoal(this.currentUserId, new Date().getFullYear(), target),
+      );
+      if (this.readingStats) this.readingStats = { ...this.readingStats, booksGoal: target };
+      this.editingGoal = false;
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      this.savingGoal = false;
+    }
+  }
+
+  timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
   }
 
   private toProfileBooks(userBooks: UserBook[]): ProfileBook[] {

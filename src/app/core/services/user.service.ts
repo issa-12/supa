@@ -72,31 +72,51 @@ export class UserService {
       this.supabaseService.getClient().then(async (supabase) => {
         const currentYear = new Date().getFullYear();
 
-        const { data: readBooks, error: readError } = await supabase
-          .from('user_books')
-          .select('user_book_id')
-          .eq('user_id', userId)
-          .eq('status_id', 2)
-          .gte('read_at', `${currentYear}-01-01`)
-          .lte('read_at', `${currentYear}-12-31`);
+        const { data: statusRow } = await supabase
+          .from('reading_statuses')
+          .select('status_id')
+          .eq('status_name', 'read')
+          .single();
 
-        if (readError) throw readError;
+        const readStatusId = statusRow?.['status_id'] as number | undefined;
 
-        const { data: goal, error: goalError } = await supabase
-          .from('reading_goals')
-          .select('target_books')
-          .eq('user_id', userId)
-          .eq('year', currentYear)
-          .maybeSingle();
+        const [readRes, goalRes] = await Promise.all([
+          readStatusId
+            ? supabase
+                .from('user_books')
+                .select('user_book_id')
+                .eq('user_id', userId)
+                .eq('status_id', readStatusId)
+                .gte('updated_at', `${currentYear}-01-01`)
+            : Promise.resolve({ data: [], error: null }),
+          supabase
+            .from('reading_goals')
+            .select('target_books')
+            .eq('user_id', userId)
+            .eq('year', currentYear)
+            .maybeSingle(),
+        ]);
 
-        if (goalError) throw goalError;
+        if (readRes.error) throw readRes.error;
+        if (goalRes.error) throw goalRes.error;
 
         return {
-          booksReadThisYear: readBooks?.length || 0,
-          booksGoal: goal?.target_books || 50,
+          booksReadThisYear: readRes.data?.length ?? 0,
+          booksGoal: (goalRes.data as { target_books?: number } | null)?.target_books ?? 20,
           currentYear,
         };
       })
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  setReadingGoal(userId: string, year: number, targetBooks: number): Observable<void> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('reading_goals')
+          .upsert({ user_id: userId, year, target_books: targetBooks }, { onConflict: 'user_id,year' })
+          .then(({ error }) => { if (error) throw error; }),
+      ),
     ).pipe(catchError((error) => throwError(() => error)));
   }
 

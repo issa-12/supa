@@ -223,6 +223,32 @@ export class BookService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
+  getUserBooksByStatus(userId: string, statusName: string, limit = 10): Observable<UserBook[]> {
+    return from(
+      this.supabaseService.getClient().then(async (supabase) => {
+        const { data: statusRow } = await supabase
+          .from('reading_statuses')
+          .select('status_id')
+          .eq('status_name', statusName)
+          .single();
+
+        const statusId = statusRow?.['status_id'] as number | undefined;
+        if (!statusId) return [];
+
+        const { data, error } = await supabase
+          .from('user_books')
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .eq('user_id', userId)
+          .eq('status_id', statusId)
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (error) throw error;
+        return (data ?? []).map((item) => this.mapUserBook(item));
+      }),
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
   async searchBooks(query: string): Promise<GoogleBook[]> {
     const params = new URLSearchParams({ q: query, maxResults: '20' });
     const res = await fetch(`/api/books/search?${params}`);

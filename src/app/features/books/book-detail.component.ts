@@ -1,8 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook, GoogleBook } from '../../core/services/book.service';
+import { FriendshipService, FriendUser } from '../../core/services/friendship.service';
+import { RecommendationService } from '../../core/services/recommendation.service';
 
 interface BookDetail {
   googleId: string;
@@ -25,7 +28,7 @@ const SHELF_STATUSES = [
 @Component({
   selector: 'app-book-detail',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   templateUrl: './book-detail.component.html',
   styleUrl: './book-detail.component.scss',
 })
@@ -34,6 +37,8 @@ export class BookDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly supabaseService = inject(SupabaseService);
   private readonly bookService = inject(BookService);
+  private readonly friendshipService = inject(FriendshipService);
+  private readonly recommendationService = inject(RecommendationService);
 
   book: BookDetail | null = null;
   userBook: UserBook | null = null;
@@ -45,6 +50,11 @@ export class BookDetailComponent implements OnInit {
   showStatusDropdown = false;
   savingStatus = false;
   addingToShelf = false;
+
+  showRecommendPicker = false;
+  friends: FriendUser[] = [];
+  recommendingToId: string | null = null;
+  recommendFeedback: { userId: string; success: boolean } | null = null;
 
   readonly statuses = SHELF_STATUSES;
   private userId: string | null = null;
@@ -110,6 +120,7 @@ export class BookDetailComponent implements OnInit {
 
   closeDropdown(): void {
     this.showStatusDropdown = false;
+    this.showRecommendPicker = false;
   }
 
   async addToShelf(statusName: string): Promise<void> {
@@ -183,6 +194,38 @@ export class BookDetailComponent implements OnInit {
       this.userBook = null;
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async openRecommendPicker(): Promise<void> {
+    this.showRecommendPicker = true;
+    this.recommendFeedback = null;
+    if (this.friends.length === 0) {
+      this.friends = await this.friendshipService.getFriends().catch(() => []);
+    }
+  }
+
+  closeRecommendPicker(): void {
+    this.showRecommendPicker = false;
+  }
+
+  async recommendTo(friend: FriendUser): Promise<void> {
+    if (!this.book || !this.userId || this.recommendingToId) return;
+    this.recommendingToId = friend.userId;
+    try {
+      await this.recommendationService.recommendBook(
+        this.book.googleId,
+        this.book.title,
+        this.book.author,
+        this.book.coverUrl,
+        this.userId,
+        friend.userId,
+      );
+      this.recommendFeedback = { userId: friend.userId, success: true };
+    } catch {
+      this.recommendFeedback = { userId: friend.userId, success: false };
+    } finally {
+      this.recommendingToId = null;
     }
   }
 

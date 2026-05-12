@@ -1,9 +1,11 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   NotificationsService,
   AppNotification,
   NOTIFICATION_LABELS,
 } from '../../../core/services/notifications.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 @Component({
   selector: 'app-notifications-panel',
@@ -199,6 +201,8 @@ export class NotificationsPanelComponent {
   @Output() close = new EventEmitter<void>();
 
   private readonly notificationsService = inject(NotificationsService);
+  private readonly supabaseService = inject(SupabaseService);
+  private readonly router = inject(Router);
 
   get hasUnread(): boolean {
     return this.notifications.some((n) => !n.isRead);
@@ -208,9 +212,26 @@ export class NotificationsPanelComponent {
     return NOTIFICATION_LABELS[type] ?? 'interacted with you';
   }
 
-  onNotifClick(n: AppNotification): void {
+  async onNotifClick(n: AppNotification): Promise<void> {
     if (!n.isRead) this.notificationsService.markAsRead(n.id);
     this.close.emit();
+    await this.navigate(n);
+  }
+
+  private async navigate(n: AppNotification): Promise<void> {
+    if (n.type === 'book_recommended' && n.referenceId) {
+      const supabase = await this.supabaseService.getClient();
+      const { data } = await supabase
+        .from('books')
+        .select('google_books_id')
+        .eq('book_id', n.referenceId)
+        .single();
+      if (data?.['google_books_id']) {
+        this.router.navigate(['/books', data['google_books_id']]);
+      }
+    } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
+      this.router.navigate(['/profile', n.actorId]);
+    }
   }
 
   markAllRead(): void {

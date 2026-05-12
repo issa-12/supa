@@ -16,7 +16,8 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Issa\\\\Desktop\\\\supabase\\\\supabase\" -Recurse | Where-Object { $_.Extension -eq \".sql\" -or $_.Name -match \"schema\" })",
       "Bash(npx tsc *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Issa\\\\Desktop\\\\supabase\" -Recurse -Directory -Name \"backend\")",
-      "Bash(Select-Object -First 1)"
+      "Bash(Select-Object -First 1)",
+      "Bash(node -e \"const { SupabaseClient } = require\\('@supabase/supabase-js'\\); console.log\\(typeof SupabaseClient\\);\")"
     ]
   }
 }

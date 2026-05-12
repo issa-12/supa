@@ -105,6 +105,35 @@ export class NotificationsService {
       .subscribe();
   }
 
+  async fireNotification(
+    recipientId: string,
+    actorId: string,
+    typeName: string,
+    referenceId?: number,
+    referenceType?: string,
+  ): Promise<void> {
+    if (recipientId === actorId) return;
+    try {
+      const supabase = await this.supabaseService.getClient();
+      const { data: typeRow } = await supabase
+        .from('notifications_type')
+        .select('notifications_typeid')
+        .eq('notifications_type', typeName)
+        .single();
+      if (!typeRow) return;
+      await supabase.from('notifications').insert({
+        user_id: recipientId,
+        actor_user_id: actorId,
+        notifications_typeid: typeRow['notifications_typeid'],
+        reference_id: referenceId ?? null,
+        reference_type: referenceType ?? null,
+        read_status: false,
+      });
+    } catch {
+      // fire-and-forget — never block the UI action
+    }
+  }
+
   unsubscribe(): void {
     if (this.realtimeChannel) {
       this.realtimeChannel.unsubscribe();

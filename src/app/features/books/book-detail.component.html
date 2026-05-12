@@ -90,6 +90,50 @@
             </div>
           }
 
+          <!-- Recommend to friend -->
+          <div class="recommend-wrap" (click)="$event.stopPropagation()">
+            <button class="btn btn-outline recommend-btn" (click)="openRecommendPicker()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+              Recommend to Friend
+            </button>
+
+            @if (showRecommendPicker) {
+              <div class="recommend-dropdown">
+                @if (friends.length === 0) {
+                  <p class="recommend-empty">No friends yet.</p>
+                } @else {
+                  @for (friend of friends; track friend.userId) {
+                    <button
+                      class="recommend-item"
+                      [disabled]="recommendingToId === friend.userId"
+                      (click)="recommendTo(friend)"
+                    >
+                      <div class="recommend-avatar">
+                        @if (friend.avatarUrl) {
+                          <img [src]="friend.avatarUrl" [alt]="friend.name" />
+                        } @else {
+                          <span>{{ friend.name[0].toUpperCase() }}</span>
+                        }
+                      </div>
+                      <span class="recommend-name">{{ friend.name }}</span>
+                      @if (recommendFeedback?.userId === friend.userId) {
+                        <span class="recommend-status" [class.recommend-status--ok]="recommendFeedback!.success">
+                          {{ recommendFeedback!.success ? 'Sent!' : 'Failed' }}
+                        </span>
+                      } @else if (recommendingToId === friend.userId) {
+                        <span class="recommend-status">…</span>
+                      }
+                    </button>
+                  }
+                }
+              </div>
+            }
+          </div>
+
           <!-- Shelf actions -->
           <div class="shelf-actions" (click)="$event.stopPropagation()">
             @if (userBook) {

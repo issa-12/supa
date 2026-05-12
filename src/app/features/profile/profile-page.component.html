@@ -137,19 +137,108 @@
                 <div class="progress-bar-fill" [style.width.%]="goalPercent"></div>
               </div>
             </div>
-            <p class="progress-percentage">{{ goalPercent }}% of {{ readingStats.currentYear }} goal</p>
+            <div class="progress-footer">
+              <p class="progress-percentage">{{ goalPercent }}% of {{ readingStats.currentYear }} goal</p>
+              @if (isOwnProfile) {
+                @if (editingGoal) {
+                  <div class="goal-edit" (click)="$event.stopPropagation()">
+                    <input
+                      class="goal-input"
+                      type="number"
+                      [(ngModel)]="goalInput"
+                      min="1"
+                      max="999"
+                    />
+                    <button class="goal-save-btn" [disabled]="savingGoal" (click)="saveGoal()">
+                      {{ savingGoal ? '…' : 'Save' }}
+                    </button>
+                    <button class="goal-cancel-btn" (click)="cancelGoalEdit()">Cancel</button>
+                  </div>
+                } @else {
+                  <button class="goal-edit-btn" (click)="startEditGoal()">Edit goal</button>
+                }
+              }
+            </div>
           </div>
 
           <div class="stat-card">
             <div class="stat-header">
-              <span class="stat-label">Total Reviews</span>
+              <span class="stat-label">Total Rated</span>
             </div>
             <div class="stat-value">
               {{ mostLikedBooks.length + inBetweenBooks.length + leastLikedBooks.length }}
             </div>
-            <p class="stat-description">Across all shelves</p>
+            <p class="stat-description">Books with ratings</p>
           </div>
         </div>
+      }
+
+      <!-- Currently Reading -->
+      @if (currentlyReadingBooks.length > 0) {
+        <section class="books-section">
+          <div class="section-header">
+            <h3 class="section-title">Currently Reading</h3>
+            <p class="section-description">Books in progress right now.</p>
+          </div>
+          <div class="books-grid">
+            @for (book of currentlyReadingBooks; track book.userBookId) {
+              <div class="book-card">
+                <div class="book-cover-container">
+                  @if (book.coverUrl) {
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                  } @else {
+                    <div class="book-cover book-cover--placeholder">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                    </div>
+                  }
+                  <div class="reading-badge">Reading</div>
+                </div>
+                <div class="book-info">
+                  <h4 class="book-title">{{ book.title }}</h4>
+                  <p class="book-author">{{ book.author }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Recent Posts -->
+      @if (recentPosts.length > 0) {
+        <section class="posts-section">
+          <div class="section-header">
+            <h3 class="section-title">Recent Posts</h3>
+          </div>
+          <div class="profile-posts">
+            @for (post of recentPosts; track post.id) {
+              <div class="profile-post-card">
+                <div class="profile-post-book">
+                  @if (post.bookCover) {
+                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="profile-post-cover" />
+                  }
+                  <span class="profile-post-book-title">{{ post.bookTitle }}</span>
+                </div>
+                <p class="profile-post-content">{{ post.content }}</p>
+                <div class="profile-post-footer">
+                  <span class="profile-post-time">{{ timeAgo(post.createdAt) }}</span>
+                  <span class="profile-post-stats">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    {{ post.likeCount }}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    {{ post.commentCount }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
       }
 
       <!-- Find Friends Search (own profile only) -->
@@ -437,6 +526,45 @@
           </svg>
           <p>No rated books yet. Start reading and rating!</p>
           <a routerLink="/books/search" class="btn btn-primary">Find Books</a>
+        </div>
+      }
+
+      <!-- Edit Profile Panel -->
+      @if (editingProfile) {
+        <div class="edit-overlay" (click)="cancelEditProfile()"></div>
+        <div class="edit-panel" (click)="$event.stopPropagation()">
+          <div class="edit-panel-header">
+            <h3 class="edit-panel-title">Edit Profile</h3>
+            <button class="edit-panel-close" (click)="cancelEditProfile()" aria-label="Close">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="edit-panel-body">
+            <label class="edit-field">
+              <span class="edit-label">Display Name</span>
+              <input class="edit-input" type="text" [(ngModel)]="editName" placeholder="Your name" maxlength="60" />
+            </label>
+            <label class="edit-field">
+              <span class="edit-label">Username</span>
+              <div class="edit-input-prefix-wrap">
+                <span class="edit-input-prefix">&#64;</span>
+                <input class="edit-input edit-input--prefixed" type="text" [(ngModel)]="editUsername" placeholder="username" maxlength="30" />
+              </div>
+            </label>
+            <label class="edit-field">
+              <span class="edit-label">Bio</span>
+              <textarea class="edit-textarea" [(ngModel)]="editBio" placeholder="Tell readers about yourself…" rows="4" maxlength="300"></textarea>
+              <span class="edit-char-count">{{ editBio.length }}/300</span>
+            </label>
+          </div>
+          <div class="edit-panel-footer">
+            <button class="btn btn-outline" (click)="cancelEditProfile()">Cancel</button>
+            <button class="btn btn-primary" [disabled]="savingProfile || !editName.trim()" (click)="saveProfile()">
+              {{ savingProfile ? 'Saving…' : 'Save Changes' }}
+            </button>
+          </div>
         </div>
       }
 
