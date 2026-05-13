@@ -1,0 +1,140 @@
+:host {
+  display: contents;
+}
+
+.app-viewport {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  color: var(--foreground);
+  background: linear-gradient(180deg, rgba(246, 239, 230, 0.96) 0%, rgba(239, 228, 214, 0.98) 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(
+        180deg,
+        rgba(255, 250, 245, 0.88) 0%,
+        rgba(243, 238, 230, 0.92) 100%
+      ),
+      url('/api/flow-image/16%3A9%0Asoft%20library%20interior%20with%20bookshelves%2C%20warm%20beige%2C%20light%20brown%2C%20muted%20pastel%20tones%2C%20cozy%20reading%20atmosphere%2C%20editorial%20photography%2C%20gentle%20depth%20of%20field');
+    background-size: cover;
+    background-position: center;
+    filter: saturate(0.94);
+    z-index: 0;
+  }
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  padding-bottom: 120px;
+
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(126, 107, 93, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(126, 107, 93, 0.4);
+    }
+  }
+}
+
+.page-shell {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.home-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 64px;
+}
+
+.main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fab-btn {
+  position: absolute;
+  bottom: 48px;
+  right: 48px;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+  color: var(--primary-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 32px rgba(233, 120, 63, 0.35);
+  z-index: 100;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 20px 40px rgba(233, 120, 63, 0.45);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .page-shell {
+    padding: 24px 32px 48px;
+    gap: 40px;
+  }
+
+  .home-bottom-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    padding: 16px 20px 48px;
+    gap: 32px;
+  }
+
+  .fab-btn {
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+  }
+}

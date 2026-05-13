@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <h1 id="verification-title">Enter your 6-digit code</h1>
+    <h1 id="verification-title">Enter your {{ codeLength }}-digit code</h1>
     <p class="verification-copy">
       We sent a code to
       <strong>{{ email || 'your email address' }}</strong>.
@@ -60,7 +60,7 @@
       <div
         class="code-inputs"
         formArrayName="code"
-        aria-label="6-digit verification code"
+        [attr.aria-label]="codeLength + '-digit verification code'"
         (paste)="onCodePaste($event)"
       >
         @for (control of codeArray.controls; track $index) {

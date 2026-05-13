@@ -1,0 +1,46 @@
+<div class="language-menu">
+  <button
+    class="language-button"
+    type="button"
+    [attr.aria-label]="label"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="isOpen"
+    (click)="toggleMenu()"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" />
+    </svg>
+    <span>{{ selectedLanguage.nativeLabel }}</span>
+    <svg class="language-button__chevron" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  </button>
+
+  @if (isOpen) {
+    <div class="language-menu__panel" role="menu">
+      @for (language of languages; track language.code) {
+        <button
+          class="language-menu__option"
+          type="button"
+          role="menuitemradio"
+          [attr.aria-checked]="selectedLanguage.code === language.code"
+          (click)="selectLanguage(language)"
+        >
+          <span class="language-menu__option-copy">
+            <span>{{ language.nativeLabel }}</span>
+            <span>{{ language.label }}</span>
+          </span>
+          <span class="language-menu__check" aria-hidden="true">
+            @if (selectedLanguage.code === language.code) {
+              <svg viewBox="0 0 24 24">
+                <path d="m5 12 4 4 10-10" />
+              </svg>
+            }
+          </span>
+        </button>
+      }
+    </div>
+  }
+</div>

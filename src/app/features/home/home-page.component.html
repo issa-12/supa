@@ -1,0 +1,39 @@
+<div class="app-viewport">
+  <app-top-nav></app-top-nav>
+
+  <div class="scroll-area">
+    <div class="page-shell">
+      <!-- Hero Section -->
+      <app-hero-section *ngIf="heroBook" [book]="heroBook" (addToReading)="onAddToReading($event)"></app-hero-section>
+
+      <!-- Continue Reading Section -->
+      <app-continue-reading [books]="continueReadingBooks" (continueReading)="onContinueReading($event)"></app-continue-reading>
+
+      <!-- Main Grid Layout -->
+      <div class="home-bottom-grid">
+        <!-- Main Column -->
+        <div class="main-col">
+          <!-- Recommended For You Section -->
+          <app-recommended-books [books]="recommendedBooks" (addBook)="onAddBook($event)"></app-recommended-books>
+
+          <!-- Trending This Week Section -->
+          <app-trending-books [books]="trendingBooks"></app-trending-books>
+        </div>
+
+        <!-- Friends Feed Sidebar -->
+        <aside class="side-col">
+          <app-posts-feed
+            [currentUserId]="currentUserId"
+            [currentUserAvatar]="currentUserAvatar"
+            [currentUserName]="currentUser?.name ?? null"
+          ></app-posts-feed>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button — opens compose form in feed -->
+  <button class="fab-btn" aria-label="Write a post" (click)="openCompose()">
+    <iconify-icon icon="lucide:pencil" style="font-size: 24px"></iconify-icon>
+  </button>
+</div>

@@ -52,6 +52,21 @@ export class SupabaseService {
     const response = await supabase.auth.signInWithPassword({ email, password });
 
     if (response.data.user) {
+      if (response.data.user.user_metadata?.['app_email_verified'] === false) {
+        await supabase.auth.signOut();
+
+        return {
+          data: {
+            user: null,
+            session: null,
+          },
+          error: {
+            name: 'EmailNotVerifiedError',
+            message: 'Please verify your email before logging in.',
+          },
+        } as AuthResponse;
+      }
+
       await this.ensurePublicUser(response.data.user);
     }
 
@@ -59,15 +74,26 @@ export class SupabaseService {
   }
 
   async requestEmailVerification(credentials: SignUpCredentials): Promise<void> {
-    await this.postAuthApi('/api/auth/request-signup', credentials);
+    await this.postAuthApi<unknown>('/api/auth/request-signup', credentials);
   }
 
   async verifyEmailCode(request: EmailVerificationRequest): Promise<void> {
-    await this.postAuthApi('/api/auth/verify-email', request);
+    const data = await this.postAuthApi<{ access_token?: string; refresh_token?: string }>(
+      '/api/auth/verify-email',
+      request,
+    );
+
+    if (data.access_token && data.refresh_token) {
+      const supabase = await this.getClient();
+      await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+    }
   }
 
   async resendEmailVerification(email: string): Promise<void> {
-    await this.postAuthApi('/api/auth/resend-verification', { email });
+    await this.postAuthApi<unknown>('/api/auth/resend-verification', { email });
   }
 
   async signInWithProvider(provider: Provider = 'google'): Promise<OAuthResponse> {
@@ -176,7 +202,7 @@ export class SupabaseService {
     return `${window.location.origin}${this.authRedirectPath}`;
   }
 
-  private getClient(): Promise<SupabaseClient> {
+  getClient(): Promise<SupabaseClient> {
     this.supabaseClientPromise ??= import('@supabase/supabase-js')
       .then(({ createClient }) => createClient(this.supabaseUrl, this.supabaseKey, {
         auth: {
@@ -189,7 +215,7 @@ export class SupabaseService {
     return this.supabaseClientPromise;
   }
 
-  private async postAuthApi(path: string, body: unknown): Promise<void> {
+  private async postAuthApi<T>(path: string, body: unknown): Promise<T> {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 15_000);
 
@@ -203,13 +229,13 @@ export class SupabaseService {
         signal: controller.signal,
       });
 
+      const payload = await response.json().catch(() => ({ message: 'Authentication request failed.' })) as T & { message?: string };
+
       if (response.ok) {
-        return;
+        return payload;
       }
 
-      const payload = await response.json().catch(() => ({ message: 'Authentication request failed.' })) as { message?: string };
-
-      throw new Error(payload.message ?? 'Authentication request failed.');
+      throw new Error((payload as { message?: string }).message ?? 'Authentication request failed.');
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Error('The auth server did not respond. Check the server console and try again.');

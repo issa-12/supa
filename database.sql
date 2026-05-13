@@ -170,6 +170,7 @@ CREATE TABLE public.posts (
 CREATE TABLE public.profiles (
   user_id uuid NOT NULL,
   name text,
+  otp integer,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT profiles_pkey PRIMARY KEY (user_id),
   CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)

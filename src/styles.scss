@@ -1,4 +1,7 @@
-* {
+/* ─── Global reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -10,4 +13,53 @@ body {
 
 body {
   background: #f4ede5;
+  font-family: 'PT Serif', Georgia, 'Times New Roman', serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Brand palette */
+  --primary:            #e9783f;   /* warm orange */
+  --primary-foreground: #ffffff;
+  --accent:             #d4632a;   /* darker orange for hover */
+  --warning:            #f59e0b;   /* amber — star ratings */
+  --success:            #7aa66f;   /* green — online indicator */
+  --destructive:        #e05252;   /* red — errors, delete */
+
+  /* Neutrals */
+  --foreground:         #33261d;   /* almost-black brown */
+  --muted-foreground:   #7e6b5d;   /* medium brown */
+  --background:         #f4ede5;   /* warm off-white page */
+  --surface:            #fffaf5;   /* card / modal surface */
+  --border:             rgba(126, 107, 93, 0.18);
+
+  /* Radius */
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-full: 999px;
+}
+
+/* ─── Utility: RTL support ─────────────────────────────────────────────────── */
+[dir='rtl'] {
+  text-align: right;
+}
+
+/* ─── Scrollbar styling ────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(126, 107, 93, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 107, 93, 0.4);
 }
