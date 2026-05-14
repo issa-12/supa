@@ -5,7 +5,7 @@ ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
 Users can search books via Google Books, manage a personal shelf, follow friends,
 post about books, and receive AI-powered reading recommendations.
 
-**Current day: 9 of 15. Days 1–9 are fully complete.**
+**Current day: 12 of 15. Days 1–12 are fully complete.**
 
 ---
 
@@ -112,7 +112,7 @@ The root `.env` is read by `docker-compose.yml` (`env_file: - .env`).
 public.users          -- mirrors auth.users (id = auth.uid())
 public.profiles       -- extended profile data
 public.books          -- shared book catalog (google_books_id UNIQUE)
-public.user_books     -- user shelf (user_id, book_id, status_id, rating)
+public.user_books     -- user shelf (user_id, book_id, status_id, rating, note, review_text, current_page, total_pages)
 public.reading_statuses  -- reference: read / want_to_read / currently_reading
 public.reading_goals  -- annual reading goal per user
 public.genres         -- 20 genres seeded
@@ -124,6 +124,7 @@ public.friendship     -- user_id1, user_id2, status_id, requester_id
 public.friendship_status  -- pending / accepted / rejected / blocked
 public.notifications
 public.notifications_type
+public.ai_recommendations -- cached Claude recommendations per user (JSONB, expires_at TTL 24h)
 ```
 
 **Important:** `reading_statuses` IDs are NOT hardcoded in the app — status IDs
@@ -162,6 +163,7 @@ All tables have RLS enabled. Key rules:
 | `/books/search` | BookSearchComponent | authGuard + genreOnboardingGuard |
 | `/books/:googleId` | BookDetailComponent | authGuard + genreOnboardingGuard |
 | `/shelf` | ShelfComponent | authGuard + genreOnboardingGuard |
+| `/stats` | StatsPageComponent | authGuard + genreOnboardingGuard |
 
 ---
 
@@ -181,10 +183,13 @@ All tables have RLS enabled. Key rules:
 | GET | `/api/friends` | List accepted friends (auth user) |
 | GET | `/api/friends/requests` | List incoming pending requests |
 | GET | `/api/friends/status/:userId` | Friendship status with a specific user |
+| GET | `/api/recommendations/:userId` | AI book recommendations (Claude, 24h cache) |
+| GET | `/api/stats/global?period=week\|month` | Top books, trending genres, top readers |
+| GET | `/api/stats/pace` | Authenticated user's monthly reading pace |
 
 ---
 
-## What is done (Days 1–9)
+## What is done (Days 1–12)
 
 ### Day 1 — Auth & Onboarding
 - Login page: email/password + Google OAuth
@@ -270,43 +275,57 @@ All tables have RLS enabled. Key rules:
 - `setReadingGoal(userId, year, target)` added to UserService
 - Migration: `UNIQUE(user_id, year)` constraint on `reading_goals` for upsert
 
+### Day 10 — AI Recommendations (Claude API)
+- `RecommendationsModule` in `backend/src/recommendations/` — `GET /api/recommendations/:userId`
+- Pulls user genres + rated books + reading history from Supabase to build prompt context
+- Calls `claude-haiku-4-5-20251001` via Anthropic SDK with system prompt cache (`cache_control: ephemeral`)
+- Caches results in `ai_recommendations` table (JSONB, 24h TTL) — upsert on re-request
+- Enriches each suggestion with Google Books (cover, googleBooksId) and upserts into `public.books`
+- Mock fallback (6 hardcoded books) when Anthropic API key is missing or call fails
+- Home page `RecommendedBooks` section fetches from endpoint with Bearer token; cards navigate to `/books/:googleBooksId`
+- Migration: `ai_recommendations` table with RLS (own rows only)
+
+### Day 11 — Stats Dashboard
+- `StatsModule` in `backend/src/stats/` — two endpoints:
+  - `GET /api/stats/global?period=week|month` — top books, trending genres, top readers (all in one response)
+  - `GET /api/stats/pace` — authenticated user's monthly read count for current year
+- **Top Books**: counts `user_books` additions in the period, joins `books` for metadata, returns top 5
+- **Trending Genres**: counts `user_genres` selections across all users, returns top 6 with % share
+- **Top Readers**: two-query pattern (no PostgREST join — `user_books.user_id` has no FK to `public.users`): count by user_id in JS → separate `.in()` query on `users` table
+- **Reading Pace**: monthly breakdown of books marked "read" this year for the current user
+- `StatsPageComponent` (`/stats`) — four sections with shimmer skeletons, period toggle, pure CSS bar chart for pace
+- Stats nav icon added to top nav (bar-chart-2 icon between Shelf and Bell)
+- `backend/test-stats.mjs` — test script verifying all four data queries against live Supabase
+
+### Day 12 — Reading Progress, Notes & Reviews
+- **DB migration**: added `current_page INT`, `total_pages INT`, `note TEXT`, `review_text TEXT` columns to `user_books`
+- **Reading progress on shelf**: "Currently Reading" cards show a progress bar (fill % = currentPage/totalPages). Click bar or "+ Track progress" → inline form with two number inputs (current page / total pages). Saves with ✓ button, updates local state without re-fetching.
+- **Private notes on book detail**: textarea below description (only shown when book is on shelf). Saves to `user_books.note`. "Save Notes" button flashes "Saved!" for 2s.
+- **Public review on book detail**: separate textarea saves to `user_books.review_text`. Labeled "visible to your friends".
+- **Community reviews section**: two-query fetch (user_books → users) shows other users' avatar, name, star rating, and review text for the same book. Refreshes after saving own review.
+- **Bug fix**: Google Books search 502 — changed from throwing `BadGatewayException` to graceful fallback: logs the actual API error, then searches local `books` table by title (`ILIKE`). Never crashes the search page.
+- nginx.conf: added `proxy_connect_timeout 10s`, `proxy_read_timeout 30s`, `proxy_send_timeout 30s`
+
 ---
 
-## What is left (Days 10–15)
-
-### Day 10 — AI Recommendations (Claude API)
-- NestJS endpoint: `GET /api/recommendations/:userId`
-- Pull user's genres, rated books, reading history from Supabase
-- Call Claude API (claude-haiku-4-5 for cost) with a structured prompt
-- Cache results in a new `ai_recommendations` table (TTL 24h)
-- Wire up the home page `RecommendedBooks` section with real AI results
-
-### Day 11 — Stats dashboard
-- Top books this week/month
-- Top readers / trending genres
-- User's reading pace chart
-
-### Day 12 — Reading progress & notes
-- Track current page / progress percentage on currently-reading books
-- Private notes per book
-- Public reviews (star rating + text)
+## What is left (Days 13–15)
 
 ### Day 13 — Search improvements
-- Search users by name/username (already partially in UserService.searchUsers)
-- Top nav search bar: show unified results for books AND users
+- Top nav search bar: unified results for books AND users (currently just navigates to `/books/search`)
+- Search users by name/username — `UserService.searchUsers` exists, needs UI wiring
 - Filter/sort shelf by status, rating, date added
 
 ### Day 14 — Polish & performance
-- Loading skeletons everywhere
-- Error boundaries
-- Image lazy loading already in place
-- Offline detection
+- Loading skeletons on all data-heavy pages (home, shelf, stats, profile)
+- Error boundaries / empty states refinement
+- Image lazy loading (already in place for shelf/search, extend to profile + stats)
+- Offline detection banner
 
 ### Day 15 — Final deployment
-- Production environment variables
-- Custom domain if needed
-- Final Docker build test
-- Supabase backup
+- Production environment variables (separate `.env.production`)
+- Final Docker build test end-to-end
+- Supabase backup / point-in-time recovery check
+- Custom domain setup (if needed)
 
 ---
 
@@ -322,11 +341,28 @@ All tables have RLS enabled. Key rules:
    3=currently_reading. The app resolves these dynamically by name, not by hardcoded int.
 
 4. **Google Books API key** — stored in `.env` and `backend/.env` (both gitignored).
-   The key posted in chat should be regenerated in Google Cloud Console and updated
-   in both files.
+   Free tier is 1,000 req/day. When quota is hit, search falls back to the local `books`
+   table (`ILIKE` on title) — no 502 error, just fewer results. Resets daily at midnight Pacific.
 
-5. **user_books upsert** — uses `onConflict: 'user_id,book_id'`. The unique index
+5. **Anthropic API key** — stored in `backend/.env` as `ANTHROPIC_API_KEY`. When missing or out of
+   credits, recommendations fall back to 6 hardcoded mock books silently.
+
+6. **user_books upsert** — uses `onConflict: 'user_id,book_id'`. The unique index
    `user_books_user_book_unique` must exist (created in Day 2 migration).
+
+7. **Day 12 migration** — must be run manually in Supabase Dashboard SQL Editor if not already applied:
+   ```sql
+   ALTER TABLE public.user_books
+     ADD COLUMN IF NOT EXISTS current_page INT,
+     ADD COLUMN IF NOT EXISTS total_pages  INT,
+     ADD COLUMN IF NOT EXISTS note         TEXT,
+     ADD COLUMN IF NOT EXISTS review_text  TEXT;
+   ```
+
+8. **PostgREST join limitation** — `user_books.user_id` has no FK to `public.users`, so any
+   feature needing user profiles from user_books must use the two-query pattern:
+   fetch user_ids first → separate `.in('id', userIds)` on `users` table. See
+   `StatsService.getTopReaders()` and `BookService.getCommunityReviews()` for reference.
 
 ---
 
