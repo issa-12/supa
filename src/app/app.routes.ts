@@ -80,6 +80,14 @@ export const routes: Routes = [
         (m) => m.ShelfComponent,
       ),
   },
+  {
+    path: 'stats',
+    canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/stats/stats-page.component').then(
+        (m) => m.StatsPageComponent,
+      ),
+  },
 
   // ── Static pages (no auth required) ──────────────────────────
   {

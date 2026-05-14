@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { Observable, from, throwError } from 'rxjs';
+import { Observable, from, throwError, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 export interface Book {
@@ -173,18 +173,42 @@ export class BookService {
   }
 
   getRecommendedBooks(userId: string, limit: number = 6): Observable<Book[]> {
+    if (!userId) return of([]);
+
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
-          .from('books')
-          .select('*')
-          .limit(limit)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return (data || []).map((item) => this.mapBook(item));
-          })
-      )
-    ).pipe(catchError((error) => throwError(() => error)));
+      (async () => {
+        const session = await this.supabaseService.getCurrentSession();
+        const token = session?.access_token;
+        if (!token) return [];
+
+        const res = await fetch(`/api/recommendations/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return [];
+
+        const payload = (await res.json()) as {
+          books?: Array<{
+            dbBookId: number | null;
+            googleBooksId: string | null;
+            title: string;
+            author: string;
+            description: string | null;
+            coverUrl: string | null;
+            reason: string;
+          }>;
+        };
+
+        return (payload.books ?? []).slice(0, limit).map((b) => ({
+          id: b.dbBookId ?? 0,
+          googleBooksId: b.googleBooksId,
+          title: b.title,
+          author: b.author,
+          description: b.description,
+          publishDate: null,
+          coverUrl: b.coverUrl,
+        }));
+      })()
+    ).pipe(catchError((err) => { console.error('[BookService] getRecommendedBooks failed:', err); return of([]); }));
   }
 
   getTrendingBooks(limit: number = 6): Observable<Book[]> {
