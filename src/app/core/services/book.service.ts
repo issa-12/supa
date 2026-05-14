@@ -31,11 +31,22 @@ export interface UserBook {
   statusId: number;
   rating: number | null;
   note: string | null;
+  reviewText: string | null;
+  currentPage: number | null;
+  totalPages: number | null;
   addedAt: string;
   readAt: string | null;
   updatedAt: string | null;
   book?: Book;
   status?: { id: number; name: string };
+}
+
+export interface CommunityReview {
+  userId: string;
+  userName: string;
+  avatarUrl: string | null;
+  rating: number | null;
+  reviewText: string;
 }
 
 export interface ReadingStatus {
@@ -433,6 +444,91 @@ export class BookService {
     };
   }
 
+  updateProgress(userBookId: number, currentPage: number, totalPages: number | null): Observable<UserBook> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .update({ current_page: currentPage, total_pages: totalPages, updated_at: new Date().toISOString() })
+          .eq('user_book_id', userBookId)
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            if (!data?.length) throw new Error('Failed to update progress');
+            return this.mapUserBook(data[0]);
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  saveNote(userBookId: number, note: string): Observable<UserBook> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .update({ note, updated_at: new Date().toISOString() })
+          .eq('user_book_id', userBookId)
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            if (!data?.length) throw new Error('Failed to save note');
+            return this.mapUserBook(data[0]);
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  saveReview(userBookId: number, reviewText: string): Observable<UserBook> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('user_books')
+          .update({ review_text: reviewText, updated_at: new Date().toISOString() })
+          .eq('user_book_id', userBookId)
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            if (!data?.length) throw new Error('Failed to save review');
+            return this.mapUserBook(data[0]);
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  async getCommunityReviews(bookId: number, currentUserId: string): Promise<CommunityReview[]> {
+    const supabase = await this.supabaseService.getClient();
+
+    const { data: reviews } = await supabase
+      .from('user_books')
+      .select('user_id, rating, review_text')
+      .eq('book_id', bookId)
+      .not('review_text', 'is', null)
+      .neq('user_id', currentUserId);
+
+    if (!reviews?.length) return [];
+
+    const userIds = reviews.map((r) => r['user_id'] as string);
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, name, profile_picture_url')
+      .in('id', userIds);
+
+    const userMap = new Map((users ?? []).map((u) => [u['id'] as string, u]));
+
+    return reviews
+      .filter((r) => r['review_text'])
+      .map((r) => {
+        const u = userMap.get(r['user_id'] as string);
+        return {
+          userId: r['user_id'] as string,
+          userName: (u?.['name'] as string) ?? 'Reader',
+          avatarUrl: (u?.['profile_picture_url'] as string) ?? null,
+          rating: r['rating'] as number | null,
+          reviewText: r['review_text'] as string,
+        };
+      });
+  }
+
   private mapUserBook(raw: any): UserBook {
     return {
       id: raw.user_book_id,
@@ -440,7 +536,10 @@ export class BookService {
       userId: raw.user_id,
       statusId: raw.status_id,
       rating: raw.rating,
-      note: raw.note,
+      note: raw.note ?? null,
+      reviewText: raw.review_text ?? null,
+      currentPage: raw.current_page ?? null,
+      totalPages: raw.total_pages ?? null,
       addedAt: raw.added_at,
       readAt: raw.read_at,
       updatedAt: raw.updated_at,

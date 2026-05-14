@@ -23,6 +23,7 @@
     "@nestjs/schematics": "^10.2.3",
     "@types/express": "^5.0.0",
     "@types/node": "^20.17.0",
+    "pg": "^8.20.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.8.0"
