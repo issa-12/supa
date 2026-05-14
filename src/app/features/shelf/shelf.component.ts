@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook } from '../../core/services/book.service';
@@ -26,7 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-shelf',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   templateUrl: './shelf.component.html',
   styleUrl: './shelf.component.scss',
 })
@@ -41,6 +42,11 @@ export class ShelfComponent implements OnInit {
 
   openMenuId: number | null = null;
   savingId: number | null = null;
+
+  progressEditId: number | null = null;
+  progressCurrent = '';
+  progressTotal = '';
+  savingProgressId: number | null = null;
 
   readonly SHELF_STATUSES = [
     { name: 'currently_reading', label: 'Currently Reading' },
@@ -145,5 +151,45 @@ export class ShelfComponent implements OnInit {
 
   starsArray(rating: number | null): boolean[] {
     return [1, 2, 3, 4, 5].map((n) => n <= (rating ?? 0));
+  }
+
+  openProgressEdit(book: UserBook, event: Event): void {
+    event.stopPropagation();
+    this.progressEditId = book.id;
+    this.progressCurrent = book.currentPage?.toString() ?? '';
+    this.progressTotal = book.totalPages?.toString() ?? '';
+  }
+
+  cancelProgressEdit(event: Event): void {
+    event.stopPropagation();
+    this.progressEditId = null;
+  }
+
+  async saveProgress(book: UserBook, event: Event): Promise<void> {
+    event.stopPropagation();
+    const currentPage = parseInt(this.progressCurrent, 10);
+    if (!currentPage || currentPage < 1) return;
+
+    this.savingProgressId = book.id;
+    try {
+      const totalPages = this.progressTotal ? parseInt(this.progressTotal, 10) : null;
+      const updated = await firstValueFrom(
+        this.bookService.updateProgress(book.id, currentPage, totalPages),
+      );
+      for (const section of this.sections) {
+        const idx = section.books.findIndex((b) => b.id === book.id);
+        if (idx >= 0) section.books[idx] = updated;
+      }
+      this.progressEditId = null;
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.savingProgressId = null;
+    }
+  }
+
+  getProgressPercent(book: UserBook): number {
+    if (!book.currentPage || !book.totalPages || book.totalPages <= 0) return 0;
+    return Math.min(100, Math.round((book.currentPage / book.totalPages) * 100));
   }
 }

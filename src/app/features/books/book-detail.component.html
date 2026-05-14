@@ -221,6 +221,66 @@
         </div>
       }
 
+      <!-- Notes & Review (only if book is on shelf) -->
+      @if (userBook) {
+        <div class="content-section">
+          <h3 class="section-title">My Notes</h3>
+          <p class="section-hint">Private — only you can see these</p>
+          <textarea
+            [(ngModel)]="note"
+            class="content-textarea"
+            placeholder="Add your private notes about this book…"
+            rows="4"
+          ></textarea>
+          <button class="btn save-btn" [class.btn-saved]="noteSaved" [class.btn-outline]="!noteSaved" (click)="saveNote()" [disabled]="noteSaving">
+            {{ noteSaved ? 'Saved!' : noteSaving ? 'Saving…' : 'Save Notes' }}
+          </button>
+        </div>
+
+        <div class="content-section">
+          <h3 class="section-title">My Review</h3>
+          <p class="section-hint">Visible to your friends</p>
+          <textarea
+            [(ngModel)]="reviewText"
+            class="content-textarea"
+            placeholder="Share your thoughts about this book…"
+            rows="4"
+          ></textarea>
+          <button class="btn save-btn" [class.btn-saved]="reviewSaved" [class.btn-outline]="!reviewSaved" (click)="saveReview()" [disabled]="reviewSaving">
+            {{ reviewSaved ? 'Saved!' : reviewSaving ? 'Saving…' : 'Save Review' }}
+          </button>
+        </div>
+      }
+
+      <!-- Community Reviews -->
+      @if (communityReviews.length > 0) {
+        <div class="content-section">
+          <h3 class="section-title">Community Reviews</h3>
+          @for (review of communityReviews; track review.userId) {
+            <div class="review-card">
+              <div class="review-header">
+                <img
+                  [src]="review.avatarUrl || 'https://ui-avatars.com/api/?name=' + review.userName[0] + '&background=E9783F&color=fff&size=32'"
+                  [alt]="review.userName"
+                  class="review-avatar"
+                />
+                <span class="review-name">{{ review.userName }}</span>
+                @if (review.rating) {
+                  <div class="review-stars">
+                    @for (n of starsRange(); track n) {
+                      <svg class="rev-star" [class.rev-star--filled]="n <= review.rating!" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                    }
+                  </div>
+                }
+              </div>
+              <p class="review-text">{{ review.reviewText }}</p>
+            </div>
+          }
+        </div>
+      }
+
     </div>
   }
 

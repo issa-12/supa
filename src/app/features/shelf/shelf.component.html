@@ -101,6 +101,50 @@
                     </div>
                   }
 
+                  <!-- Progress (currently reading only) -->
+                  @if (section.statusName === 'currently_reading') {
+                    <div class="progress-section" (click)="$event.stopPropagation()">
+                      @if (progressEditId === book.id) {
+                        <div class="progress-edit">
+                          <input
+                            type="number"
+                            [(ngModel)]="progressCurrent"
+                            placeholder="Page"
+                            class="progress-input"
+                            min="1"
+                            (click)="$event.stopPropagation()"
+                          />
+                          <span class="progress-sep">/</span>
+                          <input
+                            type="number"
+                            [(ngModel)]="progressTotal"
+                            placeholder="Total"
+                            class="progress-input"
+                            min="1"
+                            (click)="$event.stopPropagation()"
+                          />
+                          <button class="progress-save" (click)="saveProgress(book, $event)" [disabled]="savingProgressId === book.id">
+                            @if (savingProgressId === book.id) { … } @else { ✓ }
+                          </button>
+                          <button class="progress-cancel" (click)="cancelProgressEdit($event)">✕</button>
+                        </div>
+                      } @else {
+                        @if (book.currentPage) {
+                          <div class="progress-bar-wrap" (click)="openProgressEdit(book, $event)">
+                            <div class="progress-bar">
+                              <div class="progress-fill" [style.width.%]="getProgressPercent(book)"></div>
+                            </div>
+                            <span class="progress-label">
+                              {{ book.currentPage }}{{ book.totalPages ? ' / ' + book.totalPages : '' }} p{{ book.totalPages ? ' · ' + getProgressPercent(book) + '%' : '' }}
+                            </span>
+                          </div>
+                        } @else {
+                          <button class="progress-start" (click)="openProgressEdit(book, $event)">+ Track progress</button>
+                        }
+                      }
+                    </div>
+                  }
+
                   <!-- Menu -->
                   <div class="card-actions" (click)="$event.stopPropagation()">
                     <button class="menu-btn" (click)="toggleMenu(book.id)" [class.active]="openMenuId === book.id">
