@@ -1,8 +1,10 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 interface Book {
   id: string;
+  googleBooksId?: string | null;
   title: string;
   author: string;
   coverUrl: string;
@@ -30,11 +32,13 @@ interface Book {
           (mouseenter)="hoveredBookId = book.id"
           (mouseleave)="hoveredBookId = null"
           [class.zoomed]="hoveredBookId === book.id"
+          (click)="onCardClick(book)"
+          [style.cursor]="book.googleBooksId ? 'pointer' : 'default'"
         >
           <div class="book-cover-wrapper">
-            <img class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" />
-            <button class="quick-add-btn" (click)="onAddBook(book)" aria-label="Add to reading">
-              <iconify-icon icon="lucide:plus" style="font-size: 18px"></iconify-icon>
+            <img class="book-cover-clean" [src]="book.coverUrl || 'assets/book-placeholder.png'" [alt]="book.title + ' Cover'" />
+            <button class="quick-add-btn" (click)="$event.stopPropagation(); onCardClick(book)" aria-label="View book details">
+              <iconify-icon icon="lucide:eye" style="font-size: 16px"></iconify-icon>
             </button>
           </div>
 
@@ -245,10 +249,18 @@ interface Book {
   `],
 })
 export class RecommendedBooksComponent {
+  private readonly router = inject(Router);
+
   @Input() books: Book[] = [];
   @Output() addBook = new EventEmitter<Book>();
 
   hoveredBookId: string | null = null;
+
+  onCardClick(book: Book): void {
+    if (book.googleBooksId) {
+      this.router.navigate(['/books', book.googleBooksId]);
+    }
+  }
 
   onAddBook(book: Book): void {
     this.addBook.emit(book);

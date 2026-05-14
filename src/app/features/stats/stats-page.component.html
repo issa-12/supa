@@ -1,0 +1,163 @@
+<div class="stats-viewport">
+  <app-top-nav />
+
+  <main class="stats-main">
+
+    <!-- Header + period toggle -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Reading Stats</h1>
+        <p class="page-subtitle">Community insights &amp; your progress</p>
+      </div>
+      <div class="period-toggle">
+        <button [class.active]="period === 'week'" (click)="setPeriod('week')">This Week</button>
+        <button [class.active]="period === 'month'" (click)="setPeriod('month')">This Month</button>
+      </div>
+    </div>
+
+    <!-- Top Books + Trending Genres -->
+    <div class="stats-grid">
+
+      <!-- Top Books -->
+      <div class="stat-card">
+        <h2 class="card-title">
+          <iconify-icon icon="lucide:trending-up" style="font-size:18px"></iconify-icon>
+          Top Books
+        </h2>
+
+        @if (isLoadingGlobal) {
+          <div class="loading-rows">
+            @for (n of skeletonRows; track n) {
+              <div class="skeleton-row"></div>
+            }
+          </div>
+        } @else if (topBooks.length === 0) {
+          <p class="empty-msg">No books added this {{ period }}.</p>
+        } @else {
+          <div class="book-list">
+            @for (book of topBooks; track book.rank) {
+              <div class="book-row">
+                <span class="rank-num">#{{ book.rank }}</span>
+                <img
+                  [src]="book.coverUrl || 'assets/book-placeholder.png'"
+                  class="book-thumb"
+                  [alt]="book.title"
+                />
+                <div class="book-meta">
+                  <div class="book-title-text">{{ book.title }}</div>
+                  <div class="book-author-text">{{ book.author }}</div>
+                </div>
+                <span class="add-badge">{{ book.addCount }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Trending Genres -->
+      <div class="stat-card">
+        <h2 class="card-title">
+          <iconify-icon icon="lucide:bar-chart-2" style="font-size:18px"></iconify-icon>
+          Trending Genres
+        </h2>
+
+        @if (isLoadingGlobal) {
+          <div class="loading-rows">
+            @for (n of skeletonRows; track n) {
+              <div class="skeleton-row short"></div>
+            }
+          </div>
+        } @else if (trendingGenres.length === 0) {
+          <p class="empty-msg">No genre data yet.</p>
+        } @else {
+          <div class="genre-list">
+            @for (genre of trendingGenres; track genre.name) {
+              <div class="genre-row">
+                <span class="genre-name">{{ genre.name }}</span>
+                <div class="genre-track">
+                  <div class="genre-fill" [style.width.%]="genre.percentage"></div>
+                </div>
+                <span class="genre-pct">{{ genre.percentage }}%</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Top Readers -->
+    <div class="stat-card">
+      <h2 class="card-title">
+        <iconify-icon icon="lucide:trophy" style="font-size:18px"></iconify-icon>
+        Top Readers
+      </h2>
+
+      @if (isLoadingGlobal) {
+        <div class="loading-rows">
+          @for (n of [1,2,3]; track n) {
+            <div class="skeleton-row"></div>
+          }
+        </div>
+      } @else if (topReaders.length === 0) {
+        <p class="empty-msg">No readers yet — mark books as "Read" to appear here.</p>
+      } @else {
+        <div class="readers-list">
+          @for (reader of topReaders; track reader.rank) {
+            <div class="reader-row" [routerLink]="['/profile', reader.userId]">
+              <span
+                class="rank-badge"
+                [class.gold]="reader.rank === 1"
+                [class.silver]="reader.rank === 2"
+                [class.bronze]="reader.rank === 3"
+              >{{ reader.rank }}</span>
+              <img
+                [src]="reader.avatarUrl || avatarFallback(reader.name)"
+                class="reader-avatar"
+                [alt]="reader.name"
+              />
+              <span class="reader-name">{{ reader.name }}</span>
+              <span class="reader-books">{{ reader.booksRead }} book{{ reader.booksRead !== 1 ? 's' : '' }} read</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- My Reading Pace -->
+    <div class="stat-card">
+      <div class="card-header-row">
+        <h2 class="card-title">
+          <iconify-icon icon="lucide:activity" style="font-size:18px"></iconify-icon>
+          My Reading Pace
+        </h2>
+        <span class="year-chip">{{ currentYear }}</span>
+      </div>
+
+      @if (isLoadingPace) {
+        <div class="pace-skeleton"></div>
+      } @else {
+        <div class="pace-chart">
+          @for (m of readingPace; track m.month) {
+            <div class="bar-col">
+              <span class="bar-count">{{ m.count > 0 ? m.count : '' }}</span>
+              <div class="bar-wrap">
+                <div
+                  class="bar-fill"
+                  [class.active]="m.count > 0"
+                  [style.height.%]="getBarHeight(m.count)"
+                ></div>
+              </div>
+              <span class="bar-month">{{ m.month }}</span>
+            </div>
+          }
+        </div>
+        @if (totalBooksRead === 0) {
+          <p class="empty-msg center">Mark books as "Read" to track your reading pace.</p>
+        } @else {
+          <p class="pace-total">{{ totalBooksRead }} book{{ totalBooksRead !== 1 ? 's' : '' }} read so far this year</p>
+        }
+      }
+    </div>
+
+  </main>
+</div>

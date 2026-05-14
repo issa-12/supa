@@ -30,6 +30,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
 
+        <a routerLink="/stats" class="nav-icon-btn" aria-label="Stats">
+          <iconify-icon icon="lucide:bar-chart-2" style="font-size: 20px"></iconify-icon>
+        </a>
+
         <div class="bell-wrapper">
           <button class="nav-icon-btn" aria-label="Notifications" (click)="togglePanel()">
             <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
