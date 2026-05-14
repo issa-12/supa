@@ -13,6 +13,7 @@ import { PostsFeedComponent } from './components/posts-feed.component';
 
 interface Book {
   id: string;
+  googleBooksId?: string | null;
   title: string;
   author: string;
   coverUrl: string;
@@ -160,6 +161,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private mapBook(book: any): Book {
     return {
       id: book.id.toString(),
+      googleBooksId: book.googleBooksId ?? null,
       title: book.title,
       author: book.author,
       coverUrl: book.coverUrl,
