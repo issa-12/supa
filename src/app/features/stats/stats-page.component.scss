@@ -26,6 +26,29 @@
   flex-wrap: wrap;
 }
 
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 250, 245, 0.7);
+  border: 1px solid rgba(126, 107, 93, 0.15);
+  color: var(--foreground);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background 0.2s;
+
+  &:hover { background: rgba(255, 250, 245, 0.95); }
+}
+
 .page-title {
   font-size: 32px;
   font-weight: 800;
@@ -137,6 +160,16 @@
   display: flex;
   align-items: center;
   gap: 12px;
+
+  &--clickable {
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: background 0.15s;
+    padding: 4px 6px;
+    margin: -4px -6px;
+
+    &:hover { background: rgba(233, 120, 63, 0.07); }
+  }
 }
 
 .rank-num {

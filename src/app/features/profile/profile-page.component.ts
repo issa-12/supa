@@ -56,6 +56,9 @@ export class ProfilePageComponent implements OnInit {
   editBio = '';
   savingProfile = false;
 
+  uploadingAvatar = false;
+  avatarError: string | null = null;
+
   friendshipStatus: FriendshipStatusValue = 'none';
   friendshipId: number | null = null;
   friends: FriendUser[] = [];
@@ -274,6 +277,35 @@ export class ProfilePageComponent implements OnInit {
       .map((w) => w[0])
       .join('')
       .toUpperCase();
+  }
+
+  async onAvatarFileChange(event: Event): Promise<void> {
+    if (!this.currentUserId || this.uploadingAvatar) return;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.avatarError = 'Please select an image file.';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.avatarError = 'Image must be under 5 MB.';
+      return;
+    }
+    this.uploadingAvatar = true;
+    this.avatarError = null;
+    try {
+      const url = await this.userService.uploadAvatar(this.currentUserId, file);
+      await firstValueFrom(
+        this.userService.updateUserProfile(this.currentUserId, { avatarUrl: url }),
+      );
+      if (this.profile) this.profile = { ...this.profile, avatarUrl: url };
+    } catch {
+      this.avatarError = 'Could not upload photo. Please try again.';
+    } finally {
+      this.uploadingAvatar = false;
+      input.value = '';
+    }
   }
 
   onEditProfile(): void {

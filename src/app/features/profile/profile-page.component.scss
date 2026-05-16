@@ -110,6 +110,48 @@
   box-shadow: 0 12px 32px rgba(233, 120, 63, 0.2);
 }
 
+.avatar-edit-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0);
+  color: transparent;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover, &.is-loading {
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+  }
+}
+
+.avatar-file-input {
+  display: none;
+}
+
+.avatar-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.avatar-uploading .profile-avatar,
+.avatar-uploading .profile-avatar--initials {
+  opacity: 0.6;
+}
+
+.avatar-error {
+  font-size: 13px;
+  color: var(--destructive);
+  margin: 0;
+  text-align: center;
+}
+
 .online-indicator {
   position: absolute;
   bottom: 8px;

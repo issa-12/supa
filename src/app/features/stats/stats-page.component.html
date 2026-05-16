@@ -5,9 +5,16 @@
 
     <!-- Header + period toggle -->
     <div class="page-header">
-      <div>
-        <h1 class="page-title">Reading Stats</h1>
-        <p class="page-subtitle">Community insights &amp; your progress</p>
+      <div class="page-header-left">
+        <a class="back-btn" routerLink="/home" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </a>
+        <div>
+          <h1 class="page-title">Reading Stats</h1>
+          <p class="page-subtitle">Community insights &amp; your progress</p>
+        </div>
       </div>
       <div class="period-toggle">
         <button [class.active]="period === 'week'" (click)="setPeriod('week')">This Week</button>
@@ -38,7 +45,7 @@
         } @else {
           <div class="book-list">
             @for (book of topBooks; track book.rank) {
-              <div class="book-row">
+              <div class="book-row" [class.book-row--clickable]="book.googleBooksId" [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
                 <span class="rank-num">#{{ book.rank }}</span>
                 @if (book.coverUrl) {
                   <img
@@ -125,6 +132,7 @@
                 [src]="reader.avatarUrl || avatarFallback(reader.name)"
                 class="reader-avatar"
                 [alt]="reader.name"
+                loading="lazy"
               />
               <span class="reader-name">{{ reader.name }}</span>
               <span class="reader-books">{{ reader.booksRead }} book{{ reader.booksRead !== 1 ? 's' : '' }} read</span>
