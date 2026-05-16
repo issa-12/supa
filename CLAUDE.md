@@ -5,7 +5,7 @@ ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
 Users can search books via Google Books, manage a personal shelf, follow friends,
 post about books, and receive AI-powered reading recommendations.
 
-**Current day: 14 of 15. Days 1–14 are fully complete.**
+**Current day: 15 of 15. All 15 days complete. Project is production-ready.**
 
 ---
 
@@ -318,15 +318,27 @@ All tables have RLS enabled. Key rules:
 - **Home page skeletons**: added shimmer placeholders for Continue Reading (horizontal card row), Recommended Books (6-tile grid), and Trending Books (6-tile grid) sections; each appears while the corresponding `isLoading*` flag is true, disappears when data arrives; used `*ngIf` to match existing home-page syntax
 - **Image lazy loading**: added `loading="lazy"` to all `<img>` tags on profile page (avatar + all book covers across 4 sections); shelf and book search already had it
 
+### Day 15 — Final Deployment
+- **NestJS `/api/health` endpoint**: `GET /api/health` returns `{ status: 'ok', timestamp }` — used by Docker healthcheck and monitoring
+- **nginx.conf hardening**: gzip compression (level 6, JS/CSS/JSON/SVG/fonts), permanent cache headers for hashed static assets (`Cache-Control: public, immutable, 1y`), no-cache for `index.html`, security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `X-XSS-Protection`)
+- **docker-compose.yml hardening**: Docker internal network (`readtrack-net`), healthchecks for both containers (frontend pings nginx, backend pings `/api/health`), `depends_on: condition: service_healthy` so frontend only starts after backend is ready. Backend port `3000` no longer exposed externally — accessible only through nginx proxy.
+- **`.env.example` completed**: all 9 required environment variables documented with placeholders
+
 ---
 
-## What is left (Days 15)
+## Production deployment checklist
 
-### Day 15 — Final deployment
-- Production environment variables (separate `.env.production`)
-- Final Docker build test end-to-end
-- Supabase backup / point-in-time recovery check
-- Custom domain setup (if needed)
+Before deploying to a production server:
+
+1. **Set `FRONTEND_URL`** in `.env` / `backend/.env` to the actual production domain (e.g. `https://readtrack.example.com`) so CORS works correctly.
+2. **Change `ports: "4200:80"` to `"80:80"`** (or `"443:443"`) in `docker-compose.yml` for production.
+3. **Set up TLS** — put a reverse proxy (Caddy, Traefik, or nginx on the host) in front of port 80 to handle HTTPS.
+4. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
+5. **Run the Day 12 migration** if not already done (see Known Issues #7).
+6. **Build and start**: `docker compose up --build -d`
+7. **Verify health**: `curl http://localhost/api/health` should return `{"status":"ok"}`.
+
+---
 
 ---
 
