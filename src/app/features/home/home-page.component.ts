@@ -16,7 +16,8 @@ interface Book {
   googleBooksId?: string | null;
   title: string;
   author: string;
-  coverUrl: string;
+  coverUrl: string | null;
+  description?: string | null;
   rating?: number;
 }
 
@@ -84,7 +85,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
           this.currentUserAvatar = user.avatarUrl;
           this.isLoading = false;
 
-          this.loadFeaturedBook();
           this.loadContinueReadingBooks();
           this.loadRecommendedBooks();
           this.loadTrendingBooks();
@@ -97,18 +97,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadFeaturedBook(): void {
-    this.bookService
-      .getFeaturedBook()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (book) => {
-          this.heroBook = book ? this.mapBook(book) : null;
-        },
-        error: () => {},
-      });
-  }
-
   private loadContinueReadingBooks(): void {
     if (!this.currentUserId) return;
 
@@ -118,12 +106,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (userBooks) => {
-          this.continueReadingBooks = userBooks.map((ub) => ({
-            ...this.mapBook(ub.book || { id: ub.bookId, title: '', author: '', description: null, publishDate: null, coverUrl: null }),
-            progress: Math.random() * 100,
-            currentPage: 0,
-            totalPages: 0,
-          }));
+          this.continueReadingBooks = userBooks.map((ub) => {
+            const cp = ub.currentPage ?? 0;
+            const tp = ub.totalPages ?? 0;
+            return {
+              ...this.mapBook(ub.book || { id: ub.bookId, title: '', author: '', description: null, publishDate: null, coverUrl: null }),
+              progress: cp > 0 && tp > 0 ? Math.min(100, Math.round((cp / tp) * 100)) : 0,
+              currentPage: cp,
+              totalPages: tp,
+            };
+          });
           this.isLoadingContinue = false;
         },
         error: () => { this.isLoadingContinue = false; },
@@ -133,11 +125,17 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private loadRecommendedBooks(): void {
     this.isLoadingRecommended = true;
     this.bookService
-      .getRecommendedBooks(this.currentUserId || '', 6)
+      .getRecommendedBooks(this.currentUserId || '', 7)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (books) => {
-          this.recommendedBooks = books.map((b) => this.mapBook(b));
+          const mapped = books.map((b) => this.mapBook(b));
+          if (mapped.length > 0) {
+            this.heroBook = mapped[0];
+            this.recommendedBooks = mapped.slice(1);
+          } else {
+            this.recommendedBooks = [];
+          }
           this.isLoadingRecommended = false;
         },
         error: () => { this.isLoadingRecommended = false; },
@@ -165,6 +163,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
       title: book.title,
       author: book.author,
       coverUrl: book.coverUrl,
+      description: book.description ?? null,
       rating: book.rating,
     };
   }
@@ -176,7 +175,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   onAddToReading(book: Book): void {
     if (!this.currentUserId) return;
     const bookId = parseInt(book.id, 10);
-    if (isNaN(bookId)) return;
+    if (isNaN(bookId) || bookId <= 0) return;
     this.bookService
       .addBookToReadingList(this.currentUserId, bookId)
       .pipe(takeUntil(this.destroy$))

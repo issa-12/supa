@@ -17,7 +17,28 @@
       "Bash(npx tsc *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Issa\\\\Desktop\\\\supabase\" -Recurse -Directory -Name \"backend\")",
       "Bash(Select-Object -First 1)",
-      "Bash(node -e \"const { SupabaseClient } = require\\('@supabase/supabase-js'\\); console.log\\(typeof SupabaseClient\\);\")"
+      "Bash(node -e \"const { SupabaseClient } = require\\('@supabase/supabase-js'\\); console.log\\(typeof SupabaseClient\\);\")",
+      "Bash(Get-ChildItem *)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:3000/api/recommendations/test\" -Method GET -ErrorAction SilentlyContinue | Select-Object StatusCode, Content)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(try { $resp = Invoke-WebRequest -Uri \"http://localhost:3000/api/recommendations/00000000-0000-0000-0000-000000000000\" -Method GET -ErrorAction Stop; $resp.StatusCode } catch { $_.Exception.Response.StatusCode.value__; $_.Exception.Message })",
+      "PowerShell(netstat *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/api/recommendations/test\" -TimeoutSec 3 -ErrorAction Stop; Write-Host \"Backend UP: $\\($r.StatusCode\\)\" } catch { if \\($_.Exception.Response\\) { Write-Host \"Backend UP \\(got $\\($_.Exception.Response.StatusCode.value__\\)\\)\" } else { Write-Host \"Backend DOWN - not reachable\" } })",
+      "PowerShell(docker exec readtrack-backend *)",
+      "PowerShell(docker exec readtrack-frontend *)",
+      "Bash(Select-Object Name)",
+      "Bash(docker exec *)",
+      "Bash(docker compose *)",
+      "Bash(node test-stats.mjs)",
+      "Bash(curl -s \"http://localhost:3000/api/stats/global?period=week\")",
+      "Bash(python -m json.tool)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node -e ' *)",
+      "Bash(npx supabase *)",
+      "Bash(curl *)",
+      "Bash(node *)",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }

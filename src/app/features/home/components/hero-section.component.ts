@@ -1,11 +1,14 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 interface Book {
   id: string;
+  googleBooksId?: string | null;
   title: string;
   author: string;
-  coverUrl: string;
+  coverUrl: string | null;
+  description?: string | null;
   rating?: number;
 }
 
@@ -15,6 +18,7 @@ interface Book {
   imports: [CommonModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
+
     <section class="hero-section">
       <div class="hero-content">
         <div class="hero-labels">
@@ -31,27 +35,36 @@ interface Book {
         </div>
 
         <p class="text-body">
-          A charmingly eccentric hotel maid discovers a guest murdered in his bed, turning her meticulously ordered world upside
-          down. A Clue-like, locked-room mystery.
+          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : 'A compelling read waiting to be discovered. Add it to your shelf to start your journey.' }}
         </p>
 
         <div class="hero-actions">
-          <button class="btn btn-primary" (click)="onViewBook()">
+          <button class="btn btn-primary" (click)="onViewBook()" [disabled]="!book.googleBooksId">
             View Book
           </button>
-          <button class="btn btn-outline" (click)="onAddToReading()">
+          <button class="btn btn-outline" (click)="onAddToReading()" [disabled]="addingToReading">
             <iconify-icon icon="lucide:bookmark-plus" style="font-size: 18px"></iconify-icon>
-            Add to Reading
+            {{ addingToReading ? 'Adding…' : 'Add to Reading' }}
           </button>
         </div>
       </div>
 
       <div class="hero-cover-wrapper">
-        <img
-          class="hero-cover"
-          [src]="book.coverUrl"
-          [alt]="book.title + ' Cover'"
-        />
+        @if (!coverBroken && book.coverUrl) {
+          <img
+            class="hero-cover"
+            [src]="book.coverUrl"
+            [alt]="book.title + ' Cover'"
+            (error)="coverBroken = true"
+          />
+        } @else {
+          <div class="hero-cover hero-cover--placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="opacity:0.3">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </div>
+        }
         <div class="hero-cover-shadow"></div>
       </div>
     </section>
@@ -198,6 +211,14 @@ interface Book {
       box-shadow: 20px 24px 40px rgba(51, 38, 29, 0.2);
       transform: perspective(1000px) rotateY(-10deg);
       display: block;
+
+      &--placeholder {
+        background: rgba(126, 107, 93, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-foreground);
+      }
     }
 
     .hero-cover-shadow {
@@ -263,15 +284,23 @@ interface Book {
   `],
 })
 export class HeroSectionComponent {
+  private readonly router = inject(Router);
+
   @Input() book!: Book;
   @Output() addToReading = new EventEmitter<Book>();
 
+  coverBroken = false;
+  addingToReading = false;
+
   onViewBook(): void {
-    // TODO: Navigate to book detail page
-    console.log('View book:', this.book.title);
+    if (this.book.googleBooksId) {
+      this.router.navigate(['/books', this.book.googleBooksId]);
+    }
   }
 
   onAddToReading(): void {
+    this.addingToReading = true;
     this.addToReading.emit(this.book);
+    setTimeout(() => { this.addingToReading = false; }, 1500);
   }
 }

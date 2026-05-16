@@ -16,16 +16,11 @@
     content: '';
     position: absolute;
     inset: 0;
-    background-image:
-      linear-gradient(
-        180deg,
-        rgba(255, 250, 245, 0.88) 0%,
-        rgba(243, 238, 230, 0.92) 100%
-      ),
-      url('/api/flow-image/16%3A9%0Asoft%20library%20interior%20with%20bookshelves%2C%20warm%20beige%2C%20light%20brown%2C%20muted%20pastel%20tones%2C%20cozy%20reading%20atmosphere%2C%20editorial%20photography%2C%20gentle%20depth%20of%20field');
-    background-size: cover;
-    background-position: center;
-    filter: saturate(0.94);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 250, 245, 0.88) 0%,
+      rgba(243, 238, 230, 0.92) 100%
+    );
     z-index: 0;
   }
 }
@@ -110,6 +105,96 @@
   &:active {
     transform: scale(0.95);
   }
+}
+
+// ── Skeleton sections ────────────────────────────────────────────
+.home-section-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skel-h2 {
+  height: 26px;
+  width: 220px;
+  border-radius: var(--radius-sm);
+}
+
+.skel-book-row {
+  display: flex;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.skel-continue-card {
+  display: flex;
+  gap: 12px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.skel-continue-cover {
+  width: 64px;
+  height: 90px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.skel-continue-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  padding-top: 4px;
+}
+
+.skel-line {
+  height: 14px;
+  width: 85%;
+  border-radius: var(--radius-sm);
+}
+
+.skel-line-short {
+  height: 12px;
+  width: 60%;
+  border-radius: var(--radius-sm);
+}
+
+.skel-progress-bar {
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+
+.skel-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 20px;
+}
+
+.skel-book-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skel-tile-cover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: 8px;
+}
+
+.skel-tile-title {
+  height: 13px;
+  width: 85%;
+  border-radius: var(--radius-sm);
+}
+
+.skel-tile-author {
+  height: 11px;
+  width: 60%;
+  border-radius: var(--radius-sm);
 }
 
 // Responsive design

@@ -13,11 +13,43 @@
     </div>
   </header>
 
-  <!-- Loading -->
+  <!-- Loading skeleton -->
   @if (isLoading) {
-    <div class="page-state">
-      <div class="spinner"></div>
-      <p>Loading profile…</p>
+    <div class="profile-content">
+      <div class="profile-card">
+        <div class="profile-header-section">
+          <div class="skel-avatar skeleton"></div>
+          <div class="skel-info">
+            <div class="skel-name skeleton"></div>
+            <div class="skel-username skeleton"></div>
+            <div class="skel-joined skeleton"></div>
+          </div>
+          <div class="skel-btn skeleton"></div>
+        </div>
+        <div class="skel-bio-line skeleton" style="width:80%"></div>
+        <div class="skel-bio-line skeleton" style="width:55%"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          @for (i of [1,2,3]; track i) { <div class="skel-tag skeleton"></div> }
+        </div>
+      </div>
+      <div class="reading-stats-grid">
+        <div class="stat-card skel-stat-card skeleton"></div>
+        <div class="stat-card skel-stat-card skeleton"></div>
+      </div>
+      <div class="books-section">
+        <div class="section-header">
+          <div class="skel-section-h skeleton"></div>
+        </div>
+        <div class="books-grid">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="book-card">
+              <div class="skel-book-cover skeleton"></div>
+              <div class="skel-book-title skeleton"></div>
+              <div class="skel-book-author skeleton"></div>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   }
 
@@ -38,11 +70,33 @@
         <div class="profile-header-section">
 
           <!-- Avatar -->
-          <div class="profile-avatar-wrapper">
+          <div class="profile-avatar-wrapper" [class.avatar-uploading]="uploadingAvatar">
             @if (profile.avatarUrl) {
-              <img [src]="profile.avatarUrl" [alt]="profile.name" class="profile-avatar" />
+              <img [src]="profile.avatarUrl" [alt]="profile.name" class="profile-avatar" loading="lazy" />
             } @else {
               <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
+            }
+
+            @if (isOwnProfile) {
+              <label class="avatar-edit-overlay" [class.is-loading]="uploadingAvatar" aria-label="Change profile photo">
+                <input
+                  type="file"
+                  accept="image/*"
+                  class="avatar-file-input"
+                  (change)="onAvatarFileChange($event)"
+                  [disabled]="uploadingAvatar"
+                />
+                @if (uploadingAvatar) {
+                  <svg class="avatar-spinner" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                } @else {
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                }
+              </label>
             }
           </div>
 
@@ -54,6 +108,11 @@
             }
             <p class="profile-joined">Reading since {{ profile.joinDate }}</p>
           </div>
+
+          <!-- Friend action error -->
+          @if (friendActionError) {
+            <p class="friend-action-error">{{ friendActionError }}</p>
+          }
 
           <!-- Actions -->
           <div class="profile-actions">
@@ -102,6 +161,10 @@
             }
           </div>
         </div>
+
+        @if (avatarError) {
+          <p class="avatar-error">{{ avatarError }}</p>
+        }
 
         <!-- Bio -->
         @if (profile.bio) {
@@ -185,7 +248,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -217,7 +280,7 @@
               <div class="profile-post-card">
                 <div class="profile-post-book">
                   @if (post.bookCover) {
-                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="profile-post-cover" />
+                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="profile-post-cover" loading="lazy" />
                   }
                   <span class="profile-post-book-title">{{ post.bookTitle }}</span>
                 </div>
@@ -275,7 +338,7 @@
                 <div class="search-result-card">
                   <div class="request-avatar">
                     @if (user.avatarUrl) {
-                      <img [src]="user.avatarUrl" [alt]="user.name" />
+                      <img [src]="user.avatarUrl" [alt]="user.name" loading="lazy" />
                     } @else {
                       <span>{{ user.name[0].toUpperCase() }}</span>
                     }
@@ -317,7 +380,7 @@
               <div class="request-card">
                 <div class="request-avatar">
                   @if (req.avatarUrl) {
-                    <img [src]="req.avatarUrl" [alt]="req.name" />
+                    <img [src]="req.avatarUrl" [alt]="req.name" loading="lazy" />
                   } @else {
                     <span>{{ req.name[0].toUpperCase() }}</span>
                   }
@@ -350,7 +413,7 @@
               <a class="friend-card" [routerLink]="['/profile', friend.userId]">
                 <div class="friend-avatar">
                   @if (friend.avatarUrl) {
-                    <img [src]="friend.avatarUrl" [alt]="friend.name" />
+                    <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
                   } @else {
                     <span>{{ friend.name[0].toUpperCase() }}</span>
                   }
@@ -392,7 +455,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -438,7 +501,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -484,7 +547,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

@@ -48,6 +48,9 @@ export class ShelfComponent implements OnInit {
   progressTotal = '';
   savingProgressId: number | null = null;
 
+  activeFilter = 'all';
+  sortBy: 'date' | 'title' | 'rating' = 'date';
+
   readonly SHELF_STATUSES = [
     { name: 'currently_reading', label: 'Currently Reading' },
     { name: 'want_to_read', label: 'Want to Read' },
@@ -89,6 +92,28 @@ export class ShelfComponent implements OnInit {
 
   get totalBooks(): number {
     return this.sections.reduce((n, s) => n + s.books.length, 0);
+  }
+
+  get displayedSections(): ShelfSection[] {
+    let sections = this.activeFilter === 'all'
+      ? this.sections
+      : this.sections.filter((s) => s.statusName === this.activeFilter);
+
+    return sections.map((section) => ({
+      ...section,
+      books: this.sortBooks(section.books),
+    }));
+  }
+
+  private sortBooks(books: UserBook[]): UserBook[] {
+    const sorted = [...books];
+    if (this.sortBy === 'title') {
+      return sorted.sort((a, b) => (a.book?.title ?? '').localeCompare(b.book?.title ?? ''));
+    }
+    if (this.sortBy === 'rating') {
+      return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    }
+    return sorted; // 'date' — already ordered by added_at DESC from DB
   }
 
   toggleMenu(userBookId: number): void {
@@ -133,6 +158,7 @@ export class ShelfComponent implements OnInit {
   }
 
   async removeBook(book: UserBook): Promise<void> {
+    if (!confirm(`Remove "${book.book?.title ?? 'this book'}" from your shelf?`)) return;
     this.openMenuId = null;
     this.savingId = book.id;
 
@@ -170,9 +196,11 @@ export class ShelfComponent implements OnInit {
     const currentPage = parseInt(this.progressCurrent, 10);
     if (!currentPage || currentPage < 1) return;
 
+    const totalPages = this.progressTotal ? parseInt(this.progressTotal, 10) : null;
+    if (totalPages !== null && (isNaN(totalPages) || totalPages < 1 || currentPage > totalPages)) return;
+
     this.savingProgressId = book.id;
     try {
-      const totalPages = this.progressTotal ? parseInt(this.progressTotal, 10) : null;
       const updated = await firstValueFrom(
         this.bookService.updateProgress(book.id, currentPage, totalPages),
       );

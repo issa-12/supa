@@ -7,7 +7,7 @@ interface Book {
   googleBooksId?: string | null;
   title: string;
   author: string;
-  coverUrl: string;
+  coverUrl: string | null;
   rating?: number;
 }
 
@@ -36,7 +36,8 @@ interface Book {
           [style.cursor]="book.googleBooksId ? 'pointer' : 'default'"
         >
           <div class="book-cover-wrapper">
-            <img class="book-cover-clean" [src]="book.coverUrl || 'assets/book-placeholder.png'" [alt]="book.title + ' Cover'" />
+            <img *ngIf="book.coverUrl" class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" loading="lazy" (error)="book.coverUrl = null" />
+            <div *ngIf="!book.coverUrl" class="book-cover-clean book-cover--empty"></div>
             <button class="quick-add-btn" (click)="$event.stopPropagation(); onCardClick(book)" aria-label="View book details">
               <iconify-icon icon="lucide:eye" style="font-size: 16px"></iconify-icon>
             </button>
@@ -158,6 +159,10 @@ interface Book {
       border-radius: 6px 10px 10px 6px;
       object-fit: cover;
       box-shadow: 0 10px 24px rgba(51, 38, 29, 0.12);
+
+      &.book-cover--empty {
+        background: rgba(126, 107, 93, 0.1);
+      }
       display: block;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }

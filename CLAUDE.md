@@ -5,7 +5,7 @@ ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
 Users can search books via Google Books, manage a personal shelf, follow friends,
 post about books, and receive AI-powered reading recommendations.
 
-**Current day: 9 of 15. Days 1–9 are fully complete.**
+**Current day: 15 of 15. All 15 days complete. Project is production-ready.**
 
 ---
 
@@ -112,7 +112,7 @@ The root `.env` is read by `docker-compose.yml` (`env_file: - .env`).
 public.users          -- mirrors auth.users (id = auth.uid())
 public.profiles       -- extended profile data
 public.books          -- shared book catalog (google_books_id UNIQUE)
-public.user_books     -- user shelf (user_id, book_id, status_id, rating)
+public.user_books     -- user shelf (user_id, book_id, status_id, rating, note, review_text, current_page, total_pages)
 public.reading_statuses  -- reference: read / want_to_read / currently_reading
 public.reading_goals  -- annual reading goal per user
 public.genres         -- 20 genres seeded
@@ -124,6 +124,7 @@ public.friendship     -- user_id1, user_id2, status_id, requester_id
 public.friendship_status  -- pending / accepted / rejected / blocked
 public.notifications
 public.notifications_type
+public.ai_recommendations -- cached Claude recommendations per user (JSONB, expires_at TTL 24h)
 ```
 
 **Important:** `reading_statuses` IDs are NOT hardcoded in the app — status IDs
@@ -162,6 +163,7 @@ All tables have RLS enabled. Key rules:
 | `/books/search` | BookSearchComponent | authGuard + genreOnboardingGuard |
 | `/books/:googleId` | BookDetailComponent | authGuard + genreOnboardingGuard |
 | `/shelf` | ShelfComponent | authGuard + genreOnboardingGuard |
+| `/stats` | StatsPageComponent | authGuard + genreOnboardingGuard |
 
 ---
 
@@ -181,10 +183,13 @@ All tables have RLS enabled. Key rules:
 | GET | `/api/friends` | List accepted friends (auth user) |
 | GET | `/api/friends/requests` | List incoming pending requests |
 | GET | `/api/friends/status/:userId` | Friendship status with a specific user |
+| GET | `/api/recommendations/:userId` | AI book recommendations (Claude, 24h cache) |
+| GET | `/api/stats/global?period=week\|month` | Top books, trending genres, top readers |
+| GET | `/api/stats/pace` | Authenticated user's monthly reading pace |
 
 ---
 
-## What is done (Days 1–9)
+## What is done (Days 1–12)
 
 ### Day 1 — Auth & Onboarding
 - Login page: email/password + Google OAuth
@@ -270,43 +275,98 @@ All tables have RLS enabled. Key rules:
 - `setReadingGoal(userId, year, target)` added to UserService
 - Migration: `UNIQUE(user_id, year)` constraint on `reading_goals` for upsert
 
+### Day 10 — AI Recommendations (Claude API)
+- `RecommendationsModule` in `backend/src/recommendations/` — `GET /api/recommendations/:userId`
+- Pulls user genres + rated books + reading history from Supabase to build prompt context
+- Calls `claude-haiku-4-5-20251001` via Anthropic SDK with system prompt cache (`cache_control: ephemeral`)
+- Caches results in `ai_recommendations` table (JSONB, 24h TTL) — upsert on re-request
+- Enriches each suggestion with Google Books (cover, googleBooksId) and upserts into `public.books`
+- Mock fallback (6 hardcoded books) when Anthropic API key is missing or call fails
+- Home page `RecommendedBooks` section fetches from endpoint with Bearer token; cards navigate to `/books/:googleBooksId`
+- Migration: `ai_recommendations` table with RLS (own rows only)
+
+### Day 11 — Stats Dashboard
+- `StatsModule` in `backend/src/stats/` — two endpoints:
+  - `GET /api/stats/global?period=week|month` — top books, trending genres, top readers (all in one response)
+  - `GET /api/stats/pace` — authenticated user's monthly read count for current year
+- **Top Books**: counts `user_books` additions in the period, joins `books` for metadata, returns top 5
+- **Trending Genres**: counts `user_genres` selections across all users, returns top 6 with % share
+- **Top Readers**: two-query pattern (no PostgREST join — `user_books.user_id` has no FK to `public.users`): count by user_id in JS → separate `.in()` query on `users` table
+- **Reading Pace**: monthly breakdown of books marked "read" this year for the current user
+- `StatsPageComponent` (`/stats`) — four sections with shimmer skeletons, period toggle, pure CSS bar chart for pace
+- Stats nav icon added to top nav (bar-chart-2 icon between Shelf and Bell)
+- `backend/test-stats.mjs` — test script verifying all four data queries against live Supabase
+
+### Day 12 — Reading Progress, Notes & Reviews
+- **DB migration**: added `current_page INT`, `total_pages INT`, `note TEXT`, `review_text TEXT` columns to `user_books`
+- **Reading progress on shelf**: "Currently Reading" cards show a progress bar (fill % = currentPage/totalPages). Click bar or "+ Track progress" → inline form with two number inputs (current page / total pages). Saves with ✓ button, updates local state without re-fetching.
+- **Private notes on book detail**: textarea below description (only shown when book is on shelf). Saves to `user_books.note`. "Save Notes" button flashes "Saved!" for 2s.
+- **Public review on book detail**: separate textarea saves to `user_books.review_text`. Labeled "visible to your friends".
+- **Community reviews section**: two-query fetch (user_books → users) shows other users' avatar, name, star rating, and review text for the same book. Refreshes after saving own review.
+- **Bug fix**: Google Books search 502 — changed from throwing `BadGatewayException` to graceful fallback: logs the actual API error, then searches local `books` table by title (`ILIKE`). Never crashes the search page.
+- nginx.conf: added `proxy_connect_timeout 10s`, `proxy_read_timeout 30s`, `proxy_send_timeout 30s`
+
+### Day 13 — Search & Shelf Improvements
+- **Unified top-nav search**: live dropdown (350ms debounce) shows books + users in parallel; Enter key navigates to `/books/search?q=...`; click outside closes; clear button; responsive (220px on mobile)
+- **BookSearchComponent query-param support**: reads `?q=` on init, pre-fills + runs search automatically (enables top-nav "See all results" flow)
+- **Shelf filter/sort**: filter pills (All / Reading / Want to Read / Read) + sort select (Date Added / Title A–Z / Rating) — all client-side, no refetch; `displayedSections` getter applies filter then sort
+
+### Day 14 — Polish & Performance
+- **Offline detection banner**: global `@HostListener('window:online/offline')` in `App` root; shows a fixed dark banner at the top when offline; checks `navigator.onLine` on init
+- **Shelf skeleton**: replaced spinner with shimmer book-card grid (filter bar pills + section header + 6 cover cards) using global `.skeleton` animation
+- **Profile skeleton**: replaced spinner with shimmer layout mirroring the profile card (avatar circle, name/username/joined lines, action button, bio lines, genre tags, two stat cards, book grid)
+- **Home page skeletons**: added shimmer placeholders for Continue Reading (horizontal card row), Recommended Books (6-tile grid), and Trending Books (6-tile grid) sections; each appears while the corresponding `isLoading*` flag is true, disappears when data arrives; used `*ngIf` to match existing home-page syntax
+- **Image lazy loading**: added `loading="lazy"` to all `<img>` tags on profile page (avatar + all book covers across 4 sections); shelf and book search already had it
+
+### Day 15 — Final Deployment
+- **NestJS `/api/health` endpoint**: `GET /api/health` returns `{ status: 'ok', timestamp }` — used by Docker healthcheck and monitoring
+- **nginx.conf hardening**: gzip compression (level 6, JS/CSS/JSON/SVG/fonts), permanent cache headers for hashed static assets (`Cache-Control: public, immutable, 1y`), no-cache for `index.html`, security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `X-XSS-Protection`)
+- **docker-compose.yml hardening**: Docker internal network (`readtrack-net`), healthchecks for both containers (frontend pings nginx, backend pings `/api/health`), `depends_on: condition: service_healthy` so frontend only starts after backend is ready. Backend port `3000` no longer exposed externally — accessible only through nginx proxy.
+- **`.env.example` completed**: all 9 required environment variables documented with placeholders
+
+### Post-sprint Bug Fixes (Batch 1)
+- **B1 — Continue Reading random progress**: `home-page.component.ts` — replaced `Math.random() * 100` with actual `currentPage / totalPages` calculation from DB. Continue Reading label now shows "Page X / Y" or "No progress tracked yet" instead of a meaningless random percentage.
+- **B2 — Hero "View Book" did nothing**: `hero-section.component.ts` — injected `Router`, added `googleBooksId` to local `Book` interface, `onViewBook()` now navigates to `/books/:googleBooksId`.
+- **B3 — Hero hardcoded description**: `hero-section.component.ts` — replaced static mystery-novel description with `book.description` (truncated to 220 chars), falling back to a generic message if no description exists. Also propagated `description` through `home-page.component.ts` `mapBook()`.
+- **B4 — Hero cover broken image**: `hero-section.component.ts` — added `coverBroken` flag + `(error)` handler; shows a book-icon placeholder when cover URL fails to load. Also added loading state (`addingToReading`) to "Add to Reading" button.
+- **B5 — `timeAgo()` negative diff**: Fixed in both `posts-feed.component.ts` and `profile-page.component.ts` — added `if (diff < 0) return 'just now'` guard to prevent NaN/negative values when server clock is slightly ahead.
+- **B6 — Progress save allowed invalid values**: `shelf.component.ts` — `saveProgress()` now validates that `currentPage ≤ totalPages` when totalPages is provided, preventing nonsensical progress like "page 500 of 200".
+- **B7 — Delete post silent failure**: `posts-feed.component.ts` — changed to optimistic deletion (remove immediately from UI), with full rollback on error. Previously the post stayed visible with no feedback; now it disappears instantly and reappears if the server call fails.
+- **B8 — Broken images no fallback**: `posts-feed.component.ts` — added `(error)` handlers to user avatar imgs (`post.userAvatar = null` triggers `@if` to switch to initials fallback), post book cover imgs (`post.bookCover = ''` hides the cover — `bookCover` is typed as `string`, not nullable), and compose avatar.
+
+### Post-sprint Console Error Fixes
+- **E1 — `/api/flow-image/` 404**: `home-page.component.scss` — removed stale IDE-generated background image URL from the `::before` pseudo-element. The gradient overlay already provides the warm background; the URL was a no-op placeholder from the IDE.
+- **E2 — `book-placeholder.png` 404**: `stats-page.component.html` + `.scss` — replaced `[src]="book.coverUrl || 'assets/book-placeholder.png'"` with `@if/@else` pattern; missing covers render as a styled placeholder `div`. Also fixed same issue in `recommended-books.component.ts`.
+- **E3 — Hero/Trending static content**: `home-page.component.ts` — `getFeaturedBook()` was reading the first row of the books table (same for all users). Replaced: `loadRecommendedBooks()` now fetches 7 AI recommendations, uses item 0 as the hero book (personalized per user, real Google Books covers) and items 1–6 as the recommended grid. `getTrendingBooks()` in `book.service.ts` was also reading random DB rows; replaced with a call to `/api/stats/global?period=week` so Trending This Week shows actually popular books. Added `googleBooksId` to the stats backend response so trending cards navigate correctly.
+
+### Post-sprint Missing Features (Batch 1)
+- **M1 — Trending book cards not clickable**: `trending-books.component.ts` — injected `Router`, added `googleBooksId` to local `Book` interface, added `(click)="onCardClick(book)"` to the card div. Cards now navigate to `/books/:googleBooksId`. Also added `loading="lazy"` + `(error)` fallback to cover images.
+- **M3 — No remove confirmation**: Added `confirm()` dialogs before removing a book from the shelf in both `shelf.component.ts` (`removeFromShelf()`) and `book-detail.component.ts` (`removeFromShelf()`). Prevents accidental shelf removals.
+- **M4 — Notes/review textarea no character limit**: `book-detail.component.html` — added `maxlength="500"` on notes textarea, `maxlength="1000"` on review textarea. Added `.textarea-footer` row beneath each with a live character counter (`X/500`) that turns red (`.char-count--warn`) when within 50 chars of the limit. Added corresponding `.textarea-footer`, `.char-count`, `.char-count--warn` styles to `book-detail.component.scss`.
+- **M5 — Friend action errors swallowed silently**: `profile-page.component.ts` — added `friendActionError: string | null` property, cleared at the start of every friend action, set with a user-readable message in each catch block. `profile-page.component.html` — added `@if (friendActionError)` error paragraph above the action buttons. `profile-page.component.scss` — added `.friend-action-error` (red text, light red background, rounded, padded).
+- **M6 — Stats page errors swallowed silently**: `stats-page.component.ts` — added `errorGlobal` and `errorPace` string properties; `loadGlobalStats()` and `loadPace()` now set these on non-ok responses or network failures. `stats-page.component.html` — added `@else if (errorGlobal)` / `@else if (errorPace)` branches in all four stat card sections (top books, trending genres, top readers, reading pace). `stats-page.component.scss` — added `.error-msg` class (destructive color, centered, padded).
+
+### Post-sprint UX Improvements (Batch 1)
+- **U1 — Lazy loading gaps**: Added `loading="lazy"` to all remaining `<img>` tags across `book-detail.component.html`, `profile-page.component.html`, `continue-reading.component.ts`, `posts-feed.component.ts`, `post-comments.component.ts`, `top-nav.component.ts`, `recommended-books.component.ts`, `stats-page.component.html`. Auth and email-verification pages intentionally excluded (above-the-fold, eager loading is correct).
+- **U2 — Profile join date**: Already correct — `joinDate` is mapped to a 4-digit year string and rendered as "Reading since YYYY". No change needed.
+- **U3 — Book search pagination**: `book.service.ts` — `searchBooks()` now accepts `startIndex` and returns `{ books, totalItems }`. `book-search.component.ts` — added `startIndex`, `totalItems`, `isLoadingMore`, `hasMore` getter, and `loadMore()` method. `book-search.component.html` — added "Load more results" button below the grid (shown only when more results exist); result count shows "X of Y results". `book-search.component.scss` — added `.load-more-wrap`, `.load-more-btn`, `.btn-spinner` styles.
+- **Stats top books clickable**: `stats-page.component.html` — top book rows now have `[routerLink]` when `googleBooksId` is available; `stats-page.component.scss` — added `.book-row--clickable` hover style. Backend `stats.service.ts` — added `google_books_id` to the top books query and response (`TopBook` interface updated).
+
 ---
 
-## What is left (Days 10–15)
+## Production deployment checklist
 
-### Day 10 — AI Recommendations (Claude API)
-- NestJS endpoint: `GET /api/recommendations/:userId`
-- Pull user's genres, rated books, reading history from Supabase
-- Call Claude API (claude-haiku-4-5 for cost) with a structured prompt
-- Cache results in a new `ai_recommendations` table (TTL 24h)
-- Wire up the home page `RecommendedBooks` section with real AI results
+Before deploying to a production server:
 
-### Day 11 — Stats dashboard
-- Top books this week/month
-- Top readers / trending genres
-- User's reading pace chart
+1. **Set `FRONTEND_URL`** in `.env` / `backend/.env` to the actual production domain (e.g. `https://readtrack.example.com`) so CORS works correctly.
+2. **Change `ports: "4200:80"` to `"80:80"`** (or `"443:443"`) in `docker-compose.yml` for production.
+3. **Set up TLS** — put a reverse proxy (Caddy, Traefik, or nginx on the host) in front of port 80 to handle HTTPS.
+4. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
+5. **Run the Day 12 migration** if not already done (see Known Issues #7).
+6. **Build and start**: `docker compose up --build -d`
+7. **Verify health**: `curl http://localhost/api/health` should return `{"status":"ok"}`.
 
-### Day 12 — Reading progress & notes
-- Track current page / progress percentage on currently-reading books
-- Private notes per book
-- Public reviews (star rating + text)
-
-### Day 13 — Search improvements
-- Search users by name/username (already partially in UserService.searchUsers)
-- Top nav search bar: show unified results for books AND users
-- Filter/sort shelf by status, rating, date added
-
-### Day 14 — Polish & performance
-- Loading skeletons everywhere
-- Error boundaries
-- Image lazy loading already in place
-- Offline detection
-
-### Day 15 — Final deployment
-- Production environment variables
-- Custom domain if needed
-- Final Docker build test
-- Supabase backup
+---
 
 ---
 
@@ -322,11 +382,28 @@ All tables have RLS enabled. Key rules:
    3=currently_reading. The app resolves these dynamically by name, not by hardcoded int.
 
 4. **Google Books API key** — stored in `.env` and `backend/.env` (both gitignored).
-   The key posted in chat should be regenerated in Google Cloud Console and updated
-   in both files.
+   Free tier is 1,000 req/day. When quota is hit, search falls back to the local `books`
+   table (`ILIKE` on title) — no 502 error, just fewer results. Resets daily at midnight Pacific.
 
-5. **user_books upsert** — uses `onConflict: 'user_id,book_id'`. The unique index
+5. **Anthropic API key** — stored in `backend/.env` as `ANTHROPIC_API_KEY`. When missing or out of
+   credits, recommendations fall back to 6 hardcoded mock books silently.
+
+6. **user_books upsert** — uses `onConflict: 'user_id,book_id'`. The unique index
    `user_books_user_book_unique` must exist (created in Day 2 migration).
+
+7. **Day 12 migration** — must be run manually in Supabase Dashboard SQL Editor if not already applied:
+   ```sql
+   ALTER TABLE public.user_books
+     ADD COLUMN IF NOT EXISTS current_page INT,
+     ADD COLUMN IF NOT EXISTS total_pages  INT,
+     ADD COLUMN IF NOT EXISTS note         TEXT,
+     ADD COLUMN IF NOT EXISTS review_text  TEXT;
+   ```
+
+8. **PostgREST join limitation** — `user_books.user_id` has no FK to `public.users`, so any
+   feature needing user profiles from user_books must use the two-query pattern:
+   fetch user_ids first → separate `.in('id', userIds)` on `users` table. See
+   `StatsService.getTopReaders()` and `BookService.getCommunityReviews()` for reference.
 
 ---
 

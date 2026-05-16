@@ -60,22 +60,6 @@ export interface ReadingStatus {
 export class BookService {
   private readonly supabaseService = inject(SupabaseService);
 
-  getFeaturedBook(): Observable<Book | null> {
-    return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
-          .from('books')
-          .select('*')
-          .limit(1)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data || data.length === 0) return null;
-            return this.mapBook(data[0]);
-          })
-      )
-    ).pipe(catchError((error) => throwError(() => error)));
-  }
-
   getContinueReadingBooks(userId: string): Observable<UserBook[]> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
@@ -224,17 +208,38 @@ export class BookService {
 
   getTrendingBooks(limit: number = 6): Observable<Book[]> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
-          .from('books')
-          .select('*')
-          .limit(limit)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return (data || []).map((item) => this.mapBook(item));
-          })
-      )
-    ).pipe(catchError((error) => throwError(() => error)));
+      (async () => {
+        const session = await this.supabaseService.getCurrentSession();
+        const token = session?.access_token;
+        if (!token) return [];
+
+        const res = await fetch('/api/stats/global?period=week', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return [];
+
+        const payload = (await res.json()) as {
+          topBooks: Array<{
+            rank: number;
+            title: string;
+            author: string;
+            coverUrl: string | null;
+            googleBooksId: string | null;
+            addCount: number;
+          }>;
+        };
+
+        return (payload.topBooks ?? []).slice(0, limit).map((b) => ({
+          id: 0,
+          googleBooksId: b.googleBooksId,
+          title: b.title,
+          author: b.author,
+          description: null,
+          publishDate: null,
+          coverUrl: b.coverUrl,
+        }));
+      })()
+    ).pipe(catchError(() => of([])));
   }
 
   getUserBooksByRating(
@@ -284,16 +289,16 @@ export class BookService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
-  async searchBooks(query: string): Promise<GoogleBook[]> {
-    const params = new URLSearchParams({ q: query, maxResults: '20' });
+  async searchBooks(query: string, startIndex = 0): Promise<{ books: GoogleBook[]; totalItems: number }> {
+    const params = new URLSearchParams({ q: query, maxResults: '20', startIndex: String(startIndex) });
     const res = await fetch(`/api/books/search?${params}`);
-    const payload = await res.json() as { books?: GoogleBook[]; message?: string };
+    const payload = await res.json() as { books?: GoogleBook[]; totalItems?: number; message?: string };
 
     if (!res.ok) {
       throw new Error(payload.message ?? 'Search failed.');
     }
 
-    return payload.books ?? [];
+    return { books: payload.books ?? [], totalItems: payload.totalItems ?? 0 };
   }
 
   async addGoogleBookToShelf(
@@ -314,13 +319,14 @@ export class BookService {
     if (existing) {
       bookId = existing['book_id'] as number;
     } else {
+      const publishDate = /^\d{4}-\d{2}-\d{2}$/.test(book.publishedDate ?? '') ? book.publishedDate : null;
       const { data: inserted, error: insertErr } = await supabase
         .from('books')
         .insert({
           title: book.title,
           author_name: book.author,
           description: book.description,
-          publish_date: book.publishedDate,
+          publish_date: publishDate,
           cover_image_url: book.coverUrl,
           google_books_id: book.googleId,
         })
@@ -367,27 +373,37 @@ export class BookService {
   addBookToReadingList(
     userId: string,
     bookId: number,
-    statusId: number = 1
+    statusName: string = 'want_to_read'
   ): Observable<UserBook> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then(async (supabase) => {
+        const { data: statusRow } = await supabase
+          .from('reading_statuses')
+          .select('status_id')
+          .eq('status_name', statusName)
+          .maybeSingle();
+
+        const statusId = statusRow?.['status_id'] as number | undefined;
+        if (!statusId) throw new Error(`Status '${statusName}' not found`);
+
+        const { data, error } = await supabase
           .from('user_books')
-          .insert({
-            user_id: userId,
-            book_id: bookId,
-            status_id: statusId,
-            added_at: new Date().toISOString(),
-          })
+          .upsert(
+            {
+              user_id: userId,
+              book_id: bookId,
+              status_id: statusId,
+              added_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id,book_id', ignoreDuplicates: true },
+          )
           .select('*, book:books(*), status:reading_statuses(*)')
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data || data.length === 0) {
-              throw new Error('Failed to add book');
-            }
-            return this.mapUserBook(data[0]);
-          })
-      )
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data) throw new Error('Book already on shelf');
+        return this.mapUserBook(data);
+      })
     ).pipe(catchError((error) => throwError(() => error)));
   }
 

@@ -1,9 +1,7 @@
 import {
   Injectable,
-  BadGatewayException,
   InternalServerErrorException,
   NotFoundException,
-  Inject,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -69,23 +67,50 @@ export class BooksService {
     const apiKey = process.env['GOOGLE_BOOKS_API_KEY'];
     if (apiKey) params.set('key', apiKey);
 
-    let res: Response;
     try {
-      res = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`);
-    } catch {
-      throw new InternalServerErrorException('Book search failed.');
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`);
+
+      if (res.ok) {
+        const data = (await res.json()) as GoogleBooksApiResponse;
+        return {
+          books: (data.items ?? []).map((item) => this.mapItem(item)),
+          totalItems: data.totalItems ?? 0,
+        };
+      }
+
+      const body = await res.text().catch(() => '');
+      console.error(`[BooksService] Google Books API ${res.status}:`, body.slice(0, 300));
+    } catch (err) {
+      console.error('[BooksService] Google Books network error:', err);
     }
 
-    if (!res.ok) {
-      throw new BadGatewayException('Book search service unavailable.');
-    }
+    // Fallback: search local catalog
+    return this.searchLocalBooks(query, maxResults);
+  }
 
-    const data = (await res.json()) as GoogleBooksApiResponse;
+  private async searchLocalBooks(
+    query: string,
+    limit: number,
+  ): Promise<{ books: SearchedBook[]; totalItems: number }> {
+    const { data } = await this.supabase
+      .getAdmin()
+      .from('books')
+      .select('*')
+      .ilike('title', `%${query}%`)
+      .limit(limit);
 
-    return {
-      books: (data.items ?? []).map((item) => this.mapItem(item)),
-      totalItems: data.totalItems ?? 0,
-    };
+    const books: SearchedBook[] = (data ?? []).map((b) => ({
+      googleId: (b['google_books_id'] as string) ?? '',
+      title: b['title'] as string,
+      author: b['author_name'] as string,
+      description: (b['description'] as string) ?? null,
+      publishedDate: (b['publish_date'] as string) ?? null,
+      coverUrl: (b['cover_image_url'] as string) ?? null,
+      pageCount: (b['page_count'] as number) ?? null,
+      categories: (b['categories'] as string[]) ?? [],
+    }));
+
+    return { books, totalItems: books.length };
   }
 
   async getBookByGoogleId(googleId: string): Promise<BookDetail> {

@@ -203,6 +203,7 @@ export class BookDetailComponent implements OnInit {
 
   async removeFromShelf(): Promise<void> {
     if (!this.userBook) return;
+    if (!confirm('Remove this book from your shelf?')) return;
     this.showStatusDropdown = false;
 
     try {

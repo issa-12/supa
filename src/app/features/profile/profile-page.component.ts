@@ -56,11 +56,15 @@ export class ProfilePageComponent implements OnInit {
   editBio = '';
   savingProfile = false;
 
+  uploadingAvatar = false;
+  avatarError: string | null = null;
+
   friendshipStatus: FriendshipStatusValue = 'none';
   friendshipId: number | null = null;
   friends: FriendUser[] = [];
   incomingRequests: FriendRequest[] = [];
   friendActionLoading = false;
+  friendActionError: string | null = null;
 
   searchQuery = '';
   searchResults: UserProfile[] = [];
@@ -133,12 +137,13 @@ export class ProfilePageComponent implements OnInit {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       const result = await this.friendshipService.sendRequest(targetId);
       this.friendshipStatus = 'pending_sent';
       this.friendshipId = result.friendshipId;
     } catch {
-      // silently ignore — user can retry
+      this.friendActionError = 'Could not send friend request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -147,12 +152,13 @@ export class ProfilePageComponent implements OnInit {
   async cancelRequest(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.deleteFriendship(this.friendshipId);
       this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not cancel request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -161,11 +167,12 @@ export class ProfilePageComponent implements OnInit {
   async acceptRequest(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.acceptRequest(this.friendshipId);
       this.friendshipStatus = 'accepted';
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not accept request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -174,12 +181,13 @@ export class ProfilePageComponent implements OnInit {
   async rejectRequest(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.rejectRequest(this.friendshipId);
       this.friendshipStatus = 'rejected';
       this.friendshipId = null;
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not decline request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -188,12 +196,13 @@ export class ProfilePageComponent implements OnInit {
   async unfriend(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.deleteFriendship(this.friendshipId);
       this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not remove friend. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -205,7 +214,7 @@ export class ProfilePageComponent implements OnInit {
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
       this.friends = await this.friendshipService.getFriends();
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not accept request. Please try again.';
     }
   }
 
@@ -214,7 +223,7 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.rejectRequest(req.friendshipId);
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not decline request. Please try again.';
     }
   }
 
@@ -268,6 +277,35 @@ export class ProfilePageComponent implements OnInit {
       .map((w) => w[0])
       .join('')
       .toUpperCase();
+  }
+
+  async onAvatarFileChange(event: Event): Promise<void> {
+    if (!this.currentUserId || this.uploadingAvatar) return;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.avatarError = 'Please select an image file.';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.avatarError = 'Image must be under 5 MB.';
+      return;
+    }
+    this.uploadingAvatar = true;
+    this.avatarError = null;
+    try {
+      const url = await this.userService.uploadAvatar(this.currentUserId, file);
+      await firstValueFrom(
+        this.userService.updateUserProfile(this.currentUserId, { avatarUrl: url }),
+      );
+      if (this.profile) this.profile = { ...this.profile, avatarUrl: url };
+    } catch {
+      this.avatarError = 'Could not upload photo. Please try again.';
+    } finally {
+      this.uploadingAvatar = false;
+      input.value = '';
+    }
   }
 
   onEditProfile(): void {
@@ -330,6 +368,7 @@ export class ProfilePageComponent implements OnInit {
 
   timeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
+    if (diff < 0) return 'just now';
     const m = Math.floor(diff / 60000);
     if (m < 1) return 'just now';
     if (m < 60) return `${m}m ago`;

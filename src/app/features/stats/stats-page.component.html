@@ -5,9 +5,16 @@
 
     <!-- Header + period toggle -->
     <div class="page-header">
-      <div>
-        <h1 class="page-title">Reading Stats</h1>
-        <p class="page-subtitle">Community insights &amp; your progress</p>
+      <div class="page-header-left">
+        <a class="back-btn" routerLink="/home" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </a>
+        <div>
+          <h1 class="page-title">Reading Stats</h1>
+          <p class="page-subtitle">Community insights &amp; your progress</p>
+        </div>
       </div>
       <div class="period-toggle">
         <button [class.active]="period === 'week'" (click)="setPeriod('week')">This Week</button>
@@ -31,18 +38,25 @@
               <div class="skeleton-row"></div>
             }
           </div>
+        } @else if (errorGlobal) {
+          <p class="error-msg">{{ errorGlobal }}</p>
         } @else if (topBooks.length === 0) {
           <p class="empty-msg">No books added this {{ period }}.</p>
         } @else {
           <div class="book-list">
             @for (book of topBooks; track book.rank) {
-              <div class="book-row">
+              <div class="book-row" [class.book-row--clickable]="book.googleBooksId" [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
                 <span class="rank-num">#{{ book.rank }}</span>
-                <img
-                  [src]="book.coverUrl || 'assets/book-placeholder.png'"
-                  class="book-thumb"
-                  [alt]="book.title"
-                />
+                @if (book.coverUrl) {
+                  <img
+                    [src]="book.coverUrl"
+                    class="book-thumb"
+                    [alt]="book.title"
+                    (error)="book.coverUrl = null"
+                  />
+                } @else {
+                  <div class="book-thumb book-thumb--placeholder"></div>
+                }
                 <div class="book-meta">
                   <div class="book-title-text">{{ book.title }}</div>
                   <div class="book-author-text">{{ book.author }}</div>
@@ -67,6 +81,8 @@
               <div class="skeleton-row short"></div>
             }
           </div>
+        } @else if (errorGlobal) {
+          <p class="error-msg">{{ errorGlobal }}</p>
         } @else if (trendingGenres.length === 0) {
           <p class="empty-msg">No genre data yet.</p>
         } @else {
@@ -98,6 +114,8 @@
             <div class="skeleton-row"></div>
           }
         </div>
+      } @else if (errorGlobal) {
+        <p class="error-msg">{{ errorGlobal }}</p>
       } @else if (topReaders.length === 0) {
         <p class="empty-msg">No readers yet — mark books as "Read" to appear here.</p>
       } @else {
@@ -114,6 +132,7 @@
                 [src]="reader.avatarUrl || avatarFallback(reader.name)"
                 class="reader-avatar"
                 [alt]="reader.name"
+                loading="lazy"
               />
               <span class="reader-name">{{ reader.name }}</span>
               <span class="reader-books">{{ reader.booksRead }} book{{ reader.booksRead !== 1 ? 's' : '' }} read</span>
@@ -135,6 +154,8 @@
 
       @if (isLoadingPace) {
         <div class="pace-skeleton"></div>
+      } @else if (errorPace) {
+        <p class="error-msg">{{ errorPace }}</p>
       } @else {
         <div class="pace-chart">
           @for (m of readingPace; track m.month) {

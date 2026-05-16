@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -7,5 +7,16 @@ import { RouterOutlet } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {
+export class App implements OnInit {
+  isOffline = false;
+
+  ngOnInit(): void {
+    this.isOffline = !navigator.onLine;
+  }
+
+  @HostListener('window:online')
+  onOnline(): void { this.isOffline = false; }
+
+  @HostListener('window:offline')
+  onOffline(): void { this.isOffline = true; }
 }
