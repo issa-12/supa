@@ -13,11 +13,43 @@
     </div>
   </header>
 
-  <!-- Loading -->
+  <!-- Loading skeleton -->
   @if (isLoading) {
-    <div class="page-state">
-      <div class="spinner"></div>
-      <p>Loading profile…</p>
+    <div class="profile-content">
+      <div class="profile-card">
+        <div class="profile-header-section">
+          <div class="skel-avatar skeleton"></div>
+          <div class="skel-info">
+            <div class="skel-name skeleton"></div>
+            <div class="skel-username skeleton"></div>
+            <div class="skel-joined skeleton"></div>
+          </div>
+          <div class="skel-btn skeleton"></div>
+        </div>
+        <div class="skel-bio-line skeleton" style="width:80%"></div>
+        <div class="skel-bio-line skeleton" style="width:55%"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          @for (i of [1,2,3]; track i) { <div class="skel-tag skeleton"></div> }
+        </div>
+      </div>
+      <div class="reading-stats-grid">
+        <div class="stat-card skel-stat-card skeleton"></div>
+        <div class="stat-card skel-stat-card skeleton"></div>
+      </div>
+      <div class="books-section">
+        <div class="section-header">
+          <div class="skel-section-h skeleton"></div>
+        </div>
+        <div class="books-grid">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="book-card">
+              <div class="skel-book-cover skeleton"></div>
+              <div class="skel-book-title skeleton"></div>
+              <div class="skel-book-author skeleton"></div>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   }
 
@@ -40,7 +72,7 @@
           <!-- Avatar -->
           <div class="profile-avatar-wrapper">
             @if (profile.avatarUrl) {
-              <img [src]="profile.avatarUrl" [alt]="profile.name" class="profile-avatar" />
+              <img [src]="profile.avatarUrl" [alt]="profile.name" class="profile-avatar" loading="lazy" />
             } @else {
               <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
             }
@@ -185,7 +217,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -392,7 +424,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -438,7 +470,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -484,7 +516,7 @@
               <div class="book-card">
                 <div class="book-cover-container">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" />
+                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
                     <div class="book-cover book-cover--placeholder">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

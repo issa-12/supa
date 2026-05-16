@@ -23,11 +23,30 @@
     </div>
   </header>
 
-  <!-- Loading -->
+  <!-- Loading skeleton -->
   @if (isLoading) {
-    <div class="page-state">
-      <div class="spinner"></div>
-      <p>Loading your library…</p>
+    <div class="shelf-skeleton">
+      <div class="skel-filter-bar">
+        @for (i of [1,2,3,4]; track i) { <div class="skel-pill skeleton"></div> }
+        <div class="skel-select skeleton"></div>
+      </div>
+      <div class="shelf-content">
+        <div class="shelf-section">
+          <div class="section-header">
+            <div class="skel-section-title skeleton"></div>
+            <div class="skel-section-badge skeleton"></div>
+          </div>
+          <div class="books-grid">
+            @for (i of [1,2,3,4,5,6]; track i) {
+              <div class="book-card">
+                <div class="skel-cover skeleton"></div>
+                <div class="skel-title skeleton"></div>
+                <div class="skel-author skeleton"></div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
     </div>
   }
 

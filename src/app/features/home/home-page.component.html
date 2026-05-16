@@ -6,18 +6,55 @@
       <!-- Hero Section -->
       <app-hero-section *ngIf="heroBook" [book]="heroBook" (addToReading)="onAddToReading($event)"></app-hero-section>
 
+      <!-- Continue Reading skeleton -->
+      <div *ngIf="isLoadingContinue" class="home-section-skeleton">
+        <div class="skel-h2 skeleton"></div>
+        <div class="skel-book-row">
+          <div *ngFor="let i of [1,2,3]" class="skel-continue-card">
+            <div class="skel-continue-cover skeleton"></div>
+            <div class="skel-continue-info">
+              <div class="skel-line skeleton"></div>
+              <div class="skel-line-short skeleton"></div>
+              <div class="skel-progress-bar skeleton"></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- Continue Reading Section -->
-      <app-continue-reading [books]="continueReadingBooks" (continueReading)="onContinueReading($event)"></app-continue-reading>
+      <app-continue-reading *ngIf="!isLoadingContinue" [books]="continueReadingBooks" (continueReading)="onContinueReading($event)"></app-continue-reading>
 
       <!-- Main Grid Layout -->
       <div class="home-bottom-grid">
         <!-- Main Column -->
         <div class="main-col">
-          <!-- Recommended For You Section -->
-          <app-recommended-books [books]="recommendedBooks" (addBook)="onAddBook($event)"></app-recommended-books>
 
+          <!-- Recommended skeleton -->
+          <div *ngIf="isLoadingRecommended" class="home-section-skeleton">
+            <div class="skel-h2 skeleton"></div>
+            <div class="skel-cards-grid">
+              <div *ngFor="let i of [1,2,3,4,5,6]" class="skel-book-tile">
+                <div class="skel-tile-cover skeleton"></div>
+                <div class="skel-tile-title skeleton"></div>
+                <div class="skel-tile-author skeleton"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Recommended For You Section -->
+          <app-recommended-books *ngIf="!isLoadingRecommended" [books]="recommendedBooks" (addBook)="onAddBook($event)"></app-recommended-books>
+
+          <!-- Trending skeleton -->
+          <div *ngIf="isLoadingTrending" class="home-section-skeleton">
+            <div class="skel-h2 skeleton"></div>
+            <div class="skel-cards-grid">
+              <div *ngFor="let i of [1,2,3,4,5,6]" class="skel-book-tile">
+                <div class="skel-tile-cover skeleton"></div>
+                <div class="skel-tile-title skeleton"></div>
+                <div class="skel-tile-author skeleton"></div>
+              </div>
+            </div>
+          </div>
           <!-- Trending This Week Section -->
-          <app-trending-books [books]="trendingBooks"></app-trending-books>
+          <app-trending-books *ngIf="!isLoadingTrending" [books]="trendingBooks"></app-trending-books>
         </div>
 
         <!-- Friends Feed Sidebar -->
