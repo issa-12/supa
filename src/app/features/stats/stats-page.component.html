@@ -31,6 +31,8 @@
               <div class="skeleton-row"></div>
             }
           </div>
+        } @else if (errorGlobal) {
+          <p class="error-msg">{{ errorGlobal }}</p>
         } @else if (topBooks.length === 0) {
           <p class="empty-msg">No books added this {{ period }}.</p>
         } @else {
@@ -38,11 +40,16 @@
             @for (book of topBooks; track book.rank) {
               <div class="book-row">
                 <span class="rank-num">#{{ book.rank }}</span>
-                <img
-                  [src]="book.coverUrl || 'assets/book-placeholder.png'"
-                  class="book-thumb"
-                  [alt]="book.title"
-                />
+                @if (book.coverUrl) {
+                  <img
+                    [src]="book.coverUrl"
+                    class="book-thumb"
+                    [alt]="book.title"
+                    (error)="book.coverUrl = null"
+                  />
+                } @else {
+                  <div class="book-thumb book-thumb--placeholder"></div>
+                }
                 <div class="book-meta">
                   <div class="book-title-text">{{ book.title }}</div>
                   <div class="book-author-text">{{ book.author }}</div>
@@ -67,6 +74,8 @@
               <div class="skeleton-row short"></div>
             }
           </div>
+        } @else if (errorGlobal) {
+          <p class="error-msg">{{ errorGlobal }}</p>
         } @else if (trendingGenres.length === 0) {
           <p class="empty-msg">No genre data yet.</p>
         } @else {
@@ -98,6 +107,8 @@
             <div class="skeleton-row"></div>
           }
         </div>
+      } @else if (errorGlobal) {
+        <p class="error-msg">{{ errorGlobal }}</p>
       } @else if (topReaders.length === 0) {
         <p class="empty-msg">No readers yet — mark books as "Read" to appear here.</p>
       } @else {
@@ -135,6 +146,8 @@
 
       @if (isLoadingPace) {
         <div class="pace-skeleton"></div>
+      } @else if (errorPace) {
+        <p class="error-msg">{{ errorPace }}</p>
       } @else {
         <div class="pace-chart">
           @for (m of readingPace; track m.month) {

@@ -158,6 +158,7 @@ export class ShelfComponent implements OnInit {
   }
 
   async removeBook(book: UserBook): Promise<void> {
+    if (!confirm(`Remove "${book.book?.title ?? 'this book'}" from your shelf?`)) return;
     this.openMenuId = null;
     this.savingId = book.id;
 

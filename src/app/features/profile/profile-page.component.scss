@@ -928,6 +928,16 @@
 
 .error-text { color: var(--destructive); }
 
+.friend-action-error {
+  font-size: 13px;
+  color: var(--destructive);
+  background: rgba(200, 90, 79, 0.08);
+  border: 1px solid rgba(200, 90, 79, 0.2);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin: 0;
+}
+
 // Avatar initials fallback
 .profile-avatar--initials {
   display: flex;

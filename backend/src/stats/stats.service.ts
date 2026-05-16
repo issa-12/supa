@@ -6,6 +6,7 @@ export interface TopBook {
   title: string;
   author: string;
   coverUrl: string | null;
+  googleBooksId: string | null;
   addCount: number;
 }
 
@@ -59,7 +60,7 @@ export class StatsService {
     const { data, error } = await this.supabase
       .getAdmin()
       .from('user_books')
-      .select('book_id, books(book_id, title, author_name, cover_image_url)')
+      .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id)')
       .gte('added_at', since);
 
     if (error) throw new InternalServerErrorException(error.message);
@@ -81,6 +82,7 @@ export class StatsService {
         title: entry.book['title'] as string,
         author: entry.book['author_name'] as string,
         coverUrl: (entry.book['cover_image_url'] as string) ?? null,
+        googleBooksId: (entry.book['google_books_id'] as string) ?? null,
         addCount: entry.count,
       }));
   }

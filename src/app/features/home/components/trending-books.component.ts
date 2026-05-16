@@ -1,11 +1,13 @@
-import { Component, Input, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, Input, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 interface Book {
   id: string;
+  googleBooksId?: string | null;
   title: string;
   author: string;
-  coverUrl: string;
+  coverUrl: string | null;
 }
 
 @Component({
@@ -26,8 +28,11 @@ interface Book {
       </div>
 
       <div class="horizontal-scroll">
-        <div *ngFor="let book of books" class="book-card-clean">
-          <img class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" />
+        <div *ngFor="let book of books" class="book-card-clean"
+          (click)="onCardClick(book)"
+          [style.cursor]="book.googleBooksId ? 'pointer' : 'default'">
+          <img *ngIf="book.coverUrl" class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" loading="lazy" (error)="book.coverUrl = null" />
+          <div *ngIf="!book.coverUrl" class="book-cover-clean book-cover--empty"></div>
           <div class="book-info-minimal">
             <div class="book-title-min">{{ book.title }}</div>
             <div class="book-author-min">{{ book.author }}</div>
@@ -137,6 +142,10 @@ interface Book {
       .book-card-clean:hover & {
         box-shadow: 0 16px 32px rgba(51, 38, 29, 0.18);
       }
+
+      &.book-cover--empty {
+        background: rgba(126, 107, 93, 0.1);
+      }
     }
 
     .book-info-minimal {
@@ -189,5 +198,13 @@ interface Book {
   `],
 })
 export class TrendingBooksComponent {
+  private readonly router = inject(Router);
+
   @Input() books: Book[] = [];
+
+  onCardClick(book: Book): void {
+    if (book.googleBooksId) {
+      this.router.navigate(['/books', book.googleBooksId]);
+    }
+  }
 }

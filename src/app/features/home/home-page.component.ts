@@ -85,7 +85,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
           this.currentUserAvatar = user.avatarUrl;
           this.isLoading = false;
 
-          this.loadFeaturedBook();
           this.loadContinueReadingBooks();
           this.loadRecommendedBooks();
           this.loadTrendingBooks();
@@ -95,18 +94,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
           this.error = 'Failed to load user profile';
           this.isLoading = false;
         },
-      });
-  }
-
-  private loadFeaturedBook(): void {
-    this.bookService
-      .getFeaturedBook()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (book) => {
-          this.heroBook = book ? this.mapBook(book) : null;
-        },
-        error: () => {},
       });
   }
 
@@ -138,11 +125,17 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private loadRecommendedBooks(): void {
     this.isLoadingRecommended = true;
     this.bookService
-      .getRecommendedBooks(this.currentUserId || '', 6)
+      .getRecommendedBooks(this.currentUserId || '', 7)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (books) => {
-          this.recommendedBooks = books.map((b) => this.mapBook(b));
+          const mapped = books.map((b) => this.mapBook(b));
+          if (mapped.length > 0) {
+            this.heroBook = mapped[0];
+            this.recommendedBooks = mapped.slice(1);
+          } else {
+            this.recommendedBooks = [];
+          }
           this.isLoadingRecommended = false;
         },
         error: () => { this.isLoadingRecommended = false; },

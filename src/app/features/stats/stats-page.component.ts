@@ -10,6 +10,7 @@ interface TopBook {
   title: string;
   author: string;
   coverUrl: string | null;
+  googleBooksId: string | null;
   addCount: number;
 }
 
@@ -54,6 +55,9 @@ export class StatsPageComponent implements OnInit, OnDestroy {
   topReaders: TopReader[] = [];
   readingPace: MonthlyPace[] = [];
 
+  errorGlobal: string | null = null;
+  errorPace: string | null = null;
+
   readonly skeletonRows = [1, 2, 3, 4, 5];
 
   get totalBooksRead(): number {
@@ -91,13 +95,14 @@ export class StatsPageComponent implements OnInit, OnDestroy {
 
   private async loadGlobalStats(): Promise<void> {
     this.isLoadingGlobal = true;
+    this.errorGlobal = null;
     try {
       const token = await this.getToken();
-      if (!token) return;
+      if (!token) { this.errorGlobal = 'Not authenticated.'; return; }
       const res = await fetch(`/api/stats/global?period=${this.period}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) { this.errorGlobal = 'Failed to load stats. Try again.'; return; }
       const data = (await res.json()) as {
         topBooks: TopBook[];
         trendingGenres: TrendingGenre[];
@@ -107,7 +112,7 @@ export class StatsPageComponent implements OnInit, OnDestroy {
       this.trendingGenres = data.trendingGenres;
       this.topReaders = data.topReaders;
     } catch {
-      // leave empty — user sees empty states
+      this.errorGlobal = 'Failed to load stats. Check your connection.';
     } finally {
       this.isLoadingGlobal = false;
     }
@@ -115,17 +120,18 @@ export class StatsPageComponent implements OnInit, OnDestroy {
 
   private async loadPace(): Promise<void> {
     this.isLoadingPace = true;
+    this.errorPace = null;
     try {
       const token = await this.getToken();
-      if (!token) return;
+      if (!token) { this.errorPace = 'Not authenticated.'; return; }
       const res = await fetch('/api/stats/pace', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) { this.errorPace = 'Failed to load reading pace.'; return; }
       const data = (await res.json()) as { pace: MonthlyPace[] };
       this.readingPace = data.pace;
     } catch {
-      // leave empty
+      this.errorPace = 'Failed to load reading pace. Check your connection.';
     } finally {
       this.isLoadingPace = false;
     }

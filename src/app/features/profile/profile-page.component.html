@@ -87,6 +87,11 @@
             <p class="profile-joined">Reading since {{ profile.joinDate }}</p>
           </div>
 
+          <!-- Friend action error -->
+          @if (friendActionError) {
+            <p class="friend-action-error">{{ friendActionError }}</p>
+          }
+
           <!-- Actions -->
           <div class="profile-actions">
             @if (isOwnProfile) {
