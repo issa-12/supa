@@ -38,7 +38,7 @@
         <!-- Cover -->
         <div class="cover-wrap">
           @if (book.coverUrl) {
-            <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" />
+            <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
           } @else {
             <div class="cover-placeholder">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -114,7 +114,7 @@
                     >
                       <div class="recommend-avatar">
                         @if (friend.avatarUrl) {
-                          <img [src]="friend.avatarUrl" [alt]="friend.name" />
+                          <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
                         } @else {
                           <span>{{ friend.name[0].toUpperCase() }}</span>
                         }
@@ -271,6 +271,7 @@
                   [src]="review.avatarUrl || 'https://ui-avatars.com/api/?name=' + review.userName[0] + '&background=E9783F&color=fff&size=32'"
                   [alt]="review.userName"
                   class="review-avatar"
+                  loading="lazy"
                 />
                 <span class="review-name">{{ review.userName }}</span>
                 @if (review.rating) {

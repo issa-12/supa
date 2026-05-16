@@ -35,15 +35,23 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   query = '';
   results: GoogleBook[] = [];
   isSearching = false;
+  isLoadingMore = false;
   hasSearched = false;
   searchError: string | null = null;
+  totalItems = 0;
 
   openDropdownId: string | null = null;
   addingBookId: string | null = null;
   addedBooks = new Map<string, string>(); // googleId → status label
   addError: string | null = null;
 
+  private startIndex = 0;
+  private readonly pageSize = 20;
   private searchTimer?: ReturnType<typeof setTimeout>;
+
+  get hasMore(): boolean {
+    return this.results.length < this.totalItems;
+  }
 
   ngOnInit(): void {
     const q = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
@@ -60,6 +68,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     if (!this.query.trim() || this.query.trim().length < 2) {
       this.results = [];
       this.hasSearched = false;
+      this.totalItems = 0;
       return;
     }
 
@@ -71,6 +80,20 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     await this.runSearch();
   }
 
+  async loadMore(): Promise<void> {
+    if (this.isLoadingMore || !this.hasMore) return;
+    this.isLoadingMore = true;
+    try {
+      const { books } = await this.bookService.searchBooks(this.query.trim(), this.startIndex);
+      this.results = [...this.results, ...books];
+      this.startIndex += books.length;
+    } catch {
+      // silently ignore — existing results remain
+    } finally {
+      this.isLoadingMore = false;
+    }
+  }
+
   private async runSearch(): Promise<void> {
     const q = this.query.trim();
     if (q.length < 2) return;
@@ -79,9 +102,14 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     this.searchError = null;
     this.hasSearched = true;
     this.openDropdownId = null;
+    this.startIndex = 0;
+    this.totalItems = 0;
 
     try {
-      this.results = await this.bookService.searchBooks(q);
+      const { books, totalItems } = await this.bookService.searchBooks(q, 0);
+      this.results = books;
+      this.totalItems = totalItems;
+      this.startIndex = books.length;
     } catch (err) {
       this.searchError = err instanceof Error ? err.message : 'Search failed. Please try again.';
       this.results = [];

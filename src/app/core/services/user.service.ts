@@ -109,6 +109,18 @@ export class UserService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
+  async uploadAvatar(userId: string, file: File): Promise<string> {
+    const supabase = await this.supabaseService.getClient();
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const path = `${userId}/avatar.${ext}`;
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    return `${data.publicUrl}?t=${Date.now()}`;
+  }
+
   setReadingGoal(userId: string, year: number, targetBooks: number): Observable<void> {
     return from(
       this.supabaseService.getClient().then((supabase) =>

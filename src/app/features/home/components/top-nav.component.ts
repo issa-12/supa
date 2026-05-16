@@ -70,6 +70,7 @@ interface NavSearchBook {
                         [src]="user.avatarUrl || 'https://ui-avatars.com/api/?name=' + user.name[0] + '&background=E9783F&color=fff&size=32'"
                         [alt]="user.name"
                         class="item-avatar"
+                        loading="lazy"
                       />
                       <span class="item-name">{{ user.name }}</span>
                     </button>
@@ -82,7 +83,7 @@ interface NavSearchBook {
                   @for (book of searchBookResults; track book.googleId) {
                     <button class="search-item" (click)="goToBook(book)">
                       @if (book.coverUrl) {
-                        <img [src]="book.coverUrl" [alt]="book.title" class="item-cover" />
+                        <img [src]="book.coverUrl" [alt]="book.title" class="item-cover" loading="lazy" />
                       } @else {
                         <div class="item-cover item-cover--empty">
                           <iconify-icon icon="lucide:book" style="font-size: 14px"></iconify-icon>

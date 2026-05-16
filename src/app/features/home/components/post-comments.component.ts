@@ -19,7 +19,7 @@ import { LikesService } from '../../../core/services/likes.service';
               <div class="comment">
                 <div class="comment-avatar">
                   @if (comment.userAvatar) {
-                    <img [src]="comment.userAvatar" [alt]="comment.userName" />
+                    <img [src]="comment.userAvatar" [alt]="comment.userName" loading="lazy" />
                   } @else {
                     <span>{{ comment.userName[0].toUpperCase() }}</span>
                   }
@@ -56,7 +56,7 @@ import { LikesService } from '../../../core/services/likes.service';
                   @for (reply of comment.replies; track reply.id) {
                     <div class="comment" style="margin-top: 8px;">
                       <div class="comment-avatar comment-avatar--sm">
-                        @if (reply.userAvatar) { <img [src]="reply.userAvatar" [alt]="reply.userName" /> }
+                        @if (reply.userAvatar) { <img [src]="reply.userAvatar" [alt]="reply.userName" loading="lazy" /> }
                         @else { <span>{{ reply.userName[0].toUpperCase() }}</span> }
                       </div>
                       <div class="comment-body">
@@ -85,7 +85,7 @@ import { LikesService } from '../../../core/services/likes.service';
                         @for (deep of reply.replies; track deep.id) {
                           <div class="comment" style="padding-left: 24px; margin-top: 8px;">
                             <div class="comment-avatar comment-avatar--sm">
-                              @if (deep.userAvatar) { <img [src]="deep.userAvatar" [alt]="deep.userName" /> }
+                              @if (deep.userAvatar) { <img [src]="deep.userAvatar" [alt]="deep.userName" loading="lazy" /> }
                               @else { <span>{{ deep.userName[0].toUpperCase() }}</span> }
                             </div>
                             <div class="comment-body">
@@ -117,7 +117,7 @@ import { LikesService } from '../../../core/services/likes.service';
         <div class="add-comment">
           <div class="comment-avatar">
             @if (currentUserAvatar) {
-              <img [src]="currentUserAvatar" alt="You" />
+              <img [src]="currentUserAvatar" alt="You" loading="lazy" />
             } @else {
               <span>{{ userInitial }}</span>
             }

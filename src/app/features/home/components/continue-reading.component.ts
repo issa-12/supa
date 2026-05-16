@@ -5,7 +5,7 @@ interface ContinueReadingBook {
   id: string;
   title: string;
   author: string;
-  coverUrl: string;
+  coverUrl: string | null;
   progress: number;
   currentPage: number;
   totalPages: number;
@@ -36,6 +36,7 @@ interface ContinueReadingBook {
             class="continue-cover"
             [src]="book.coverUrl"
             [alt]="book.title + ' Cover'"
+            loading="lazy"
           />
 
           <div class="continue-details">

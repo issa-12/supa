@@ -28,7 +28,7 @@ interface BookSearchResult {
             <button class="compose-trigger" (click)="openCompose()">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" (error)="currentUserAvatar = null" />
+                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -50,7 +50,7 @@ interface BookSearchResult {
                 @if (selectedBook) {
                   <div class="selected-book">
                     @if (selectedBook.coverUrl) {
-                      <img [src]="selectedBook.coverUrl" [alt]="selectedBook.title" class="selected-book-cover" />
+                      <img [src]="selectedBook.coverUrl" [alt]="selectedBook.title" class="selected-book-cover" loading="lazy" />
                     }
                     <div class="selected-book-info">
                       <span class="selected-book-title">{{ selectedBook.title }}</span>
@@ -80,7 +80,7 @@ interface BookSearchResult {
                       @for (b of bookResults; track b.googleId) {
                         <li class="book-result-item" (click)="selectBook(b)">
                           @if (b.coverUrl) {
-                            <img [src]="b.coverUrl" [alt]="b.title" class="book-result-cover" />
+                            <img [src]="b.coverUrl" [alt]="b.title" class="book-result-cover" loading="lazy" />
                           }
                           <div>
                             <p class="book-result-title">{{ b.title }}</p>
@@ -138,7 +138,7 @@ interface BookSearchResult {
                 <a class="post-author-link" [routerLink]="['/profile', post.userId]">
                   <div class="post-avatar">
                     @if (post.userAvatar) {
-                      <img [src]="post.userAvatar" [alt]="post.userName" (error)="post.userAvatar = null" />
+                      <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
                     } @else {
                       <span>{{ post.userName[0].toUpperCase() }}</span>
                     }

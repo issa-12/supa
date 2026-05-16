@@ -16,7 +16,7 @@ interface Book {
   googleBooksId?: string | null;
   title: string;
   author: string;
-  coverUrl: string;
+  coverUrl: string | null;
   description?: string | null;
   rating?: number;
 }
@@ -175,7 +175,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   onAddToReading(book: Book): void {
     if (!this.currentUserId) return;
     const bookId = parseInt(book.id, 10);
-    if (isNaN(bookId)) return;
+    if (isNaN(bookId) || bookId <= 0) return;
     this.bookService
       .addBookToReadingList(this.currentUserId, bookId)
       .pipe(takeUntil(this.destroy$))
