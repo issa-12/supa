@@ -28,7 +28,7 @@ interface BookSearchResult {
             <button class="compose-trigger" (click)="openCompose()">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" />
+                  <img [src]="currentUserAvatar" alt="You" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -138,7 +138,7 @@ interface BookSearchResult {
                 <a class="post-author-link" [routerLink]="['/profile', post.userId]">
                   <div class="post-avatar">
                     @if (post.userAvatar) {
-                      <img [src]="post.userAvatar" [alt]="post.userName" />
+                      <img [src]="post.userAvatar" [alt]="post.userName" (error)="post.userAvatar = null" />
                     } @else {
                       <span>{{ post.userName[0].toUpperCase() }}</span>
                     }
@@ -162,7 +162,7 @@ interface BookSearchResult {
               @if (post.bookTitle) {
                 <a class="post-book" [routerLink]="['/books/search']" [queryParams]="{ q: post.bookTitle }">
                   @if (post.bookCover) {
-                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" />
+                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" (error)="post.bookCover = ''" loading="lazy" />
                   }
                   <span class="post-book-title">{{ post.bookTitle }}</span>
                 </a>
@@ -788,13 +788,16 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   }
 
   deletePost(post: ActivityPost): void {
+    const prev = [...this.posts];
+    this.posts = this.posts.filter((p) => p.id !== post.id);
     this.activityService.deletePost(post.id).subscribe({
-      next: () => { this.posts = this.posts.filter((p) => p.id !== post.id); },
+      error: () => { this.posts = prev; },
     });
   }
 
   timeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
+    if (diff < 0) return 'just now';
     const m = Math.floor(diff / 60000);
     if (m < 1) return 'just now';
     if (m < 60) return `${m}m ago`;

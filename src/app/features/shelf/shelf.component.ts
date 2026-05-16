@@ -195,9 +195,11 @@ export class ShelfComponent implements OnInit {
     const currentPage = parseInt(this.progressCurrent, 10);
     if (!currentPage || currentPage < 1) return;
 
+    const totalPages = this.progressTotal ? parseInt(this.progressTotal, 10) : null;
+    if (totalPages !== null && (isNaN(totalPages) || totalPages < 1 || currentPage > totalPages)) return;
+
     this.savingProgressId = book.id;
     try {
-      const totalPages = this.progressTotal ? parseInt(this.progressTotal, 10) : null;
       const updated = await firstValueFrom(
         this.bookService.updateProgress(book.id, currentPage, totalPages),
       );

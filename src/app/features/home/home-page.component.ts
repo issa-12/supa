@@ -17,6 +17,7 @@ interface Book {
   title: string;
   author: string;
   coverUrl: string;
+  description?: string | null;
   rating?: number;
 }
 
@@ -118,12 +119,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (userBooks) => {
-          this.continueReadingBooks = userBooks.map((ub) => ({
-            ...this.mapBook(ub.book || { id: ub.bookId, title: '', author: '', description: null, publishDate: null, coverUrl: null }),
-            progress: Math.random() * 100,
-            currentPage: 0,
-            totalPages: 0,
-          }));
+          this.continueReadingBooks = userBooks.map((ub) => {
+            const cp = ub.currentPage ?? 0;
+            const tp = ub.totalPages ?? 0;
+            return {
+              ...this.mapBook(ub.book || { id: ub.bookId, title: '', author: '', description: null, publishDate: null, coverUrl: null }),
+              progress: cp > 0 && tp > 0 ? Math.min(100, Math.round((cp / tp) * 100)) : 0,
+              currentPage: cp,
+              totalPages: tp,
+            };
+          });
           this.isLoadingContinue = false;
         },
         error: () => { this.isLoadingContinue = false; },
@@ -165,6 +170,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
       title: book.title,
       author: book.author,
       coverUrl: book.coverUrl,
+      description: book.description ?? null,
       rating: book.rating,
     };
   }
