@@ -1,5 +1,5 @@
-import { Component, OnDestroy, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -24,10 +24,11 @@ const SHELF_STATUSES: ShelfStatus[] = [
   templateUrl: './book-search.component.html',
   styleUrl: './book-search.component.scss',
 })
-export class BookSearchComponent implements OnDestroy {
+export class BookSearchComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly statuses = SHELF_STATUSES;
 
@@ -43,6 +44,14 @@ export class BookSearchComponent implements OnDestroy {
   addError: string | null = null;
 
   private searchTimer?: ReturnType<typeof setTimeout>;
+
+  ngOnInit(): void {
+    const q = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
+    if (q.length >= 2) {
+      this.query = q;
+      void this.runSearch();
+    }
+  }
 
   onQueryChange(): void {
     clearTimeout(this.searchTimer);
