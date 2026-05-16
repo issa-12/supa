@@ -324,6 +324,16 @@ All tables have RLS enabled. Key rules:
 - **docker-compose.yml hardening**: Docker internal network (`readtrack-net`), healthchecks for both containers (frontend pings nginx, backend pings `/api/health`), `depends_on: condition: service_healthy` so frontend only starts after backend is ready. Backend port `3000` no longer exposed externally — accessible only through nginx proxy.
 - **`.env.example` completed**: all 9 required environment variables documented with placeholders
 
+### Post-sprint Bug Fixes (Batch 1)
+- **B1 — Continue Reading random progress**: `home-page.component.ts` — replaced `Math.random() * 100` with actual `currentPage / totalPages` calculation from DB. Continue Reading label now shows "Page X / Y" or "No progress tracked yet" instead of a meaningless random percentage.
+- **B2 — Hero "View Book" did nothing**: `hero-section.component.ts` — injected `Router`, added `googleBooksId` to local `Book` interface, `onViewBook()` now navigates to `/books/:googleBooksId`.
+- **B3 — Hero hardcoded description**: `hero-section.component.ts` — replaced static mystery-novel description with `book.description` (truncated to 220 chars), falling back to a generic message if no description exists. Also propagated `description` through `home-page.component.ts` `mapBook()`.
+- **B4 — Hero cover broken image**: `hero-section.component.ts` — added `coverBroken` flag + `(error)` handler; shows a book-icon placeholder when cover URL fails to load. Also added loading state (`addingToReading`) to "Add to Reading" button.
+- **B5 — `timeAgo()` negative diff**: Fixed in both `posts-feed.component.ts` and `profile-page.component.ts` — added `if (diff < 0) return 'just now'` guard to prevent NaN/negative values when server clock is slightly ahead.
+- **B6 — Progress save allowed invalid values**: `shelf.component.ts` — `saveProgress()` now validates that `currentPage ≤ totalPages` when totalPages is provided, preventing nonsensical progress like "page 500 of 200".
+- **B7 — Delete post silent failure**: `posts-feed.component.ts` — changed to optimistic deletion (remove immediately from UI), with full rollback on error. Previously the post stayed visible with no feedback; now it disappears instantly and reappears if the server call fails.
+- **B8 — Broken images no fallback**: `posts-feed.component.ts` — added `(error)` handlers to user avatar imgs (`post.userAvatar = null` triggers `@if` to switch to initials fallback), post book cover imgs (`post.bookCover = null` hides the cover), and compose avatar.
+
 ---
 
 ## Production deployment checklist

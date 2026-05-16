@@ -49,7 +49,7 @@ interface ContinueReadingBook {
                 <div class="progress-bar-fill" [style.width.%]="book.progress"></div>
               </div>
               <div class="progress-label">
-                {{ book.currentPage > 0 ? 'Page ' + book.currentPage + ' / ' + book.totalPages : book.progress + '% completed' }}
+                {{ book.currentPage > 0 ? 'Page ' + book.currentPage + (book.totalPages > 0 ? ' / ' + book.totalPages : '') : 'No progress tracked yet' }}
               </div>
             </div>
           </div>
