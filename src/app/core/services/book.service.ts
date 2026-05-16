@@ -60,22 +60,6 @@ export interface ReadingStatus {
 export class BookService {
   private readonly supabaseService = inject(SupabaseService);
 
-  getFeaturedBook(): Observable<Book | null> {
-    return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
-          .from('books')
-          .select('*')
-          .limit(1)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data || data.length === 0) return null;
-            return this.mapBook(data[0]);
-          })
-      )
-    ).pipe(catchError((error) => throwError(() => error)));
-  }
-
   getContinueReadingBooks(userId: string): Observable<UserBook[]> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
@@ -224,17 +208,38 @@ export class BookService {
 
   getTrendingBooks(limit: number = 6): Observable<Book[]> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
-          .from('books')
-          .select('*')
-          .limit(limit)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return (data || []).map((item) => this.mapBook(item));
-          })
-      )
-    ).pipe(catchError((error) => throwError(() => error)));
+      (async () => {
+        const session = await this.supabaseService.getCurrentSession();
+        const token = session?.access_token;
+        if (!token) return [];
+
+        const res = await fetch('/api/stats/global?period=week', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return [];
+
+        const payload = (await res.json()) as {
+          topBooks: Array<{
+            rank: number;
+            title: string;
+            author: string;
+            coverUrl: string | null;
+            googleBooksId: string | null;
+            addCount: number;
+          }>;
+        };
+
+        return (payload.topBooks ?? []).slice(0, limit).map((b) => ({
+          id: 0,
+          googleBooksId: b.googleBooksId,
+          title: b.title,
+          author: b.author,
+          description: null,
+          publishDate: null,
+          coverUrl: b.coverUrl,
+        }));
+      })()
+    ).pipe(catchError(() => of([])));
   }
 
   getUserBooksByRating(

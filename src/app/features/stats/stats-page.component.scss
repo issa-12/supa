@@ -154,6 +154,10 @@
   border-radius: 4px 6px 6px 4px;
   box-shadow: 0 2px 8px rgba(51, 38, 29, 0.12);
   flex-shrink: 0;
+
+  &--placeholder {
+    background: rgba(126, 107, 93, 0.12);
+  }
 }
 
 .book-meta {
@@ -401,7 +405,15 @@
   100% { background-position: -200% 0; }
 }
 
-// ── Empty / totals ───────────────────────────────────────────────
+// ── Empty / Error / totals ───────────────────────────────────────
+.error-msg {
+  font-size: 14px;
+  color: var(--destructive);
+  text-align: center;
+  padding: 20px 0;
+  margin: 0;
+}
+
 .empty-msg {
   font-size: 14px;
   color: var(--muted-foreground);

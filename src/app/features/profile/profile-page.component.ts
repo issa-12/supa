@@ -61,6 +61,7 @@ export class ProfilePageComponent implements OnInit {
   friends: FriendUser[] = [];
   incomingRequests: FriendRequest[] = [];
   friendActionLoading = false;
+  friendActionError: string | null = null;
 
   searchQuery = '';
   searchResults: UserProfile[] = [];
@@ -133,12 +134,13 @@ export class ProfilePageComponent implements OnInit {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       const result = await this.friendshipService.sendRequest(targetId);
       this.friendshipStatus = 'pending_sent';
       this.friendshipId = result.friendshipId;
     } catch {
-      // silently ignore — user can retry
+      this.friendActionError = 'Could not send friend request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -147,12 +149,13 @@ export class ProfilePageComponent implements OnInit {
   async cancelRequest(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.deleteFriendship(this.friendshipId);
       this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not cancel request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -161,11 +164,12 @@ export class ProfilePageComponent implements OnInit {
   async acceptRequest(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.acceptRequest(this.friendshipId);
       this.friendshipStatus = 'accepted';
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not accept request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -174,12 +178,13 @@ export class ProfilePageComponent implements OnInit {
   async rejectRequest(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.rejectRequest(this.friendshipId);
       this.friendshipStatus = 'rejected';
       this.friendshipId = null;
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not decline request. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -188,12 +193,13 @@ export class ProfilePageComponent implements OnInit {
   async unfriend(): Promise<void> {
     if (!this.friendshipId || this.friendActionLoading) return;
     this.friendActionLoading = true;
+    this.friendActionError = null;
     try {
       await this.friendshipService.deleteFriendship(this.friendshipId);
       this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not remove friend. Please try again.';
     } finally {
       this.friendActionLoading = false;
     }
@@ -205,7 +211,7 @@ export class ProfilePageComponent implements OnInit {
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
       this.friends = await this.friendshipService.getFriends();
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not accept request. Please try again.';
     }
   }
 
@@ -214,7 +220,7 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.rejectRequest(req.friendshipId);
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
     } catch {
-      // silently ignore
+      this.friendActionError = 'Could not decline request. Please try again.';
     }
   }
 

@@ -231,10 +231,14 @@
             class="content-textarea"
             placeholder="Add your private notes about this book…"
             rows="4"
+            maxlength="500"
           ></textarea>
-          <button class="btn save-btn" [class.btn-saved]="noteSaved" [class.btn-outline]="!noteSaved" (click)="saveNote()" [disabled]="noteSaving">
-            {{ noteSaved ? 'Saved!' : noteSaving ? 'Saving…' : 'Save Notes' }}
-          </button>
+          <div class="textarea-footer">
+            <span class="char-count" [class.char-count--warn]="note.length > 450">{{ note.length }}/500</span>
+            <button class="btn save-btn" [class.btn-saved]="noteSaved" [class.btn-outline]="!noteSaved" (click)="saveNote()" [disabled]="noteSaving">
+              {{ noteSaved ? 'Saved!' : noteSaving ? 'Saving…' : 'Save Notes' }}
+            </button>
+          </div>
         </div>
 
         <div class="content-section">
@@ -245,10 +249,14 @@
             class="content-textarea"
             placeholder="Share your thoughts about this book…"
             rows="4"
+            maxlength="1000"
           ></textarea>
-          <button class="btn save-btn" [class.btn-saved]="reviewSaved" [class.btn-outline]="!reviewSaved" (click)="saveReview()" [disabled]="reviewSaving">
-            {{ reviewSaved ? 'Saved!' : reviewSaving ? 'Saving…' : 'Save Review' }}
-          </button>
+          <div class="textarea-footer">
+            <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
+            <button class="btn save-btn" [class.btn-saved]="reviewSaved" [class.btn-outline]="!reviewSaved" (click)="saveReview()" [disabled]="reviewSaving">
+              {{ reviewSaved ? 'Saved!' : reviewSaving ? 'Saving…' : 'Save Review' }}
+            </button>
+          </div>
         </div>
       }
 
