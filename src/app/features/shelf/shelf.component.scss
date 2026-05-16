@@ -536,6 +536,66 @@
   &:hover { background: rgba(126, 107, 93, 0.25); }
 }
 
+// ── Skeleton ─────────────────────────────────────────────────────
+.shelf-skeleton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.skel-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.skel-pill {
+  height: 32px;
+  width: 80px;
+  border-radius: 999px;
+}
+
+.skel-select {
+  height: 32px;
+  width: 100px;
+  border-radius: var(--radius-md);
+  margin-left: auto;
+}
+
+.skel-section-title {
+  height: 22px;
+  width: 160px;
+  border-radius: var(--radius-sm);
+}
+
+.skel-section-badge {
+  height: 22px;
+  width: 28px;
+  border-radius: 999px;
+}
+
+.skel-cover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: 8px;
+}
+
+.skel-title {
+  height: 13px;
+  width: 85%;
+  border-radius: var(--radius-sm);
+}
+
+.skel-author {
+  height: 11px;
+  width: 60%;
+  border-radius: var(--radius-sm);
+}
+
 // ── Animations ──────────────────────────────────────────────────
 @keyframes spin { to { transform: rotate(360deg); } }
 

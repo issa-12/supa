@@ -5,7 +5,7 @@ ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
 Users can search books via Google Books, manage a personal shelf, follow friends,
 post about books, and receive AI-powered reading recommendations.
 
-**Current day: 12 of 15. Days 1–12 are fully complete.**
+**Current day: 14 of 15. Days 1–14 are fully complete.**
 
 ---
 
@@ -306,20 +306,21 @@ All tables have RLS enabled. Key rules:
 - **Bug fix**: Google Books search 502 — changed from throwing `BadGatewayException` to graceful fallback: logs the actual API error, then searches local `books` table by title (`ILIKE`). Never crashes the search page.
 - nginx.conf: added `proxy_connect_timeout 10s`, `proxy_read_timeout 30s`, `proxy_send_timeout 30s`
 
+### Day 13 — Search & Shelf Improvements
+- **Unified top-nav search**: live dropdown (350ms debounce) shows books + users in parallel; Enter key navigates to `/books/search?q=...`; click outside closes; clear button; responsive (220px on mobile)
+- **BookSearchComponent query-param support**: reads `?q=` on init, pre-fills + runs search automatically (enables top-nav "See all results" flow)
+- **Shelf filter/sort**: filter pills (All / Reading / Want to Read / Read) + sort select (Date Added / Title A–Z / Rating) — all client-side, no refetch; `displayedSections` getter applies filter then sort
+
+### Day 14 — Polish & Performance
+- **Offline detection banner**: global `@HostListener('window:online/offline')` in `App` root; shows a fixed dark banner at the top when offline; checks `navigator.onLine` on init
+- **Shelf skeleton**: replaced spinner with shimmer book-card grid (filter bar pills + section header + 6 cover cards) using global `.skeleton` animation
+- **Profile skeleton**: replaced spinner with shimmer layout mirroring the profile card (avatar circle, name/username/joined lines, action button, bio lines, genre tags, two stat cards, book grid)
+- **Home page skeletons**: added shimmer placeholders for Continue Reading (horizontal card row), Recommended Books (6-tile grid), and Trending Books (6-tile grid) sections; each appears while the corresponding `isLoading*` flag is true, disappears when data arrives; used `*ngIf` to match existing home-page syntax
+- **Image lazy loading**: added `loading="lazy"` to all `<img>` tags on profile page (avatar + all book covers across 4 sections); shelf and book search already had it
+
 ---
 
-## What is left (Days 13–15)
-
-### Day 13 — Search improvements
-- Top nav search bar: unified results for books AND users (currently just navigates to `/books/search`)
-- Search users by name/username — `UserService.searchUsers` exists, needs UI wiring
-- Filter/sort shelf by status, rating, date added
-
-### Day 14 — Polish & performance
-- Loading skeletons on all data-heavy pages (home, shelf, stats, profile)
-- Error boundaries / empty states refinement
-- Image lazy loading (already in place for shelf/search, extend to profile + stats)
-- Offline detection banner
+## What is left (Days 15)
 
 ### Day 15 — Final deployment
 - Production environment variables (separate `.env.production`)
