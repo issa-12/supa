@@ -101,6 +101,7 @@ export class CommunityService {
       .from('posts')
       .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
       .neq('is_deleted', true)
+      .or('moderation_status.is.null,moderation_status.neq.rejected')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -122,6 +123,7 @@ export class CommunityService {
       .from('posts')
       .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
       .neq('is_deleted', true)
+      .or('moderation_status.is.null,moderation_status.neq.rejected')
       .gte('created_at', since)
       .limit(100);
 

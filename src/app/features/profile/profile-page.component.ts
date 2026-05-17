@@ -184,7 +184,7 @@ export class ProfilePageComponent implements OnInit {
     this.friendActionError = null;
     try {
       await this.friendshipService.rejectRequest(this.friendshipId);
-      this.friendshipStatus = 'rejected';
+      this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
       this.friendActionError = 'Could not decline request. Please try again.';
