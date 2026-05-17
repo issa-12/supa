@@ -159,6 +159,14 @@ interface BookSearchResult {
 
               <p class="post-content">{{ post.content }}</p>
 
+              @if (post.tags && post.tags.length > 0) {
+                <div class="post-tags">
+                  @for (tag of post.tags; track tag) {
+                    <span class="tag-pill">#{{ tag }}</span>
+                  }
+                </div>
+              }
+
               @if (post.bookTitle) {
                 <a class="post-book" [routerLink]="['/books/search']" [queryParams]="{ q: post.bookTitle }">
                   @if (post.bookCover) {
@@ -554,6 +562,22 @@ interface BookSearchResult {
       margin: 0;
       white-space: pre-wrap;
       word-break: break-word;
+    }
+
+    .post-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-pill {
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(233, 120, 63, 0.22);
+      background: rgba(233, 120, 63, 0.07);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
     }
 
     .post-book {

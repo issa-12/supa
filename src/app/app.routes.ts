@@ -88,6 +88,14 @@ export const routes: Routes = [
         (m) => m.StatsPageComponent,
       ),
   },
+  {
+    path: 'community',
+    canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/community/community-page.component').then(
+        (m) => m.CommunityPageComponent,
+      ),
+  },
 
   // ── Static pages (no auth required) ──────────────────────────
   {
