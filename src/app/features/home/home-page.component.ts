@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { BookService } from '../../core/services/book.service';
@@ -46,6 +47,7 @@ interface ContinueReadingBook extends Book {
 export class HomePageComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly userService = inject(UserService);
+  private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
   @ViewChild(PostsFeedComponent) private postsFeed?: PostsFeedComponent;
@@ -183,7 +185,9 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   onContinueReading(book: ContinueReadingBook): void {
-    console.log('Continue reading:', book);
+    if (book.googleBooksId) {
+      void this.router.navigate(['/books', book.googleBooksId]);
+    }
   }
 
   onAddBook(book: Book): void {

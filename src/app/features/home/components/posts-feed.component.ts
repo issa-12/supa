@@ -140,7 +140,7 @@ interface BookSearchResult {
                     @if (post.userAvatar) {
                       <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
                     } @else {
-                      <span>{{ post.userName[0].toUpperCase() }}</span>
+                      <span>{{ (post.userName?.[0] ?? '?').toUpperCase() }}</span>
                     }
                   </div>
                   <div class="post-meta">
@@ -701,7 +701,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     this.loading = true;
     this.activityService.getTrendingPosts(this.currentUserId!, 20).subscribe({
       next: (posts) => { this.trendingPosts = posts; this.loading = false; },
-      error: () => { this.loading = false; },
+      error: () => { this.trendingPosts = []; this.loading = false; },
     });
   }
 
@@ -812,6 +812,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   }
 
   deletePost(post: ActivityPost): void {
+    if (!confirm('Delete this post?')) return;
     const prev = [...this.posts];
     this.posts = this.posts.filter((p) => p.id !== post.id);
     this.activityService.deletePost(post.id).subscribe({

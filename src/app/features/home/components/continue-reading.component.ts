@@ -32,12 +32,17 @@ interface ContinueReadingBook {
           (mouseleave)="hoveredBook = null"
           [class.mock-hover]="hoveredBook === book.id"
         >
-          <img
-            class="continue-cover"
-            [src]="book.coverUrl"
-            [alt]="book.title + ' Cover'"
-            loading="lazy"
-          />
+          @if (book.coverUrl) {
+            <img
+              class="continue-cover"
+              [src]="book.coverUrl"
+              [alt]="book.title + ' Cover'"
+              loading="lazy"
+              (error)="book.coverUrl = null"
+            />
+          } @else {
+            <div class="continue-cover continue-cover--placeholder"></div>
+          }
 
           <div class="continue-details">
             <div class="continue-text">
@@ -146,6 +151,10 @@ interface ContinueReadingBook {
       object-fit: cover;
       box-shadow: 0 8px 16px rgba(51, 38, 29, 0.12);
       flex-shrink: 0;
+
+      &--placeholder {
+        background: rgba(126, 107, 93, 0.12);
+      }
     }
 
     .continue-details {
