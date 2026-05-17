@@ -6,10 +6,11 @@ import { FriendsModule } from './friends/friends.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { StatsModule } from './stats/stats.module';
+import { CommunityModule } from './community/community.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
-  imports: [SupabaseModule, AuthModule, BooksModule, FriendsModule, NotificationsModule, RecommendationsModule, StatsModule],
+  imports: [SupabaseModule, AuthModule, BooksModule, FriendsModule, NotificationsModule, RecommendationsModule, StatsModule, CommunityModule],
   controllers: [HealthController],
 })
 export class AppModule {}

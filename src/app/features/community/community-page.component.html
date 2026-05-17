@@ -1,0 +1,310 @@
+<div class="community-viewport">
+  <app-top-nav />
+
+  <div class="community-header">
+    <a class="back-btn" routerLink="/home" aria-label="Go back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="community-title">Community</h1>
+      <p class="community-subtitle">Discover what readers are saying</p>
+    </div>
+  </div>
+
+  <div class="community-layout">
+
+    <!-- ── Left Sidebar ─────────────────────────────────────────── -->
+    <aside class="community-sidebar">
+
+      <!-- Tag search -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <iconify-icon icon="lucide:search" style="font-size:15px"></iconify-icon>
+          Search Tags
+        </h3>
+        <div class="tag-search-bar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-search-icon">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            class="tag-search-input"
+            placeholder="#fantasy, #mystery…"
+            [(ngModel)]="tagSearchQuery"
+            (input)="onTagSearchInput()"
+          />
+        </div>
+      </div>
+
+      <!-- Trending tags -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <iconify-icon icon="lucide:trending-up" style="font-size:15px"></iconify-icon>
+          Trending Tags
+        </h3>
+        @if (trendingTags.length === 0) {
+          <p class="sidebar-empty">No trending tags this week.</p>
+        } @else {
+          <div class="tag-list">
+            @for (t of trendingTags; track t.tag) {
+              <button
+                class="tag-row-btn"
+                [class.tag-row-btn--active]="activeTag === t.tag"
+                (click)="filterByTag(t.tag)"
+              >
+                <span class="tag-row-name">#{{ t.tag }}</span>
+                <span class="tag-row-count">{{ t.count }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+    </aside>
+
+    <!-- ── Main Feed ─────────────────────────────────────────────── -->
+    <main class="community-main">
+
+      <!-- Compose card -->
+      @if (currentUserId) {
+        <div class="compose-card" [class.compose-card--expanded]="composeOpen">
+          @if (!composeOpen) {
+            <button class="compose-trigger" (click)="openCompose()">
+              <div class="compose-avatar">
+                @if (currentUserAvatar) {
+                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+                } @else {
+                  <span>{{ currentUserInitial }}</span>
+                }
+              </div>
+              <span class="compose-placeholder">Share your thoughts on a book…</span>
+            </button>
+          } @else {
+            <div class="compose-form">
+              <textarea
+                class="compose-textarea"
+                [(ngModel)]="postContent"
+                placeholder="What did you think? Any quotes? Recommend it?"
+                rows="3"
+                autofocus
+              ></textarea>
+
+              <!-- Tags input -->
+              <div class="tags-input-row">
+                <iconify-icon icon="lucide:hash" style="font-size:14px;color:var(--muted-foreground);flex-shrink:0"></iconify-icon>
+                <input
+                  class="tags-input"
+                  type="text"
+                  placeholder="Add tags: horror fantasy mystery  (max 5)"
+                  [(ngModel)]="tagsInput"
+                />
+              </div>
+
+              <!-- Book picker -->
+              <div class="book-picker">
+                @if (selectedBook) {
+                  <div class="selected-book">
+                    @if (selectedBook.coverUrl) {
+                      <img [src]="selectedBook.coverUrl" [alt]="selectedBook.title" class="selected-book-cover" loading="lazy" />
+                    }
+                    <div class="selected-book-info">
+                      <span class="selected-book-title">{{ selectedBook.title }}</span>
+                      <span class="selected-book-author">{{ selectedBook.author }}</span>
+                    </div>
+                    <button class="clear-btn" (click)="clearBook()" aria-label="Remove book">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                } @else {
+                  <div class="book-search-bar" [class.book-search-bar--focused]="bookResults.length > 0">
+                    <svg class="book-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <input
+                      class="book-search-input"
+                      type="text"
+                      placeholder="Tag a book (required)…"
+                      [(ngModel)]="bookQuery"
+                      (ngModelChange)="onBookQueryChange()"
+                    />
+                  </div>
+                  @if (bookResults.length > 0) {
+                    <ul class="book-results">
+                      @for (b of bookResults; track b.googleId) {
+                        <li class="book-result-item" (click)="selectBook(b)">
+                          @if (b.coverUrl) {
+                            <img [src]="b.coverUrl" [alt]="b.title" class="book-result-cover" loading="lazy" />
+                          }
+                          <div>
+                            <p class="book-result-title">{{ b.title }}</p>
+                            <p class="book-result-author">{{ b.author }}</p>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  }
+                }
+              </div>
+
+              @if (submitError) {
+                <p class="submit-error">{{ submitError }}</p>
+              }
+
+              <div class="compose-actions">
+                <p class="compose-hint">
+                  <iconify-icon icon="lucide:shield-check" style="font-size:13px"></iconify-icon>
+                  AI-moderated for community safety
+                </p>
+                <div class="compose-btns">
+                  <button class="btn-cancel" (click)="closeCompose()">Cancel</button>
+                  <button class="btn-post" [disabled]="!canPost || submitting" (click)="submitPost()">
+                    @if (submitting) {
+                      <span class="spinner-sm"></span> Posting…
+                    } @else {
+                      Post
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Feed header: tabs + active tag chip -->
+      <div class="feed-header">
+        <div class="feed-tabs">
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'all'" (click)="switchTab('all')">All Posts</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">
+            <iconify-icon icon="lucide:flame" style="font-size:13px"></iconify-icon>
+            Trending
+          </button>
+        </div>
+
+        @if (activeTag) {
+          <div class="active-tag-chip">
+            <iconify-icon icon="lucide:hash" style="font-size:12px"></iconify-icon>
+            {{ activeTag }}
+            <button class="chip-clear" (click)="clearTagFilter()" aria-label="Clear filter">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Posts list -->
+      @if (loading) {
+        <div class="feed-state">
+          <div class="spinner"></div>
+        </div>
+      } @else if (posts.length === 0) {
+        <div class="feed-state">
+          <iconify-icon icon="lucide:message-square" style="font-size:42px;opacity:0.25"></iconify-icon>
+          <p>{{ activeTag ? 'No posts tagged #' + activeTag + '.' : 'No posts yet — be the first to share!' }}</p>
+        </div>
+      } @else {
+        <div class="posts-list">
+          @for (post of posts; track post.id) {
+            <article class="post-card">
+
+              <!-- Post header -->
+              <div class="post-header">
+                <a class="post-author-link" [routerLink]="['/profile', post.userId]">
+                  <div class="post-avatar">
+                    @if (post.userAvatar) {
+                      <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
+                    } @else {
+                      <span>{{ post.userName[0].toUpperCase() }}</span>
+                    }
+                  </div>
+                  <div class="post-meta">
+                    <span class="post-author">{{ post.userName }}</span>
+                    <time class="post-time">{{ timeAgo(post.createdAt) }}</time>
+                  </div>
+                </a>
+                <div class="post-header-right">
+                  @if (post.sentiment) {
+                    <span class="sentiment-badge sentiment-badge--{{ post.sentiment }}">
+                      {{ sentimentEmoji(post.sentiment) }} {{ post.sentiment }}
+                    </span>
+                  }
+                  @if (post.userId === currentUserId) {
+                    <button class="post-delete" (click)="deletePost(post)" aria-label="Delete post">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                      </svg>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Content -->
+              <p class="post-content">{{ post.content }}</p>
+
+              <!-- Tag pills -->
+              @if (post.tags && post.tags.length > 0) {
+                <div class="post-tags">
+                  @for (tag of post.tags; track tag) {
+                    <button class="tag-pill" (click)="filterByTag(tag)">#{{ tag }}</button>
+                  }
+                </div>
+              }
+
+              <!-- Book chip -->
+              @if (post.bookTitle) {
+                <a class="post-book" [routerLink]="['/books/search']" [queryParams]="{ q: post.bookTitle }">
+                  @if (post.bookCover) {
+                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" (error)="post.bookCover = ''" loading="lazy" />
+                  }
+                  <span class="post-book-title">{{ post.bookTitle }}</span>
+                </a>
+              }
+
+              <!-- Actions -->
+              <div class="post-footer">
+                <button class="action-btn" [class.action-btn--liked]="post.isLikedByMe" (click)="onToggleLike(post)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  {{ post.likeCount }}
+                </button>
+                <button class="action-btn" [class.action-btn--active]="openCommentPostIds.has(post.id)" (click)="toggleComments(post.id)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  {{ post.commentCount }}
+                </button>
+              </div>
+
+              @if (openCommentPostIds.has(post.id) && currentUserId) {
+                <app-post-comments
+                  [postId]="post.id"
+                  [currentUserId]="currentUserId"
+                  [currentUserAvatar]="currentUserAvatar"
+                  [currentUserName]="currentUserName ?? 'Reader'"
+                />
+              }
+
+            </article>
+          }
+        </div>
+
+        @if (activeTab === 'all' && hasMore) {
+          <div class="load-more-wrap">
+            <button class="load-more-btn" [disabled]="loadingMore" (click)="loadMore()">
+              @if (loadingMore) { <span class="spinner-sm"></span> }
+              {{ loadingMore ? 'Loading…' : 'Load more' }}
+            </button>
+          </div>
+        }
+      }
+
+    </main>
+  </div>
+</div>

@@ -61,7 +61,7 @@ export class StatsService {
       .getAdmin()
       .from('user_books')
       .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id)')
-      .gte('added_at', since);
+      .gte('updated_at', since);
 
     if (error) throw new InternalServerErrorException(error.message);
 
