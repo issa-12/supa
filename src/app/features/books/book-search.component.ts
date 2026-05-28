@@ -7,14 +7,15 @@ import { BookService, GoogleBook } from '../../core/services/book.service';
 
 interface ShelfStatus {
   id: number;
+  name: string;
   label: string;
   icon: string;
 }
 
-const SHELF_STATUSES: ShelfStatus[] = [
-  { id: 2, label: 'Want to Read', icon: '📚' },
-  { id: 3, label: 'Currently Reading', icon: '📖' },
-  { id: 1, label: 'Already Read', icon: '✓' },
+const SHELF_STATUS_DEFS: Array<{ name: string; label: string; icon: string }> = [
+  { name: 'want_to_read', label: 'Want to Read', icon: '📚' },
+  { name: 'currently_reading', label: 'Currently Reading', icon: '📖' },
+  { name: 'read', label: 'Already Read', icon: '✓' },
 ];
 
 @Component({
@@ -30,7 +31,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  readonly statuses = SHELF_STATUSES;
+  statuses: ShelfStatus[] = [];
 
   query = '';
   results: GoogleBook[] = [];
@@ -53,12 +54,27 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     return this.results.length < this.totalItems;
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.loadStatuses();
     const q = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
     if (q.length >= 2) {
       this.query = q;
       void this.runSearch();
     }
+  }
+
+  private async loadStatuses(): Promise<void> {
+    const supabase = await this.supabaseService.getClient();
+    const { data } = await supabase
+      .from('reading_statuses')
+      .select('status_id, status_name');
+    const byName = new Map<string, number>(
+      (data ?? []).map((r) => [r['status_name'] as string, r['status_id'] as number]),
+    );
+    this.statuses = SHELF_STATUS_DEFS.flatMap((def) => {
+      const id = byName.get(def.name);
+      return id ? [{ id, name: def.name, label: def.label, icon: def.icon }] : [];
+    });
   }
 
   onQueryChange(): void {

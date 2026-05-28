@@ -20,7 +20,7 @@ export const genreOnboardingGuard: CanActivateFn = async () => {
 
     if (genres && genres.length > 0) return true;
   } catch {
-    return true;
+    return router.createUrlTree(['/']);
   }
 
   return router.createUrlTree(['/onboarding/genres']);

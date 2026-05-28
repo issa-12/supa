@@ -6,6 +6,7 @@ import { LikesService } from '../../core/services/likes.service';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { PostCommentsComponent } from '../home/components/post-comments.component';
 import { TopNavComponent } from '../home/components/top-nav.component';
+import { timeAgo } from '../../core/util/time-ago';
 
 interface BookResult {
   googleId: string;
@@ -99,7 +100,10 @@ export class CommunityPageComponent implements OnInit {
             );
 
       this.posts = append ? [...this.posts, ...newPosts] : newPosts;
-      this.hasMore = newPosts.length === 20 && this.activeTab !== 'trending';
+      // Only assume "more" if the last fetch returned a full page AND
+      // we got at least one new row. Stops Load-more from looping
+      // forever on a page boundary that returns exactly 0 rows.
+      this.hasMore = newPosts.length >= 20 && this.activeTab !== 'trending';
       this.page++;
     } catch { /* silently ignore */ }
     finally {
@@ -257,14 +261,5 @@ export class CommunityPageComponent implements OnInit {
     return ({ positive: '😊', negative: '😞', neutral: '😐', mixed: '🤔' } as Record<string, string>)[s ?? ''] ?? '';
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    if (diff < 0) return 'just now';
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 }

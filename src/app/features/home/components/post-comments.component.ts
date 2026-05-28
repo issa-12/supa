@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CommentService, Comment } from '../../../core/services/comment.service';
 import { LikesService } from '../../../core/services/likes.service';
+import { timeAgo } from '../../../core/util/time-ago';
 
 @Component({
   selector: 'app-post-comments',
@@ -144,7 +145,7 @@ import { LikesService } from '../../../core/services/likes.service';
     :host { display: block; }
 
     .comments-section {
-      border-top: 1px solid rgba(126, 107, 93, 0.1);
+      border-top: 1px solid var(--border);
       padding-top: 12px;
       display: flex;
       flex-direction: column;
@@ -160,7 +161,7 @@ import { LikesService } from '../../../core/services/likes.service';
     .spinner-sm {
       width: 20px;
       height: 20px;
-      border: 2px solid rgba(233, 120, 63, 0.2);
+      border: 2px solid rgba(217, 119, 87, 0.2);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -181,7 +182,7 @@ import { LikesService } from '../../../core/services/likes.service';
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -195,7 +196,7 @@ import { LikesService } from '../../../core/services/likes.service';
     .comment-body { flex: 1; min-width: 0; }
 
     .comment-bubble {
-      background: rgba(126, 107, 93, 0.06);
+      background: var(--border);
       border-radius: 10px;
       padding: 8px 12px;
       display: inline-block;
@@ -271,10 +272,10 @@ import { LikesService } from '../../../core/services/likes.service';
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(126, 107, 93, 0.06);
+      background: var(--border);
       border-radius: 999px;
       padding: 6px 10px 6px 14px;
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      border: 1px solid var(--border);
 
       &:focus-within { border-color: var(--primary); }
     }
@@ -313,7 +314,7 @@ import { LikesService } from '../../../core/services/likes.service';
       padding: 2px 4px;
       border-radius: 4px;
 
-      &:hover { background: rgba(126, 107, 93, 0.1); }
+      &:hover { background: var(--border); }
     }
   `],
 })
@@ -422,13 +423,5 @@ export class PostCommentsComponent implements OnInit {
     });
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 }

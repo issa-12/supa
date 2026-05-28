@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { timeAgo } from '../../../core/util/time-ago';
 import { PostCommentsComponent } from './post-comments.component';
 
 interface BookSearchResult {
@@ -140,7 +141,7 @@ interface BookSearchResult {
                     @if (post.userAvatar) {
                       <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
                     } @else {
-                      <span>{{ (post.userName?.[0] ?? '?').toUpperCase() }}</span>
+                      <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
                     }
                   </div>
                   <div class="post-meta">
@@ -217,14 +218,12 @@ interface BookSearchResult {
     // ── Compose card ──────────────────────────────────────────
 
     .compose-card {
-      background: rgba(255, 250, 245, 0.8);
+      background: var(--surface);
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 4px 16px rgba(51, 38, 29, 0.05);
-      overflow: hidden;
-      transition: box-shadow 0.2s;
+      border: 1px solid transparent;
+       overflow: hidden;
 
-      &--expanded { box-shadow: 0 8px 32px rgba(51, 38, 29, 0.1); }
+      &--expanded {  }
     }
 
     .compose-trigger {
@@ -247,7 +246,7 @@ interface BookSearchResult {
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -273,8 +272,8 @@ interface BookSearchResult {
       width: 100%;
       padding: 12px;
       border-radius: 10px;
-      border: 1px solid rgba(126, 107, 93, 0.2);
-      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--border);
+      background: transparent;
       font-size: 14px;
       color: var(--foreground);
       resize: vertical;
@@ -282,7 +281,7 @@ interface BookSearchResult {
       font-family: inherit;
       box-sizing: border-box;
 
-      &:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(233, 120, 63, 0.1); }
+      &:focus { border-color: var(--primary);  }
       &::placeholder { color: var(--muted-foreground); }
     }
 
@@ -294,8 +293,8 @@ interface BookSearchResult {
       gap: 8px;
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid rgba(126, 107, 93, 0.2);
-      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--border);
+      background: transparent;
 
       &:focus-within { border-color: var(--primary); }
     }
@@ -316,8 +315,8 @@ interface BookSearchResult {
       list-style: none;
       margin: 0;
       padding: 4px 0;
-      background: rgba(255, 250, 245, 0.95);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
       max-height: 200px;
@@ -332,7 +331,7 @@ interface BookSearchResult {
       cursor: pointer;
       transition: background 0.15s;
 
-      &:hover { background: rgba(233, 120, 63, 0.06); }
+      &:hover { background: var(--primary-soft); }
     }
 
     .book-result-cover {
@@ -364,9 +363,9 @@ interface BookSearchResult {
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: rgba(233, 120, 63, 0.08);
+      background: var(--primary-soft);
       border-radius: 10px;
-      border: 1px solid rgba(233, 120, 63, 0.2);
+      border: 1px solid rgba(217, 119, 87, 0.2);
     }
 
     .selected-book-cover {
@@ -403,7 +402,7 @@ interface BookSearchResult {
       border-radius: 50%;
       display: flex;
 
-      &:hover { color: var(--foreground); background: rgba(126, 107, 93, 0.1); }
+      &:hover { color: var(--foreground); background: var(--border); }
     }
 
     .compose-actions {
@@ -415,21 +414,21 @@ interface BookSearchResult {
     .btn-cancel {
       padding: 8px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(126, 107, 93, 0.25);
+      border: 1px solid var(--border);
       background: transparent;
       font-size: 13px;
       font-weight: 600;
       color: var(--muted-foreground);
       cursor: pointer;
 
-      &:hover { background: rgba(126, 107, 93, 0.06); }
+      &:hover { background: var(--border); }
     }
 
     .btn-post {
       padding: 8px 20px;
       border-radius: 999px;
       border: none;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       font-size: 13px;
       font-weight: 700;
       color: #fff;
@@ -449,7 +448,7 @@ interface BookSearchResult {
     .feed-tab {
       padding: 6px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(126, 107, 93, 0.2);
+      border: 1px solid var(--border);
       background: transparent;
       font-size: 13px;
       font-weight: 600;
@@ -478,7 +477,7 @@ interface BookSearchResult {
     .spinner {
       width: 28px;
       height: 28px;
-      border: 3px solid rgba(233, 120, 63, 0.2);
+      border: 3px solid rgba(217, 119, 87, 0.2);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -489,11 +488,10 @@ interface BookSearchResult {
     .posts-list { display: flex; flex-direction: column; gap: 16px; }
 
     .post-card {
-      background: rgba(255, 250, 245, 0.7);
+      background: var(--surface);
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 4px 12px rgba(51, 38, 29, 0.04);
-      padding: 16px;
+      border: 1px solid transparent;
+       padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -520,7 +518,7 @@ interface BookSearchResult {
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -573,8 +571,8 @@ interface BookSearchResult {
     .tag-pill {
       padding: 2px 9px;
       border-radius: 999px;
-      border: 1px solid rgba(233, 120, 63, 0.22);
-      background: rgba(233, 120, 63, 0.07);
+      border: 1px solid rgba(217, 119, 87, 0.22);
+      background: var(--primary-soft);
       font-size: 12px;
       font-weight: 600;
       color: var(--primary);
@@ -585,13 +583,13 @@ interface BookSearchResult {
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: rgba(126, 107, 93, 0.06);
+      background: var(--border);
       border-radius: 10px;
-      border: 1px solid rgba(126, 107, 93, 0.12);
+      border: 1px solid var(--border);
       text-decoration: none;
       transition: background 0.15s;
 
-      &:hover { background: rgba(233, 120, 63, 0.08); border-color: rgba(233, 120, 63, 0.2); }
+      &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); }
     }
 
     .post-book-cover {
@@ -628,7 +626,7 @@ interface BookSearchResult {
       transition: all 0.15s;
 
       svg { flex-shrink: 0; }
-      &:hover { background: rgba(126, 107, 93, 0.08); color: var(--foreground); }
+      &:hover { background: var(--border); color: var(--foreground); }
       &--liked { color: #e74c3c; }
       &--active { color: var(--primary); }
     }
@@ -681,11 +679,15 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     }
   }
 
+  private trendingFetchedAt = 0;
+  private readonly TRENDING_TTL_MS = 60_000;
+
   switchTab(tab: 'friends' | 'trending'): void {
     if (this.activeTab === tab) return;
     this.activeTab = tab;
-    if (tab === 'trending' && this.trendingPosts.length === 0) {
-      this.loadTrending();
+    if (tab === 'trending') {
+      const stale = Date.now() - this.trendingFetchedAt > this.TRENDING_TTL_MS;
+      if (this.trendingPosts.length === 0 || stale) this.loadTrending();
     }
   }
 
@@ -700,7 +702,11 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   private loadTrending(): void {
     this.loading = true;
     this.activityService.getTrendingPosts(this.currentUserId!, 20).subscribe({
-      next: (posts) => { this.trendingPosts = posts; this.loading = false; },
+      next: (posts) => {
+        this.trendingPosts = posts;
+        this.trendingFetchedAt = Date.now();
+        this.loading = false;
+      },
       error: () => { this.trendingPosts = []; this.loading = false; },
     });
   }
@@ -820,14 +826,5 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     });
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    if (diff < 0) return 'just now';
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 }

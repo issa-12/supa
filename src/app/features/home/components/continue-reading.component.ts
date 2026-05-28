@@ -119,7 +119,7 @@ interface ContinueReadingBook {
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(126, 107, 93, 0.2);
+        background: var(--border);
         border-radius: 3px;
 
         &:hover {
@@ -141,7 +141,7 @@ interface ContinueReadingBook {
     }
 
     .continue-item.mock-hover {
-      background: rgba(255, 250, 245, 0.4);
+      background: var(--surface);
     }
 
     .continue-cover {
@@ -149,11 +149,10 @@ interface ContinueReadingBook {
       height: 132px;
       border-radius: 4px 6px 6px 4px;
       object-fit: cover;
-      box-shadow: 0 8px 16px rgba(51, 38, 29, 0.12);
-      flex-shrink: 0;
+       flex-shrink: 0;
 
       &--placeholder {
-        background: rgba(126, 107, 93, 0.12);
+        background: var(--border);
       }
     }
 
@@ -199,14 +198,14 @@ interface ContinueReadingBook {
     .progress-bar-bg {
       width: 100%;
       height: 6px;
-      background: rgba(126, 107, 93, 0.15);
+      background: var(--border);
       border-radius: 999px;
       overflow: hidden;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      background: var(--primary);
       border-radius: 999px;
       transition: width 0.3s ease;
     }
@@ -220,8 +219,7 @@ interface ContinueReadingBook {
     .continue-hover-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(255, 250, 245, 0.85);
-      backdrop-filter: blur(4px);
+      background: var(--surface);
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -233,8 +231,7 @@ interface ContinueReadingBook {
 
     .continue-item.mock-hover .continue-hover-overlay {
       opacity: 1;
-      box-shadow: 0 12px 24px rgba(51, 38, 29, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+       border: 1px solid transparent;
     }
 
     .btn {
@@ -254,14 +251,11 @@ interface ContinueReadingBook {
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       color: var(--primary-foreground);
-      box-shadow: 0 12px 24px rgba(233, 120, 63, 0.22);
-
-      &:hover {
+       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 16px 32px rgba(233, 120, 63, 0.3);
-      }
+         }
 
       &:active {
         transform: translateY(0);

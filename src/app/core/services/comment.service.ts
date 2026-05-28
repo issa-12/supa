@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
+import { NotificationsService } from './notifications.service';
 
 export interface Comment {
   id: number;
@@ -21,6 +22,7 @@ export interface Comment {
 @Injectable({ providedIn: 'root' })
 export class CommentService {
   private readonly supabaseService = inject(SupabaseService);
+  private readonly notificationsService = inject(NotificationsService);
 
   getComments(postId: number, currentUserId: string): Observable<Comment[]> {
     return from(this.loadComments(postId, currentUserId)).pipe(
@@ -102,6 +104,11 @@ export class CommentService {
     parentCommentId: number | null = null,
     depth = 0,
   ): Observable<Comment> {
+    // The DB has a CHECK (depth >= 0 AND depth <= 3); validate up front
+    // so we return a user-friendly error instead of a Postgres 500.
+    if (depth < 0 || depth > 3) {
+      return from(Promise.reject(new Error('Maximum reply depth reached.')));
+    }
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
         const { data, error } = await supabase
@@ -112,6 +119,10 @@ export class CommentService {
 
         if (error) throw error;
         if (!data) throw new Error('Failed to create comment');
+
+        // Fire notification to post owner (top-level comment) or to the
+        // parent commenter (reply). Fire-and-forget; never blocks UI.
+        void this.fireCommentNotification(supabase, postId, userId, parentCommentId);
 
         const { data: author } = await supabase
           .from('users').select('id, name, profile_picture_url').eq('id', userId).single();
@@ -132,6 +143,37 @@ export class CommentService {
         } as Comment;
       }),
     ).pipe(catchError((err) => throwError(() => err)));
+  }
+
+  private async fireCommentNotification(
+    supabase: Awaited<ReturnType<SupabaseService['getClient']>>,
+    postId: number,
+    actorId: string,
+    parentCommentId: number | null,
+  ): Promise<void> {
+    try {
+      if (parentCommentId) {
+        const { data: parent } = await supabase
+          .from('comments').select('user_id').eq('comment_id', parentCommentId).maybeSingle();
+        const recipient = parent?.['user_id'] as string | undefined;
+        if (recipient) {
+          await this.notificationsService.fireNotification(
+            recipient, actorId, 'comment_replied', parentCommentId, 'comment',
+          );
+        }
+        return;
+      }
+      const { data: post } = await supabase
+        .from('posts').select('user_id').eq('post_id', postId).maybeSingle();
+      const recipient = post?.['user_id'] as string | undefined;
+      if (recipient) {
+        await this.notificationsService.fireNotification(
+          recipient, actorId, 'post_commented', postId, 'post',
+        );
+      }
+    } catch {
+      // never block comment creation
+    }
   }
 
   deleteComment(commentId: number): Observable<void> {

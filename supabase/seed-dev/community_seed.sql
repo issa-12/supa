@@ -1,9 +1,28 @@
 -- =============================================================
--- ReadTrack -- Community Seed Data
+-- ReadTrack -- DEV-ONLY Community Seed Data
 -- 5 test users + 10 books + 15 posts + likes + shelves
--- Run once in Supabase Dashboard -> SQL Editor
--- Safe to re-run (all inserts use ON CONFLICT DO NOTHING)
+--
+-- WARNING: Creates 5 auth users with the well-known password
+--   "ReadTrack2026!" baked in. DO NOT run on production.
+--
+-- Lives in supabase/seed-dev/ (NOT supabase/migrations/) so the
+-- Supabase CLI migration runner will not auto-apply it.
+-- Run manually in the Supabase Dashboard SQL Editor for local dev.
+--
+-- Safe to re-run (all inserts use ON CONFLICT DO NOTHING).
 -- =============================================================
+
+-- Safety guard: refuses to run unless the session explicitly opts in.
+-- Before executing this script, run in the same session:
+--   SET LOCAL app.seed_dev = 'allow';
+DO $$
+BEGIN
+  IF coalesce(current_setting('app.seed_dev', true), '') <> 'allow' THEN
+    RAISE EXCEPTION
+      'Refusing to run dev seed. Run "SET LOCAL app.seed_dev = ''allow'';" first if this is dev.';
+  END IF;
+END;
+$$;
 
 -- ── 1. Test auth users ────────────────────────────────────────
 

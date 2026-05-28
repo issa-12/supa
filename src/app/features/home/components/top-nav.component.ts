@@ -184,9 +184,8 @@ interface NavSearchBook {
       align-items: center;
       justify-content: space-between;
       padding: 16px 40px;
-      background: rgba(246, 239, 230, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(126, 107, 93, 0.12);
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
       position: relative;
       z-index: 50;
     }
@@ -207,13 +206,12 @@ interface NavSearchBook {
       width: 44px;
       height: 44px;
       border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      background: var(--primary);
       color: var(--primary-foreground);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 20px rgba(233, 120, 63, 0.2);
-    }
+       }
 
     .brand-text {
       font-size: 28px;
@@ -233,17 +231,15 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: rgba(255, 250, 245, 0.7);
-      border: 1px solid rgba(126, 107, 93, 0.2);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 999px;
       padding: 10px 20px;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-      transition: border-color 0.2s, box-shadow 0.2s;
+       transition: border-color 0.2s;
 
       &.focused, &:focus-within {
-        border-color: rgba(233, 120, 63, 0.4);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02), 0 0 0 3px rgba(233, 120, 63, 0.08);
-      }
+        border-color: rgba(217, 119, 87, 0.4);
+         }
     }
 
     .search-icon {
@@ -270,7 +266,7 @@ interface NavSearchBook {
     .nav-spinner {
       width: 14px;
       height: 14px;
-      border: 2px solid rgba(233, 120, 63, 0.2);
+      border: 2px solid rgba(217, 119, 87, 0.2);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -294,11 +290,9 @@ interface NavSearchBook {
       top: calc(100% + 8px);
       left: 0;
       right: 0;
-      background: rgba(255, 250, 245, 0.98);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 20px 48px rgba(51, 38, 29, 0.16);
-      backdrop-filter: blur(16px);
       z-index: 300;
       overflow: hidden;
     }
@@ -313,7 +307,7 @@ interface NavSearchBook {
 
     .search-section {
       padding: 8px 0;
-      & + & { border-top: 1px solid rgba(126, 107, 93, 0.08); }
+      & + & { border-top: 1px solid var(--border); }
     }
 
     .search-section-label {
@@ -338,7 +332,7 @@ interface NavSearchBook {
       text-align: left;
       transition: background 0.12s;
 
-      &:hover { background: rgba(233, 120, 63, 0.07); }
+      &:hover { background: var(--primary-soft); }
     }
 
     .item-avatar {
@@ -363,7 +357,7 @@ interface NavSearchBook {
       flex-shrink: 0;
 
       &--empty {
-        background: rgba(126, 107, 93, 0.1);
+        background: var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -405,10 +399,10 @@ interface NavSearchBook {
       font-weight: 700;
       color: var(--primary);
       text-decoration: none;
-      border-top: 1px solid rgba(126, 107, 93, 0.08);
+      border-top: 1px solid var(--border);
       transition: background 0.12s;
 
-      &:hover { background: rgba(233, 120, 63, 0.05); }
+      &:hover { background: var(--primary-soft); }
     }
 
     .nav-actions {
@@ -425,13 +419,13 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 250, 245, 0.6);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       color: var(--foreground);
       cursor: pointer;
       transition: all 0.2s ease;
 
-      &:hover { background: rgba(255, 250, 245, 0.8); }
+      &:hover { background: var(--surface); }
       &:active { transform: scale(0.95); }
     }
 
@@ -448,7 +442,7 @@ interface NavSearchBook {
       padding: 0 4px;
       background: var(--destructive);
       border-radius: 999px;
-      border: 2px solid rgba(246, 239, 230, 0.95);
+      border: 2px solid var(--background);
       font-size: 10px;
       font-weight: 700;
       color: #fff;
@@ -467,13 +461,12 @@ interface NavSearchBook {
       height: 44px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid rgba(255, 250, 245, 0.9);
-      box-shadow: 0 4px 12px rgba(51, 38, 29, 0.1);
-      cursor: pointer;
+      border: 2px solid var(--surface);
+       cursor: pointer;
       transition: all 0.2s ease;
       display: block;
 
-      &:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(51, 38, 29, 0.15); }
+      &:hover { transform: scale(1.05);  }
     }
 
     .user-menu {
@@ -481,11 +474,9 @@ interface NavSearchBook {
       top: calc(100% + 10px);
       right: 0;
       min-width: 180px;
-      background: rgba(255, 250, 245, 0.98);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      box-shadow: 0 16px 40px rgba(51, 38, 29, 0.14);
-      backdrop-filter: blur(12px);
       z-index: 200;
       overflow: hidden;
       padding: 4px 0;
@@ -506,13 +497,13 @@ interface NavSearchBook {
       cursor: pointer;
       transition: background 0.15s;
 
-      &:hover { background: rgba(126, 107, 93, 0.07); }
+      &:hover { background: var(--border); }
       &--danger { color: #dc2626; &:hover { background: rgba(220, 38, 38, 0.07); } }
     }
 
     .user-menu-divider {
       height: 1px;
-      background: rgba(126, 107, 93, 0.1);
+      background: var(--border);
       margin: 4px 0;
     }
 

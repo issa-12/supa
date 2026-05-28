@@ -6,6 +6,7 @@ import {
   NOTIFICATION_LABELS,
 } from '../../../core/services/notifications.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { timeAgo } from '../../../core/util/time-ago';
 
 @Component({
   selector: 'app-notifications-panel',
@@ -39,7 +40,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
                 @if (n.actorAvatarUrl) {
                   <img [src]="n.actorAvatarUrl" [alt]="n.actorName" />
                 } @else {
-                  <span>{{ n.actorName[0].toUpperCase() }}</span>
+                  <span>{{ (n.actorName || '?').charAt(0).toUpperCase() }}</span>
                 }
               </div>
               <div class="notif-body">
@@ -70,12 +71,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       right: 0;
       width: 360px;
       max-height: 480px;
-      background: rgba(255, 250, 245, 0.97);
-      backdrop-filter: blur(16px);
+      background: var(--surface);
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 20px 60px rgba(51, 38, 29, 0.14);
-      overflow: hidden;
+      border: 1px solid transparent;
+       overflow: hidden;
       display: flex;
       flex-direction: column;
       z-index: 100;
@@ -86,7 +85,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       align-items: center;
       justify-content: space-between;
       padding: 20px 20px 14px;
-      border-bottom: 1px solid rgba(126, 107, 93, 0.1);
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
 
@@ -139,9 +138,9 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       transition: background 0.15s;
       position: relative;
 
-      &:hover { background: rgba(126, 107, 93, 0.06); }
+      &:hover { background: var(--border); }
 
-      &--unread { background: rgba(233, 120, 63, 0.05); }
+      &--unread { background: var(--primary-soft); }
     }
 
     .notif-avatar {
@@ -150,7 +149,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -238,13 +237,5 @@ export class NotificationsPanelComponent {
     this.notificationsService.markAllAsRead();
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 }

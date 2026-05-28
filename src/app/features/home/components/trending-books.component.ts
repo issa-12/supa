@@ -83,7 +83,7 @@ interface Book {
     .small-tag {
       padding: 4px 10px;
       border-radius: 4px;
-      background: rgba(126, 107, 93, 0.1);
+      background: var(--border);
       color: var(--secondary-foreground);
       font-size: 11px;
       font-weight: 700;
@@ -107,7 +107,7 @@ interface Book {
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(126, 107, 93, 0.2);
+        background: var(--border);
         border-radius: 3px;
 
         &:hover {
@@ -135,16 +135,13 @@ interface Book {
       height: 225px;
       border-radius: 6px 10px 10px 6px;
       object-fit: cover;
-      box-shadow: 0 10px 24px rgba(51, 38, 29, 0.12);
-      display: block;
-      transition: box-shadow 0.2s ease;
+       display: block;
 
       .book-card-clean:hover & {
-        box-shadow: 0 16px 32px rgba(51, 38, 29, 0.18);
-      }
+         }
 
       &.book-cover--empty {
-        background: rgba(126, 107, 93, 0.1);
+        background: var(--border);
       }
     }
 

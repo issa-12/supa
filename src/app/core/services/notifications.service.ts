@@ -19,7 +19,9 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   friend_accepted: 'accepted your friend request',
   book_recommended: 'recommended a book to you',
   post_liked: 'liked your post',
+  post_commented: 'commented on your post',
   comment_liked: 'liked your comment',
+  comment_replied: 'replied to your comment',
   review_liked: 'liked your review',
   friend_posted: 'shared a new post',
 };
@@ -85,8 +87,15 @@ export class NotificationsService {
     this.unreadCount$.next(0);
   }
 
+  private subscribedUserId: string | null = null;
+  private refetchTimer: ReturnType<typeof setTimeout> | null = null;
+
   async subscribeToRealtime(userId: string): Promise<void> {
+    if (this.subscribedUserId === userId && this.realtimeChannel) return;
+    this.unsubscribe();
+
     const supabase = await this.supabaseService.getClient();
+    this.subscribedUserId = userId;
     this.realtimeChannel = supabase
       .channel(`notifications:${userId}`)
       .on(
@@ -98,12 +107,21 @@ export class NotificationsService {
           filter: `user_id=eq.${userId}`,
         },
         () => {
+          // Optimistic bump so the badge updates instantly. Debounce the
+          // full refetch so a burst of inserts (e.g. multiple likes in a
+          // few hundred ms) collapses into a single round-trip.
           this.unreadCount$.next(this.unreadCount$.value + 1);
-          this.loadNotifications();
+          if (this.refetchTimer) clearTimeout(this.refetchTimer);
+          this.refetchTimer = setTimeout(() => {
+            this.refetchTimer = null;
+            void this.loadNotifications();
+          }, 500);
         },
       )
       .subscribe();
   }
+
+  private readonly typeIdCache = new Map<string, number>();
 
   async fireNotification(
     recipientId: string,
@@ -115,16 +133,21 @@ export class NotificationsService {
     if (recipientId === actorId) return;
     try {
       const supabase = await this.supabaseService.getClient();
-      const { data: typeRow } = await supabase
-        .from('notifications_type')
-        .select('notifications_typeid')
-        .eq('notifications_type', typeName)
-        .single();
-      if (!typeRow) return;
+      let typeId = this.typeIdCache.get(typeName);
+      if (typeId === undefined) {
+        const { data: typeRow } = await supabase
+          .from('notifications_type')
+          .select('notifications_typeid')
+          .eq('notifications_type', typeName)
+          .single();
+        if (!typeRow) return;
+        typeId = typeRow['notifications_typeid'] as number;
+        this.typeIdCache.set(typeName, typeId);
+      }
       await supabase.from('notifications').insert({
         user_id: recipientId,
         actor_user_id: actorId,
-        notifications_typeid: typeRow['notifications_typeid'],
+        notifications_typeid: typeId,
         reference_id: referenceId ?? null,
         reference_type: referenceType ?? null,
         read_status: false,
@@ -139,5 +162,8 @@ export class NotificationsService {
       this.realtimeChannel.unsubscribe();
       this.realtimeChannel = null;
     }
+    this.subscribedUserId = null;
+    this.unreadCount$.next(0);
+    this.notifications$.next([]);
   }
 }

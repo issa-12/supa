@@ -32,10 +32,9 @@ import { SupabaseService } from '../../core/services/supabase.service';
     }
 
     section {
-      background: rgb(255 250 245 / 90%);
+      background: var(--surface);
       border-radius: 20px;
-      box-shadow: 0 28px 60px rgb(46 36 29 / 18%);
-      max-width: 520px;
+       max-width: 520px;
       padding: 40px;
       width: 100%;
     }
@@ -84,7 +83,7 @@ export class AuthCallbackComponent implements OnInit {
       this.message = 'Your ReadTrack profile is ready.';
 
       window.setTimeout(() => {
-        void this.router.navigateByUrl('/');
+        void this.router.navigateByUrl('/home');
       }, 900);
     } catch (error) {
       this.title = 'Sign in needs attention';

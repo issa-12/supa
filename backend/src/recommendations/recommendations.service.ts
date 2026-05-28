@@ -232,7 +232,14 @@ Do NOT recommend: ${excludeTitles || 'none'}`;
     });
     if (this.googleBooksKey) params.set('key', this.googleBooksKey);
 
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    let res: Response;
+    try {
+      res = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`, { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
       return {
         dbBookId: null,

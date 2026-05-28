@@ -10,17 +10,13 @@
   position: relative;
   overflow: hidden;
   color: var(--foreground);
-  background: linear-gradient(180deg, rgba(246, 239, 230, 0.96) 0%, rgba(239, 228, 214, 0.98) 100%);
+  background: var(--background);
 
   &::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 250, 245, 0.88) 0%,
-      rgba(243, 238, 230, 0.92) 100%
-    );
+    background: var(--background);
     z-index: 0;
   }
 }
@@ -42,7 +38,7 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(126, 107, 93, 0.2);
+    background: var(--border);
     border-radius: 4px;
 
     &:hover {
@@ -86,21 +82,19 @@
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+  background: var(--primary);
   color: var(--primary-foreground);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16px 32px rgba(233, 120, 63, 0.35);
-  z-index: 100;
+   z-index: 100;
   border: none;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 20px 40px rgba(233, 120, 63, 0.45);
-  }
+     }
 
   &:active {
     transform: scale(0.95);

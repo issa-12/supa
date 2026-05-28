@@ -81,10 +81,25 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .getCurrentUserProfile()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (user) => {
-          this.currentUser = user;
-          this.currentUserId = user.id;
-          this.currentUserAvatar = user.avatarUrl;
+        next: (basicUser) => {
+          // getCurrentUserProfile only reads auth.users — fetch the full
+          // public.users row so avatar + bio + username are available
+          // for the top-nav and post composer.
+          this.userService
+            .getUserProfileById(basicUser.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (full) => {
+                this.currentUser = full;
+                this.currentUserAvatar = full.avatarUrl;
+              },
+              error: () => {
+                this.currentUser = basicUser;
+                this.currentUserAvatar = basicUser.avatarUrl;
+              },
+            });
+
+          this.currentUserId = basicUser.id;
           this.isLoading = false;
 
           this.loadContinueReadingBooks();
