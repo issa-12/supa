@@ -80,11 +80,9 @@ interface Book {
       justify-content: space-between;
       gap: 48px;
       padding: 56px 64px;
-      background: rgba(255, 250, 245, 0.65);
+      background: var(--surface);
       border-radius: 32px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 20px 40px rgba(51, 38, 29, 0.04);
-      backdrop-filter: blur(8px);
+      border: 1px solid transparent;
     }
 
     .hero-content {
@@ -108,7 +106,7 @@ interface Book {
       height: 32px;
       padding: 0 14px;
       border-radius: 999px;
-      background: rgba(233, 120, 63, 0.12);
+      background: var(--primary-soft);
       color: var(--primary);
       font-size: 13px;
       font-weight: 700;
@@ -170,14 +168,11 @@ interface Book {
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       color: var(--primary-foreground);
-      box-shadow: 0 12px 24px rgba(233, 120, 63, 0.22);
-
-      &:hover {
+       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 16px 32px rgba(233, 120, 63, 0.3);
-      }
+         }
 
       &:active {
         transform: translateY(0);
@@ -185,12 +180,12 @@ interface Book {
     }
 
     .btn-outline {
-      background: rgba(255, 250, 245, 0.7);
+      background: var(--surface);
       color: var(--foreground);
       border: 1px solid rgba(126, 107, 93, 0.3);
 
       &:hover {
-        background: rgba(255, 250, 245, 0.9);
+        background: var(--surface);
       }
 
       &:active {
@@ -208,12 +203,11 @@ interface Book {
       height: 360px;
       object-fit: cover;
       border-radius: 8px 12px 12px 8px;
-      box-shadow: 20px 24px 40px rgba(51, 38, 29, 0.2);
-      transform: perspective(1000px) rotateY(-10deg);
+       transform: perspective(1000px) rotateY(-10deg);
       display: block;
 
       &--placeholder {
-        background: rgba(126, 107, 93, 0.12);
+        background: var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -222,15 +216,7 @@ interface Book {
     }
 
     .hero-cover-shadow {
-      position: absolute;
-      bottom: 20px;
-      left: 10%;
-      width: 80%;
-      height: 16px;
-      border-radius: 50%;
-      background: rgba(51, 38, 29, 0.3);
-      filter: blur(14px);
-      z-index: -1;
+      display: none;
     }
 
     .eyebrow {

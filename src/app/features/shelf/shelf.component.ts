@@ -113,7 +113,9 @@ export class ShelfComponent implements OnInit {
     if (this.sortBy === 'rating') {
       return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
-    return sorted; // 'date' — already ordered by added_at DESC from DB
+    // 'date' — DB returns them sorted by added_at DESC, but resort
+    // defensively in case bucketing changes order.
+    return sorted.sort((a, b) => (b.addedAt ?? '').localeCompare(a.addedAt ?? ''));
   }
 
   toggleMenu(userBookId: number): void {

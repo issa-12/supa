@@ -55,10 +55,9 @@ import { RouterLink } from '@angular/router';
     .static-card {
       max-width: 720px;
       width: 100%;
-      background: rgba(255,250,245,0.9);
+      background: var(--surface);
       border-radius: 24px;
       padding: 48px;
-      box-shadow: 0 20px 40px rgba(51,38,29,0.06);
       height: fit-content;
     }
     .back-link {
@@ -93,7 +92,7 @@ import { RouterLink } from '@angular/router';
       color: var(--muted-foreground);
       margin: 0;
     }
-    section { border-top: 1px solid rgba(126,107,93,0.12); padding-top: 4px; }
+    section { border-top: 1px solid var(--border); padding-top: 4px; }
   `],
 })
 export class PrivacyPolicyComponent {}

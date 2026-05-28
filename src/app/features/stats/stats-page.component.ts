@@ -1,7 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Subject } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
 
@@ -41,9 +40,8 @@ interface MonthlyPace {
   templateUrl: './stats-page.component.html',
   styleUrl: './stats-page.component.scss',
 })
-export class StatsPageComponent implements OnInit, OnDestroy {
+export class StatsPageComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
-  private readonly destroy$ = new Subject<void>();
 
   period: 'week' | 'month' = 'week';
   isLoadingGlobal = true;
@@ -66,11 +64,6 @@ export class StatsPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void Promise.all([this.loadGlobalStats(), this.loadPace()]);
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   setPeriod(p: 'week' | 'month'): void {

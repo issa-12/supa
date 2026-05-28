@@ -18,22 +18,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Design tokens ────────────────────────────────────────────────────────── */
+/* ─── Design tokens — flat solid palette ───────────────────────────────────── */
 :root {
   /* Brand palette */
-  --primary:            #e9783f;   /* warm orange */
+  --primary:            #d97757;   /* dusty terracotta */
   --primary-foreground: #ffffff;
-  --accent:             #d4632a;   /* darker orange for hover */
-  --warning:            #f59e0b;   /* amber — star ratings */
-  --success:            #7aa66f;   /* green — online indicator */
-  --destructive:        #e05252;   /* red — errors, delete */
+  --primary-soft:       #f1d8cb;   /* solid tinted background for soft fills */
+  --accent:             #c1633f;   /* darker terracotta — hover */
+  --warning:            #c79a47;   /* muted amber — star ratings */
+  --success:            #6e9764;   /* muted green */
+  --destructive:        #c14a4a;   /* muted red */
 
   /* Neutrals */
-  --foreground:         #33261d;   /* almost-black brown */
-  --muted-foreground:   #7e6b5d;   /* medium brown */
-  --background:         #f4ede5;   /* warm off-white page */
-  --surface:            #fffaf5;   /* card / modal surface */
-  --border:             rgba(126, 107, 93, 0.18);
+  --foreground:         #33261d;
+  --muted-foreground:   #7e6b5d;
+  --background:         #f4ede5;
+  --surface:            #fffaf5;
+  --surface-alt:        #efe7dc;   /* solid alt surface (instead of translucent layer) */
+  --border:             #d9cdbf;   /* solid 1px border */
+  --border-strong:      #c2b3a1;
 
   /* Radius */
   --radius-sm:  6px;
@@ -57,9 +60,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(126, 107, 93, 0.25);
+  background: #c2b3a1;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(126, 107, 93, 0.4);
+  background: #a89886;
 }

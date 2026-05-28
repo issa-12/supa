@@ -28,6 +28,9 @@ export class CommunityController {
     const userId = await this.getUserId(req);
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
+    const parsedPage = Number.parseInt(page ?? '0', 10);
+    const safePage = Number.isFinite(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
+
     try {
       const posts =
         trending === 'true'
@@ -35,7 +38,7 @@ export class CommunityController {
           : await this.communityService.getAllPosts(
               userId,
               tag || undefined,
-              parseInt(page ?? '0', 10),
+              safePage,
             );
       return res.json(posts);
     } catch (err) {
@@ -60,16 +63,28 @@ export class CommunityController {
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
     const { bookId, content, tags } = body;
-    if (!bookId || !content?.trim()) {
+    const bookIdNum = Number(bookId);
+    const trimmedContent = typeof content === 'string' ? content.trim() : '';
+
+    if (!Number.isInteger(bookIdNum) || bookIdNum <= 0 || !trimmedContent) {
       return res.status(400).json({ message: 'bookId and content are required.' });
     }
+    if (trimmedContent.length > 2000) {
+      return res.status(400).json({ message: 'Post content cannot exceed 2000 characters.' });
+    }
+
+    const cleanTags = (Array.isArray(tags) ? tags : [])
+      .filter((t: unknown): t is string => typeof t === 'string')
+      .map((t: string) => t.replace(/^#/, '').toLowerCase().trim())
+      .filter((t: string) => /^[a-z0-9_-]{1,30}$/.test(t))
+      .slice(0, 5);
 
     try {
       const post = await this.communityService.createPost(
         userId,
-        Number(bookId),
-        content.trim(),
-        Array.isArray(tags) ? tags : [],
+        bookIdNum,
+        trimmedContent,
+        cleanTags,
       );
       return res.status(201).json(post);
     } catch (err: any) {

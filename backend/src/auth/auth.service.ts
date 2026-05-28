@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  NotFoundException,
   InternalServerErrorException,
   HttpException,
   HttpStatus,
@@ -38,23 +37,18 @@ export class AuthService {
   }
 
   async resendVerification(email: string): Promise<void> {
+    // Always returns void — never leaks whether the email is registered.
+    // If the email belongs to an already-verified account or doesn't
+    // exist at all, we silently no-op so an attacker cannot enumerate
+    // accounts by probing this endpoint.
     const admin = this.supabase.getAdmin();
 
     const existing = await this.findPublicUserByEmail(admin, email);
-    if (!existing?.id) {
-      throw new NotFoundException('No pending account was found for this email.');
-    }
+    if (!existing?.id) return;
 
     const { data: authUserData, error } = await admin.auth.admin.getUserById(existing.id);
-    if (error || !authUserData.user) {
-      throw error
-        ? new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-        : new NotFoundException('No pending account was found for this email.');
-    }
-
-    if (isAppEmailVerified(authUserData.user)) {
-      throw new ConflictException('This email is already verified. You can log in.');
-    }
+    if (error || !authUserData.user) return;
+    if (isAppEmailVerified(authUserData.user)) return;
 
     await this.issueVerificationCode(email);
   }

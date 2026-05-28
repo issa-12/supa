@@ -73,20 +73,13 @@ export class FriendsService {
     if (requesterId === toUserId) {
       throw new BadRequestException('Cannot send a friend request to yourself.');
     }
+    if (!isUuid(toUserId)) {
+      throw new BadRequestException('toUserId must be a valid UUID.');
+    }
 
     const admin = this.supabase.getAdmin();
-
-    const { data: existing } = await admin
-      .from('friendship')
-      .select('friendship_id')
-      .or(
-        `and(user_id1.eq.${requesterId},user_id2.eq.${toUserId}),and(user_id1.eq.${toUserId},user_id2.eq.${requesterId})`,
-      )
-      .maybeSingle();
-
-    if (existing) throw new ConflictException('A friendship or pending request already exists.');
-
     const pendingId = await this.getStatusId('pending');
+
     const { data, error } = await admin
       .from('friendship')
       .insert({
@@ -98,7 +91,17 @@ export class FriendsService {
       .select('friendship_id')
       .single();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) {
+      // 23505 = unique_violation (friendship_unique_pair index)
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException('A friendship or pending request already exists.');
+      }
+      // 23503 = foreign_key_violation (toUserId is not a real user)
+      if ((error as { code?: string }).code === '23503') {
+        throw new BadRequestException('Recipient user does not exist.');
+      }
+      throw new InternalServerErrorException(error.message);
+    }
     const newFriendshipId = data['friendship_id'] as number;
 
     // Notify the recipient about the friend request (fire-and-forget)
@@ -252,6 +255,9 @@ export class FriendsService {
   }
 
   async getFriendshipStatus(userId: string, otherUserId: string): Promise<FriendshipStatusResult> {
+    if (!isUuid(otherUserId)) {
+      return { status: 'none', friendshipId: null };
+    }
     const admin = this.supabase.getAdmin();
 
     const { data } = await admin
@@ -277,4 +283,9 @@ export class FriendsService {
 
     return { status, friendshipId };
   }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(value: string): boolean {
+  return typeof value === 'string' && UUID_RE.test(value);
 }

@@ -39,14 +39,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 250, 245, 0.7);
-  border: 1px solid rgba(126, 107, 93, 0.15);
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--foreground);
   text-decoration: none;
   flex-shrink: 0;
   transition: background 0.2s;
 
-  &:hover { background: rgba(255, 250, 245, 0.95); }
+  &:hover { background: var(--surface); }
 }
 
 .page-title {
@@ -168,7 +168,7 @@
     padding: 4px 6px;
     margin: -4px -6px;
 
-    &:hover { background: rgba(233, 120, 63, 0.07); }
+    &:hover { background: var(--primary-soft); }
   }
 }
 
@@ -185,11 +185,10 @@
   height: 56px;
   object-fit: cover;
   border-radius: 4px 6px 6px 4px;
-  box-shadow: 0 2px 8px rgba(51, 38, 29, 0.12);
-  flex-shrink: 0;
+   flex-shrink: 0;
 
   &--placeholder {
-    background: rgba(126, 107, 93, 0.12);
+    background: var(--border);
   }
 }
 
@@ -258,7 +257,7 @@
 
 .genre-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), #f59e0b);
+  background: var(--background);
   border-radius: var(--radius-full);
   transition: width 0.6s ease;
   min-width: 4px;
@@ -378,7 +377,7 @@
   transition: height 0.5s ease;
 
   &.active {
-    background: linear-gradient(180deg, var(--primary) 0%, #f59e0b 100%);
+    background: var(--background);
   }
 }
 
@@ -407,12 +406,7 @@
 
 .skeleton-row {
   height: 52px;
-  background: linear-gradient(
-    90deg,
-    var(--background) 25%,
-    rgba(126, 107, 93, 0.1) 50%,
-    var(--background) 75%
-  );
+  background: var(--background);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-md);
@@ -422,12 +416,7 @@
 
 .pace-skeleton {
   height: 160px;
-  background: linear-gradient(
-    90deg,
-    var(--background) 25%,
-    rgba(126, 107, 93, 0.1) 50%,
-    var(--background) 75%
-  );
+  background: var(--background);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-md);
