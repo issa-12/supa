@@ -8,8 +8,8 @@
       </svg>
     </a>
     <div>
-      <h1 class="community-title">Community</h1>
-      <p class="community-subtitle">Discover what readers are saying</p>
+      <h1 class="community-title">{{ copy.title }}</h1>
+      <p class="community-subtitle">{{ copy.subtitle }}</p>
     </div>
   </div>
 
@@ -22,7 +22,7 @@
       <div class="sidebar-card">
         <h3 class="sidebar-title">
           <iconify-icon icon="lucide:search" style="font-size:15px"></iconify-icon>
-          Search Tags
+          {{ copy.searchTagsTitle }}
         </h3>
         <div class="tag-search-bar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-search-icon">
@@ -31,7 +31,7 @@
           <input
             type="text"
             class="tag-search-input"
-            placeholder="#fantasy, #mystery…"
+            [placeholder]="copy.searchTagsPlaceholder"
             [(ngModel)]="tagSearchQuery"
             (input)="onTagSearchInput()"
           />
@@ -42,10 +42,10 @@
       <div class="sidebar-card">
         <h3 class="sidebar-title">
           <iconify-icon icon="lucide:trending-up" style="font-size:15px"></iconify-icon>
-          Trending Tags
+          {{ copy.trendingTagsTitle }}
         </h3>
         @if (trendingTags.length === 0) {
-          <p class="sidebar-empty">No trending tags this week.</p>
+          <p class="sidebar-empty">{{ copy.noTrendingTags }}</p>
         } @else {
           <div class="tag-list">
             @for (t of trendingTags; track t.tag) {
@@ -79,14 +79,14 @@
                   <span>{{ currentUserInitial }}</span>
                 }
               </div>
-              <span class="compose-placeholder">Share your thoughts on a book…</span>
+              <span class="compose-placeholder">{{ copy.composePlaceholder }}</span>
             </button>
           } @else {
             <div class="compose-form">
               <textarea
                 class="compose-textarea"
                 [(ngModel)]="postContent"
-                placeholder="What did you think? Any quotes? Recommend it?"
+                [placeholder]="copy.composeTextareaPlaceholder"
                 rows="3"
                 autofocus
               ></textarea>
@@ -97,7 +97,7 @@
                 <input
                   class="tags-input"
                   type="text"
-                  placeholder="Add tags: horror fantasy mystery  (max 5)"
+                  [placeholder]="copy.tagsInputPlaceholder"
                   [(ngModel)]="tagsInput"
                 />
               </div>
@@ -113,7 +113,7 @@
                       <span class="selected-book-title">{{ selectedBook.title }}</span>
                       <span class="selected-book-author">{{ selectedBook.author }}</span>
                     </div>
-                    <button class="clear-btn" (click)="clearBook()" aria-label="Remove book">
+                    <button class="clear-btn" (click)="clearBook()" [attr.aria-label]="copy.ariaRemoveBook">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
@@ -127,7 +127,7 @@
                     <input
                       class="book-search-input"
                       type="text"
-                      placeholder="Tag a book (required)…"
+                      [placeholder]="copy.bookPickerPlaceholder"
                       [(ngModel)]="bookQuery"
                       (ngModelChange)="onBookQueryChange()"
                     />
@@ -157,15 +157,15 @@
               <div class="compose-actions">
                 <p class="compose-hint">
                   <iconify-icon icon="lucide:shield-check" style="font-size:13px"></iconify-icon>
-                  AI-moderated for community safety
+                  {{ copy.aiModeration }}
                 </p>
                 <div class="compose-btns">
-                  <button class="btn-cancel" (click)="closeCompose()">Cancel</button>
+                  <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelButton }}</button>
                   <button class="btn-post" [disabled]="!canPost || submitting" (click)="submitPost()">
                     @if (submitting) {
-                      <span class="spinner-sm"></span> Posting…
+                      <span class="spinner-sm"></span> {{ copy.posting }}
                     } @else {
-                      Post
+                      {{ copy.postButton }}
                     }
                   </button>
                 </div>
@@ -178,10 +178,10 @@
       <!-- Feed header: tabs + active tag chip -->
       <div class="feed-header">
         <div class="feed-tabs">
-          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'all'" (click)="switchTab('all')">All Posts</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'all'" (click)="switchTab('all')">{{ copy.tabAllPosts }}</button>
           <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">
             <iconify-icon icon="lucide:flame" style="font-size:13px"></iconify-icon>
-            Trending
+            {{ copy.tabTrending }}
           </button>
         </div>
 
@@ -189,7 +189,7 @@
           <div class="active-tag-chip">
             <iconify-icon icon="lucide:hash" style="font-size:12px"></iconify-icon>
             {{ activeTag }}
-            <button class="chip-clear" (click)="clearTagFilter()" aria-label="Clear filter">
+            <button class="chip-clear" (click)="clearTagFilter()" [attr.aria-label]="copy.ariaFilterClear">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
@@ -206,7 +206,7 @@
       } @else if (posts.length === 0) {
         <div class="feed-state">
           <iconify-icon icon="lucide:message-square" style="font-size:42px;opacity:0.25"></iconify-icon>
-          <p>{{ activeTag ? 'No posts tagged #' + activeTag + '.' : 'No posts yet — be the first to share!' }}</p>
+          <p>{{ activeTag ? copy.emptyWithTag.replace('{{ tag }}', activeTag) : copy.emptyNoTag }}</p>
         </div>
       } @else {
         <div class="posts-list">
@@ -235,7 +235,7 @@
                     </span>
                   }
                   @if (post.userId === currentUserId) {
-                    <button class="post-delete" (click)="deletePost(post)" aria-label="Delete post">
+                    <button class="post-delete" (click)="deletePost(post)" [attr.aria-label]="copy.ariaDeletePost">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                       </svg>
@@ -299,7 +299,7 @@
           <div class="load-more-wrap">
             <button class="load-more-btn" [disabled]="loadingMore" (click)="loadMore()">
               @if (loadingMore) { <span class="spinner-sm"></span> }
-              {{ loadingMore ? 'Loading…' : 'Load more' }}
+              {{ loadingMore ? copy.loading : copy.loadMore }}
             </button>
           </div>
         }

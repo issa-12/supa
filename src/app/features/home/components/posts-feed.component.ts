@@ -5,6 +5,8 @@ import { ActivityService, ActivityPost } from '../../../core/services/activity.s
 import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { timeAgo } from '../../../core/util/time-ago';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostCommentsComponent } from './post-comments.component';
 
 interface BookSearchResult {
@@ -34,14 +36,14 @@ interface BookSearchResult {
                   <span>{{ currentUserInitial }}</span>
                 }
               </div>
-              <span class="compose-placeholder">Share your thoughts on a book…</span>
+              <span class="compose-placeholder">{{ copy.composePlaceholder }}</span>
             </button>
           } @else {
             <div class="compose-form">
               <textarea
                 class="compose-textarea"
                 [(ngModel)]="postContent"
-                placeholder="What did you think? Any quotes? Recommend it?"
+                [placeholder]="copy.composeTextareaPlaceholder"
                 rows="3"
                 autofocus
               ></textarea>
@@ -71,7 +73,7 @@ interface BookSearchResult {
                     <input
                       class="book-search-input"
                       type="text"
-                      placeholder="Search for a book…"
+                      [placeholder]="copy.bookSearchPlaceholder"
                       [(ngModel)]="bookQuery"
                       (ngModelChange)="onBookQueryChange()"
                     />
@@ -95,13 +97,13 @@ interface BookSearchResult {
               </div>
 
               <div class="compose-actions">
-                <button class="btn-cancel" (click)="closeCompose()">Cancel</button>
+                <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelBtn }}</button>
                 <button
                   class="btn-post"
                   [disabled]="!canPost || submitting"
                   (click)="submitPost()"
                 >
-                  {{ submitting ? 'Posting…' : 'Post' }}
+                  {{ submitting ? copy.postingBtn : copy.postBtn }}
                 </button>
               </div>
             </div>
@@ -112,8 +114,8 @@ interface BookSearchResult {
       <!-- Feed -->
       <div class="feed-header">
         <div class="feed-tabs">
-          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'friends'" (click)="switchTab('friends')">Friends</button>
-          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">Trending</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'friends'" (click)="switchTab('friends')">{{ copy.friendsTab }}</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">{{ copy.trendingTab }}</button>
         </div>
       </div>
 
@@ -129,7 +131,7 @@ interface BookSearchResult {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <p>{{ activeTab === 'friends' ? 'No posts yet. Add friends and start sharing!' : 'No trending posts this week.' }}</p>
+          <p>{{ activeTab === 'friends' ? copy.noPostsFriendsMsg : copy.noTrendingPostsMsg }}</p>
         </div>
       } @else {
         <div class="posts-list">
@@ -644,6 +646,10 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
 
   posts: ActivityPost[] = [];
   trendingPosts: ActivityPost[] = [];
@@ -666,6 +672,10 @@ export class PostsFeedComponent implements OnInit, OnChanges {
 
   get canPost(): boolean {
     return this.postContent.trim().length > 0 && this.selectedBook !== null;
+  }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
   }
 
   ngOnInit(): void {
@@ -818,7 +828,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   }
 
   deletePost(post: ActivityPost): void {
-    if (!confirm('Delete this post?')) return;
+    if (!confirm(this.copy.deletePostConfirm)) return;
     const prev = [...this.posts];
     this.posts = this.posts.filter((p) => p.id !== post.id);
     this.activityService.deletePost(post.id).subscribe({

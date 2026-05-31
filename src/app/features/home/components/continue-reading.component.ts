@@ -1,5 +1,7 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ContinueReadingBook {
   id: string;
@@ -20,7 +22,7 @@ interface ContinueReadingBook {
     <section class="continue-reading-section">
       <div class="section-header">
         <div class="section-title-wrap">
-          <h2 class="text-h2">Continue Reading</h2>
+          <h2 class="text-h2">{{ copy.continueReadingTitle }}</h2>
         </div>
       </div>
 
@@ -55,7 +57,7 @@ interface ContinueReadingBook {
                 <div class="progress-bar-fill" [style.width.%]="book.progress"></div>
               </div>
               <div class="progress-label">
-                {{ book.currentPage > 0 ? 'Page ' + book.currentPage + (book.totalPages > 0 ? ' / ' + book.totalPages : '') : 'No progress tracked yet' }}
+                {{ book.currentPage > 0 ? copy.progressLabel + book.currentPage + (book.totalPages > 0 ? ' / ' + book.totalPages : '') : copy.noProgressTracked }}
               </div>
             </div>
           </div>
@@ -64,7 +66,7 @@ interface ContinueReadingBook {
           <div class="continue-hover-overlay">
             <button class="btn btn-primary btn-small" (click)="onContinueReading(book)">
               <iconify-icon icon="lucide:book-open" style="font-size: 16px"></iconify-icon>
-              Continue reading
+              {{ copy.continueReadingBtn }}
             </button>
           </div>
         </div>
@@ -278,10 +280,19 @@ interface ContinueReadingBook {
   `],
 })
 export class ContinueReadingComponent {
+  private readonly translationService = inject(TranslationService);
+
   @Input() books: ContinueReadingBook[] = [];
   @Output() continueReading = new EventEmitter<ContinueReadingBook>();
 
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
   hoveredBook: string | null = null;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onContinueReading(book: ContinueReadingBook): void {
     this.continueReading.emit(book);

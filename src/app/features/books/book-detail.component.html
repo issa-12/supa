@@ -3,13 +3,13 @@
   <!-- Header -->
   <header class="detail-header">
     <div class="header-content">
-      <button class="back-btn" onclick="history.back()" aria-label="Go back">
+      <button class="back-btn" onclick="history.back()" [attr.aria-label]="copy.goBack">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 12H5M12 5l-7 7 7 7"/>
         </svg>
       </button>
-      <h1 class="header-title">Book Details</h1>
-      <a routerLink="/shelf" class="shelf-link">My Shelf</a>
+      <h1 class="header-title">{{ copy.title }}</h1>
+      <a routerLink="/shelf" class="shelf-link">{{ copy.myShelf }}</a>
     </div>
   </header>
 
@@ -17,7 +17,7 @@
   @if (isLoading) {
     <div class="page-state">
       <div class="spinner"></div>
-      <p>Loading book…</p>
+      <p>{{ copy.loadingBook }}</p>
     </div>
   }
 
@@ -25,7 +25,7 @@
   @else if (error) {
     <div class="page-state">
       <p class="error-text">{{ error }}</p>
-      <button class="btn btn-outline" onclick="history.back()">Go back</button>
+      <button class="btn btn-outline" onclick="history.back()">{{ copy.goBack }}</button>
     </div>
   }
 
@@ -52,7 +52,7 @@
         <!-- Info -->
         <div class="book-meta">
           <h2 class="book-title">{{ book.title }}</h2>
-          <p class="book-author">by {{ book.author }}</p>
+          <p class="book-author">{{ copy.byAuthor }} {{ book.author }}</p>
 
           <!-- Meta chips -->
           <div class="meta-chips">
@@ -60,7 +60,7 @@
               <span class="chip">{{ publishYear }}</span>
             }
             @if (book.pageCount) {
-              <span class="chip">{{ book.pageCount }} pages</span>
+              <span class="chip">{{ book.pageCount }} {{ copy.pagesUnit }}</span>
             }
             @for (cat of book.categories.slice(0, 2); track cat) {
               <span class="chip chip--genre">{{ cat }}</span>
@@ -70,7 +70,7 @@
           <!-- Rating (only if book is on shelf) -->
           @if (userBook) {
             <div class="rating-section">
-              <p class="rating-label">Your Rating</p>
+              <p class="rating-label">{{ copy.yourRating }}</p>
               <div class="stars" [class.saving]="savingRating">
                 @for (star of starsArray(); track star.index) {
                   <button
@@ -98,13 +98,13 @@
                 <polyline points="16 6 12 2 8 6"/>
                 <line x1="12" y1="2" x2="12" y2="15"/>
               </svg>
-              Recommend to Friend
+              {{ copy.recommendToFriend }}
             </button>
 
             @if (showRecommendPicker) {
               <div class="recommend-dropdown">
                 @if (friends.length === 0) {
-                  <p class="recommend-empty">No friends yet.</p>
+                  <p class="recommend-empty">{{ copy.noFriends }}</p>
                 } @else {
                   @for (friend of friends; track friend.userId) {
                     <button
@@ -122,7 +122,7 @@
                       <span class="recommend-name">{{ friend.name }}</span>
                       @if (recommendFeedback?.userId === friend.userId) {
                         <span class="recommend-status" [class.recommend-status--ok]="recommendFeedback!.success">
-                          {{ recommendFeedback!.success ? 'Sent!' : 'Failed' }}
+                          {{ recommendFeedback!.success ? copy.recommendSent : copy.recommendFailed }}
                         </span>
                       } @else if (recommendingToId === friend.userId) {
                         <span class="recommend-status">…</span>
@@ -153,7 +153,7 @@
                       (click)="toggleStatusDropdown()"
                       [disabled]="savingStatus"
                     >
-                      Change status
+                      {{ copy.changeStatus }}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="6 9 12 15 18 9"/>
                       </svg>
@@ -171,7 +171,7 @@
                         }
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item dropdown-item--danger" (click)="removeFromShelf()">
-                          Remove from shelf
+                          {{ copy.removeFromShelf }}
                         </button>
                       </div>
                     }
@@ -187,13 +187,13 @@
                   [disabled]="addingToShelf"
                 >
                   @if (addingToShelf) {
-                    Adding…
+                    {{ copy.adding }}
                   } @else {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <line x1="12" y1="5" x2="12" y2="19"/>
                       <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    Add to Shelf
+                    {{ copy.addToShelf }}
                   }
                 </button>
 
@@ -216,7 +216,7 @@
       <!-- Description -->
       @if (book.description) {
         <div class="description-section">
-          <h3 class="section-title">About this book</h3>
+          <h3 class="section-title">{{ copy.aboutBook }}</h3>
           <p class="description-text">{{ book.description }}</p>
         </div>
       }
@@ -224,37 +224,37 @@
       <!-- Notes & Review (only if book is on shelf) -->
       @if (userBook) {
         <div class="content-section">
-          <h3 class="section-title">My Notes</h3>
-          <p class="section-hint">Private — only you can see these</p>
+          <h3 class="section-title">{{ copy.myNotes }}</h3>
+          <p class="section-hint">{{ copy.notesHint }}</p>
           <textarea
             [(ngModel)]="note"
             class="content-textarea"
-            placeholder="Add your private notes about this book…"
+            [placeholder]="copy.notesPlaceholder"
             rows="4"
             maxlength="500"
           ></textarea>
           <div class="textarea-footer">
             <span class="char-count" [class.char-count--warn]="note.length > 450">{{ note.length }}/500</span>
             <button class="btn save-btn" [class.btn-saved]="noteSaved" [class.btn-outline]="!noteSaved" (click)="saveNote()" [disabled]="noteSaving">
-              {{ noteSaved ? 'Saved!' : noteSaving ? 'Saving…' : 'Save Notes' }}
+              {{ noteSaved ? copy.saved : noteSaving ? copy.saving : copy.saveNotes }}
             </button>
           </div>
         </div>
 
         <div class="content-section">
-          <h3 class="section-title">My Review</h3>
-          <p class="section-hint">Visible to your friends</p>
+          <h3 class="section-title">{{ copy.myReview }}</h3>
+          <p class="section-hint">{{ copy.reviewHint }}</p>
           <textarea
             [(ngModel)]="reviewText"
             class="content-textarea"
-            placeholder="Share your thoughts about this book…"
+            [placeholder]="copy.reviewPlaceholder"
             rows="4"
             maxlength="1000"
           ></textarea>
           <div class="textarea-footer">
             <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
             <button class="btn save-btn" [class.btn-saved]="reviewSaved" [class.btn-outline]="!reviewSaved" (click)="saveReview()" [disabled]="reviewSaving">
-              {{ reviewSaved ? 'Saved!' : reviewSaving ? 'Saving…' : 'Save Review' }}
+              {{ reviewSaved ? copy.saved : reviewSaving ? copy.saving : copy.saveReview }}
             </button>
           </div>
         </div>
@@ -263,7 +263,7 @@
       <!-- Community Reviews -->
       @if (communityReviews.length > 0) {
         <div class="content-section">
-          <h3 class="section-title">Community Reviews</h3>
+          <h3 class="section-title">{{ copy.communityReviews }}</h3>
           @for (review of communityReviews; track review.userId) {
             <div class="review-card">
               <div class="review-header">

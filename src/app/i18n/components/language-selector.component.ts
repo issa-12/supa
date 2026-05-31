@@ -13,7 +13,8 @@ export class LanguageSelectorComponent {
 
   @Input({ required: true }) languages: readonly LanguageOption[] = [];
   @Input({ required: true }) selectedLanguage!: LanguageOption;
-  @Input({ required: true }) label = 'Change language';
+  @Input() label = 'Change language';
+  @Input() compact = false;
 
   @Output() readonly selectedLanguageChange = new EventEmitter<LanguageOption>();
 

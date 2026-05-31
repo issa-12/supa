@@ -1,21 +1,30 @@
 <div class="language-menu">
   <button
     class="language-button"
+    [class.language-button--compact]="compact"
     type="button"
     [attr.aria-label]="label"
     aria-haspopup="menu"
     [attr.aria-expanded]="isOpen"
     (click)="toggleMenu()"
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20" />
-      <path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" />
-    </svg>
-    <span>{{ selectedLanguage.nativeLabel }}</span>
-    <svg class="language-button__chevron" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
+    @if (!compact) {
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M2 12h20" />
+        <path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" />
+      </svg>
+    }
+    @if (!compact) {
+      <span>{{ selectedLanguage.nativeLabel }}</span>
+    } @else {
+      <span class="language-button--compact__text">{{ selectedLanguage.code.toUpperCase() }}</span>
+    }
+    @if (!compact) {
+      <svg class="language-button__chevron" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    }
   </button>
 
   @if (isOpen) {

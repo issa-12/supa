@@ -7,6 +7,8 @@ import {
 } from '../../../core/services/notifications.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { timeAgo } from '../../../core/util/time-ago';
+import { TranslationService, NOTIFICATIONS_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-notifications-panel',
@@ -16,21 +18,21 @@ import { timeAgo } from '../../../core/util/time-ago';
     <div class="panel-overlay" (click)="close.emit()"></div>
     <div class="panel">
       <div class="panel-header">
-        <h3 class="panel-title">Notifications</h3>
+        <h3 class="panel-title">{{ copy.notificationsPanelTitle }}</h3>
         @if (hasUnread) {
-          <button class="mark-all-btn" (click)="markAllRead()">Mark all read</button>
+          <button class="mark-all-btn" (click)="markAllRead()">{{ copy.markAllReadBtn }}</button>
         }
       </div>
 
       @if (isLoading) {
-        <div class="panel-state">Loading…</div>
+        <div class="panel-state">{{ copy.loadingMsg }}</div>
       } @else if (notifications.length === 0) {
         <div class="panel-state">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
-          <p>No notifications yet</p>
+          <p>{{ copy.noNotificationsMsg }}</p>
         </div>
       } @else {
         <ul class="notif-list">
@@ -202,6 +204,14 @@ export class NotificationsPanelComponent {
   private readonly notificationsService = inject(NotificationsService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return NOTIFICATIONS_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   get hasUnread(): boolean {
     return this.notifications.some((n) => !n.isRead);

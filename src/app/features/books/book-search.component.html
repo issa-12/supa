@@ -8,7 +8,7 @@
           <path d="M19 12H5M12 5l-7 7 7 7"/>
         </svg>
       </a>
-      <h1 class="header-title">Find Books</h1>
+      <h1 class="header-title">{{ copy.title }}</h1>
       <div class="header-spacer"></div>
     </div>
   </header>
@@ -24,7 +24,7 @@
         <input
           class="search-input"
           type="search"
-          placeholder="Search by title, author, or ISBN…"
+          [placeholder]="copy.placeholder"
           [(ngModel)]="query"
           name="query"
           (ngModelChange)="onQueryChange()"
@@ -37,7 +37,7 @@
         }
       </div>
       <button class="search-btn" type="submit" [disabled]="isSearching || query.trim().length < 2">
-        Search
+        {{ copy.searchButton }}
       </button>
     </form>
   </div>
@@ -69,8 +69,8 @@
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
-        <p class="state-text">No books found for "{{ query }}"</p>
-        <p class="state-hint">Try a different title, author, or ISBN.</p>
+        <p class="state-text">{{ copy.noResults.replace('{{ query }}', query) }}</p>
+        <p class="state-hint">{{ copy.noResultsHint }}</p>
       </div>
     }
 
@@ -81,14 +81,14 @@
           <circle cx="11" cy="11" r="8"/>
           <path d="M21 21l-4.35-4.35"/>
         </svg>
-        <p class="state-text">Search millions of books</p>
-        <p class="state-hint">Find your next favourite read and add it to your shelf.</p>
+        <p class="state-text">{{ copy.idleTitle }}</p>
+        <p class="state-hint">{{ copy.idleHint }}</p>
       </div>
     }
 
     <!-- Results grid -->
     @if (results.length > 0) {
-      <p class="results-count">{{ results.length }}{{ totalItems > results.length ? ' of ' + totalItems : '' }} results</p>
+      <p class="results-count">{{ results.length }}{{ totalItems > results.length ? ' / ' + totalItems : '' }}</p>
 
       <div class="books-grid">
         @for (book of results; track book.googleId) {
@@ -126,20 +126,20 @@
                     {{ label }}
                   </span>
                 } @else if (addingBookId === book.googleId) {
-                  <span class="adding-label">Adding…</span>
+                  <span class="adding-label">{{ copy.addingLabel }}</span>
                 } @else {
                   <div class="dropdown-wrap">
                     <button
                       class="add-btn"
                       (click)="toggleDropdown(book.googleId)"
                       [class.open]="openDropdownId === book.googleId"
-                      aria-label="Add to shelf"
+                      [attr.aria-label]="copy.ariaAddToShelf"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="12" y1="5" x2="12" y2="19"/>
                         <line x1="5" y1="12" x2="19" y2="12"/>
                       </svg>
-                      Add
+                      {{ copy.addButton }}
                     </button>
 
                     @if (openDropdownId === book.googleId) {
@@ -166,9 +166,9 @@
           <button class="load-more-btn" (click)="loadMore()" [disabled]="isLoadingMore">
             @if (isLoadingMore) {
               <span class="btn-spinner"></span>
-              Loading…
+              {{ copy.loading }}
             } @else {
-              Load more results
+              {{ copy.loadMore }}
             }
           </button>
         </div>

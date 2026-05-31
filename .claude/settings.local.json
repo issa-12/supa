@@ -39,7 +39,11 @@
       "Bash(curl *)",
       "Bash(node *)",
       "Bash(Select-Object -First 20)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(docker --version)",
+      "Bash(npm list *)",
+      "Bash(xargs grep -l \"i18n\\\\|translation\\\\|language\")",
+      "Bash(npm run *)"
     ]
   }
 }

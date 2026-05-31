@@ -27,6 +27,13 @@ export const routes: Routes = [
     path: 'verify-email',
     component: EmailVerificationComponent,
   },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+  },
 
   // ── Onboarding (auth required, not guarded by genre check) ────
   {

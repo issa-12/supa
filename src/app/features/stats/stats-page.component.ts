@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
+import { TranslationService, STATS_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface TopBook {
   rank: number;
@@ -42,11 +44,19 @@ interface MonthlyPace {
 })
 export class StatsPageComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return STATS_COPY[this.lang]; }
 
   period: 'week' | 'month' = 'week';
   isLoadingGlobal = true;
   isLoadingPace = true;
   currentYear = new Date().getFullYear();
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   topBooks: TopBook[] = [];
   trendingGenres: TrendingGenre[] = [];

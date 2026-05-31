@@ -6,6 +6,8 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook, GoogleBook, CommunityReview } from '../../core/services/book.service';
 import { FriendshipService, FriendUser } from '../../core/services/friendship.service';
 import { RecommendationService } from '../../core/services/recommendation.service';
+import { TranslationService, BOOK_DETAIL_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface BookDetail {
   googleId: string;
@@ -20,9 +22,9 @@ interface BookDetail {
 }
 
 const SHELF_STATUSES = [
-  { name: 'currently_reading', label: 'Currently Reading', icon: '📖' },
-  { name: 'want_to_read', label: 'Want to Read', icon: '📚' },
-  { name: 'read', label: 'Already Read', icon: '✓' },
+  { name: 'currently_reading', label: '', icon: '📖' },
+  { name: 'want_to_read', label: '', icon: '📚' },
+  { name: 'read', label: '', icon: '✓' },
 ];
 
 @Component({
@@ -39,6 +41,19 @@ export class BookDetailComponent implements OnInit {
   private readonly bookService = inject(BookService);
   private readonly friendshipService = inject(FriendshipService);
   private readonly recommendationService = inject(RecommendationService);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return BOOK_DETAIL_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      SHELF_STATUSES[0].label = this.copy.currentlyReadingStatusLabel;
+      SHELF_STATUSES[1].label = this.copy.wantToReadStatusLabel;
+      SHELF_STATUSES[2].label = this.copy.alreadyReadStatusLabel;
+    });
+  }
 
   book: BookDetail | null = null;
   userBook: UserBook | null = null;
