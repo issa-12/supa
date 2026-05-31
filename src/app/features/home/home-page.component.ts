@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BookService } from '../../core/services/book.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
 import { TopNavComponent } from './components/top-nav.component';
@@ -11,6 +12,7 @@ import { ContinueReadingComponent } from './components/continue-reading.componen
 import { RecommendedBooksComponent } from './components/recommended-books.component';
 import { TrendingBooksComponent } from './components/trending-books.component';
 import { PostsFeedComponent } from './components/posts-feed.component';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../i18n';
 
 interface Book {
   id: string;
@@ -48,7 +50,15 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
   private readonly destroy$ = new Subject<void>();
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   @ViewChild(PostsFeedComponent) private postsFeed?: PostsFeedComponent;
 

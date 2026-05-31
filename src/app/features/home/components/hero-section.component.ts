@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Book {
   id: string;
@@ -24,9 +26,9 @@ interface Book {
         <div class="hero-labels">
           <div class="hero-pill">
             <iconify-icon icon="lucide:sparkles" style="font-size: 14px; margin-right: 6px"></iconify-icon>
-            Recommended for you
+            {{ copy.heroPill }}
           </div>
-          <span class="eyebrow">Because you like Mystery</span>
+          <span class="eyebrow">{{ copy.heroEyebrow }}</span>
         </div>
 
         <div class="hero-title-group">
@@ -35,16 +37,16 @@ interface Book {
         </div>
 
         <p class="text-body">
-          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : 'A compelling read waiting to be discovered. Add it to your shelf to start your journey.' }}
+          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : copy.heroFallbackDescription }}
         </p>
 
         <div class="hero-actions">
           <button class="btn btn-primary" (click)="onViewBook()" [disabled]="!book.googleBooksId">
-            View Book
+            {{ copy.heroViewBook }}
           </button>
           <button class="btn btn-outline" (click)="onAddToReading()" [disabled]="addingToReading">
             <iconify-icon icon="lucide:bookmark-plus" style="font-size: 18px"></iconify-icon>
-            {{ addingToReading ? 'Adding…' : 'Add to Reading' }}
+            {{ addingToReading ? copy.heroAdding : copy.heroAddToReading }}
           </button>
         </div>
       </div>
@@ -271,12 +273,20 @@ interface Book {
 })
 export class HeroSectionComponent {
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
 
   @Input() book!: Book;
   @Output() addToReading = new EventEmitter<Book>();
 
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
   coverBroken = false;
   addingToReading = false;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onViewBook(): void {
     if (this.book.googleBooksId) {

@@ -180,6 +180,20 @@ export class FriendsService {
     return { success: true };
   }
 
+  async getFriendCount(userId: string): Promise<{ count: number }> {
+    const admin = this.supabase.getAdmin();
+    const acceptedId = await this.getStatusId('accepted');
+
+    const { count, error } = await admin
+      .from('friendship')
+      .select('friendship_id', { count: 'exact', head: true })
+      .or(`user_id1.eq.${userId},user_id2.eq.${userId}`)
+      .eq('status_id', acceptedId);
+
+    if (error) throw new InternalServerErrorException(error.message);
+    return { count: count ?? 0 };
+  }
+
   async getFriends(userId: string): Promise<FriendUser[]> {
     const admin = this.supabase.getAdmin();
     const acceptedId = await this.getStatusId('accepted');

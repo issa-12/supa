@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, GoogleBook } from '../../core/services/book.service';
+import { TranslationService, BOOK_SEARCH_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ShelfStatus {
   id: number;
@@ -13,9 +15,9 @@ interface ShelfStatus {
 }
 
 const SHELF_STATUS_DEFS: Array<{ name: string; label: string; icon: string }> = [
-  { name: 'want_to_read', label: 'Want to Read', icon: '📚' },
-  { name: 'currently_reading', label: 'Currently Reading', icon: '📖' },
-  { name: 'read', label: 'Already Read', icon: '✓' },
+  { name: 'want_to_read', label: '', icon: '📚' },
+  { name: 'currently_reading', label: '', icon: '📖' },
+  { name: 'read', label: '', icon: '✓' },
 ];
 
 @Component({
@@ -30,6 +32,10 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return BOOK_SEARCH_COPY[this.lang]; }
 
   statuses: ShelfStatus[] = [];
 
@@ -49,6 +55,20 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   private startIndex = 0;
   private readonly pageSize = 20;
   private searchTimer?: ReturnType<typeof setTimeout>;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      SHELF_STATUS_DEFS[0].label = this.copy.wantToReadStatusLabel;
+      SHELF_STATUS_DEFS[1].label = this.copy.currentlyReadingStatusLabel;
+      SHELF_STATUS_DEFS[2].label = this.copy.alreadyReadStatusLabel;
+      if (this.statuses.length > 0) {
+        this.statuses[0].label = this.copy.wantToReadStatusLabel;
+        if (this.statuses.length > 1) this.statuses[1].label = this.copy.currentlyReadingStatusLabel;
+        if (this.statuses.length > 2) this.statuses[2].label = this.copy.alreadyReadStatusLabel;
+      }
+    });
+  }
 
   get hasMore(): boolean {
     return this.results.length < this.totalItems;
@@ -73,7 +93,10 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     );
     this.statuses = SHELF_STATUS_DEFS.flatMap((def) => {
       const id = byName.get(def.name);
-      return id ? [{ id, name: def.name, label: def.label, icon: def.icon }] : [];
+      const label = def.name === 'want_to_read' ? this.copy.wantToReadStatusLabel
+                  : def.name === 'currently_reading' ? this.copy.currentlyReadingStatusLabel
+                  : this.copy.alreadyReadStatusLabel;
+      return id ? [{ id, name: def.name, label, icon: def.icon }] : [];
     });
   }
 

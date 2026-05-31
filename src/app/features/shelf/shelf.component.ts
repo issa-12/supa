@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook } from '../../core/services/book.service';
+import { TranslationService, SHELF_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ShelfSection {
   statusName: string;
@@ -35,6 +37,10 @@ export class ShelfComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly bookService = inject(BookService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return SHELF_COPY[this.lang]; }
 
   sections: ShelfSection[] = [];
   isLoading = true;
@@ -52,10 +58,19 @@ export class ShelfComponent implements OnInit {
   sortBy: 'date' | 'title' | 'rating' = 'date';
 
   readonly SHELF_STATUSES = [
-    { name: 'currently_reading', label: 'Currently Reading' },
-    { name: 'want_to_read', label: 'Want to Read' },
-    { name: 'read', label: 'Already Read' },
+    { name: 'currently_reading', label: this.copy.currentlyReadingLabel },
+    { name: 'want_to_read', label: this.copy.wantToReadLabel },
+    { name: 'read', label: this.copy.alreadyReadLabel },
   ];
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.SHELF_STATUSES[0].label = this.copy.currentlyReadingLabel;
+      this.SHELF_STATUSES[1].label = this.copy.wantToReadLabel;
+      this.SHELF_STATUSES[2].label = this.copy.alreadyReadLabel;
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -66,7 +81,7 @@ export class ShelfComponent implements OnInit {
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user.id));
       this.buildSections(allBooks);
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to load shelf.';
+      this.error = err instanceof Error ? err.message : this.copy.failedToLoadShelfMsg;
     } finally {
       this.isLoading = false;
     }

@@ -13,6 +13,8 @@ import {
   FriendshipStatusValue,
 } from '../../core/services/friendship.service';
 import { timeAgo } from '../../core/util/time-ago';
+import { TranslationService, PROFILE_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ProfileBook {
   userBookId: number;
@@ -37,6 +39,10 @@ export class ProfilePageComponent implements OnInit {
   private readonly friendshipService = inject(FriendshipService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return PROFILE_COPY[this.lang]; }
 
   profile: UserProfile | null = null;
   readingStats: ReadingStats | null = null;
@@ -66,6 +72,7 @@ export class ProfilePageComponent implements OnInit {
   incomingRequests: FriendRequest[] = [];
   friendActionLoading = false;
   friendActionError: string | null = null;
+  friendCount = 0;
 
   searchQuery = '';
   searchResults: UserProfile[] = [];
@@ -78,6 +85,10 @@ export class ProfilePageComponent implements OnInit {
   isLoading = true;
   error: string | null = null;
 
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
   async ngOnInit(): Promise<void> {
     try {
       const supabase = await this.supabaseService.getClient();
@@ -89,7 +100,7 @@ export class ProfilePageComponent implements OnInit {
       this.isOwnProfile = !routeId || routeId === this.currentUserId;
 
       if (!targetId) {
-        this.error = 'Profile not found.';
+        this.error = this.copy.profileNotFoundMsg;
         return;
       }
 
@@ -116,16 +127,22 @@ export class ProfilePageComponent implements OnInit {
       this.recentPosts = recentPosts;
 
       if (this.isOwnProfile) {
-        const [friends, requests] = await Promise.all([
+        const [friends, requests, count] = await Promise.all([
           this.friendshipService.getFriends(),
           this.friendshipService.getIncomingRequests(),
+          this.friendshipService.getFriendCount(targetId),
         ]);
         this.friends = friends;
         this.incomingRequests = requests;
+        this.friendCount = count.count;
       } else if (this.currentUserId) {
-        const status = await this.friendshipService.getFriendshipStatus(targetId);
+        const [status, count] = await Promise.all([
+          this.friendshipService.getFriendshipStatus(targetId),
+          this.friendshipService.getFriendCount(targetId),
+        ]);
         this.friendshipStatus = status.status;
         this.friendshipId = status.friendshipId;
+        this.friendCount = count.count;
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Failed to load profile.';
@@ -172,6 +189,7 @@ export class ProfilePageComponent implements OnInit {
     try {
       await this.friendshipService.acceptRequest(this.friendshipId);
       this.friendshipStatus = 'accepted';
+      this.friendCount += 1;
     } catch {
       this.friendActionError = 'Could not accept request. Please try again.';
     } finally {
@@ -202,6 +220,7 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.deleteFriendship(this.friendshipId);
       this.friendshipStatus = 'none';
       this.friendshipId = null;
+      this.friendCount = Math.max(0, this.friendCount - 1);
     } catch {
       this.friendActionError = 'Could not remove friend. Please try again.';
     } finally {
@@ -214,6 +233,7 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.acceptRequest(req.friendshipId);
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
       this.friends = await this.friendshipService.getFriends();
+      this.friendCount = this.friends.length;
     } catch {
       this.friendActionError = 'Could not accept request. Please try again.';
     }

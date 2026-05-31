@@ -84,6 +84,16 @@ export class FriendsController {
     const userId = await this.friendsService.verifyUser(token);
     return this.friendsService.getFriendshipStatus(userId, otherUserId);
   }
+
+  @Get('count/:userId')
+  async getFriendCount(
+    @Headers('authorization') auth: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const token = extractToken(auth);
+    await this.friendsService.verifyUser(token);
+    return this.friendsService.getFriendCount(targetUserId);
+  }
 }
 
 function extractToken(auth: string): string {

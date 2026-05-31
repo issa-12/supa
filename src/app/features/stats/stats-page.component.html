@@ -12,13 +12,13 @@
           </svg>
         </a>
         <div>
-          <h1 class="page-title">Reading Stats</h1>
-          <p class="page-subtitle">Community insights &amp; your progress</p>
+          <h1 class="page-title">{{ copy.title }}</h1>
+          <p class="page-subtitle">{{ copy.subtitle }}</p>
         </div>
       </div>
       <div class="period-toggle">
-        <button [class.active]="period === 'week'" (click)="setPeriod('week')">This Week</button>
-        <button [class.active]="period === 'month'" (click)="setPeriod('month')">This Month</button>
+        <button [class.active]="period === 'week'" (click)="setPeriod('week')">{{ copy.periodWeek }}</button>
+        <button [class.active]="period === 'month'" (click)="setPeriod('month')">{{ copy.periodMonth }}</button>
       </div>
     </div>
 
@@ -29,7 +29,7 @@
       <div class="stat-card">
         <h2 class="card-title">
           <iconify-icon icon="lucide:trending-up" style="font-size:18px"></iconify-icon>
-          Top Books
+          {{ copy.topBooks }}
         </h2>
 
         @if (isLoadingGlobal) {
@@ -41,7 +41,7 @@
         } @else if (errorGlobal) {
           <p class="error-msg">{{ errorGlobal }}</p>
         } @else if (topBooks.length === 0) {
-          <p class="empty-msg">No books added this {{ period }}.</p>
+          <p class="empty-msg">{{ copy.noBooks }}</p>
         } @else {
           <div class="book-list">
             @for (book of topBooks; track book.rank) {
@@ -72,7 +72,7 @@
       <div class="stat-card">
         <h2 class="card-title">
           <iconify-icon icon="lucide:bar-chart-2" style="font-size:18px"></iconify-icon>
-          Trending Genres
+          {{ copy.trendingGenres }}
         </h2>
 
         @if (isLoadingGlobal) {
@@ -84,7 +84,7 @@
         } @else if (errorGlobal) {
           <p class="error-msg">{{ errorGlobal }}</p>
         } @else if (trendingGenres.length === 0) {
-          <p class="empty-msg">No genre data yet.</p>
+          <p class="empty-msg">{{ copy.noGenres }}</p>
         } @else {
           <div class="genre-list">
             @for (genre of trendingGenres; track genre.name) {
@@ -105,7 +105,7 @@
     <div class="stat-card">
       <h2 class="card-title">
         <iconify-icon icon="lucide:trophy" style="font-size:18px"></iconify-icon>
-        Top Readers
+        {{ copy.topReaders }}
       </h2>
 
       @if (isLoadingGlobal) {
@@ -117,7 +117,7 @@
       } @else if (errorGlobal) {
         <p class="error-msg">{{ errorGlobal }}</p>
       } @else if (topReaders.length === 0) {
-        <p class="empty-msg">No readers yet — mark books as "Read" to appear here.</p>
+        <p class="empty-msg">{{ copy.noReaders }}</p>
       } @else {
         <div class="readers-list">
           @for (reader of topReaders; track reader.rank) {
@@ -135,7 +135,7 @@
                 loading="lazy"
               />
               <span class="reader-name">{{ reader.name }}</span>
-              <span class="reader-books">{{ reader.booksRead }} book{{ reader.booksRead !== 1 ? 's' : '' }} read</span>
+              <span class="reader-books">{{ copy.booksRead.replace('{{ n }}', reader.booksRead.toString()) }}</span>
             </div>
           }
         </div>
@@ -147,7 +147,7 @@
       <div class="card-header-row">
         <h2 class="card-title">
           <iconify-icon icon="lucide:activity" style="font-size:18px"></iconify-icon>
-          My Reading Pace
+          {{ copy.myReadingPace }}
         </h2>
         <span class="year-chip">{{ currentYear }}</span>
       </div>
@@ -173,9 +173,9 @@
           }
         </div>
         @if (totalBooksRead === 0) {
-          <p class="empty-msg center">Mark books as "Read" to track your reading pace.</p>
+          <p class="empty-msg center">{{ copy.noReadingPace }}</p>
         } @else {
-          <p class="pace-total">{{ totalBooksRead }} book{{ totalBooksRead !== 1 ? 's' : '' }} read so far this year</p>
+          <p class="pace-total">{{ copy.paceTotal.replace('{{ n }}', totalBooksRead.toString()) }}</p>
         }
       }
     </div>

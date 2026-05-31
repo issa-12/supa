@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Book {
   id: string;
@@ -20,8 +22,8 @@ interface Book {
     <section class="recommended-section">
       <div class="section-header">
         <div class="section-title-wrap">
-          <h2 class="text-h2">Recommended for You</h2>
-          <span class="eyebrow">Based on your favorite genres</span>
+          <h2 class="text-h2">{{ copy.recommendedTitle }}</h2>
+          <span class="eyebrow">{{ copy.recommendedSubtitle }}</span>
         </div>
       </div>
 
@@ -250,11 +252,19 @@ interface Book {
 })
 export class RecommendedBooksComponent {
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
 
   @Input() books: Book[] = [];
   @Output() addBook = new EventEmitter<Book>();
 
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
   hoveredBookId: string | null = null;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onCardClick(book: Book): void {
     if (book.googleBooksId) {

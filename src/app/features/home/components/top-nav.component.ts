@@ -3,10 +3,12 @@ import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription, firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NotificationsService, AppNotification } from '../../../core/services/notifications.service';
 import { NotificationsPanelComponent } from './notifications-panel.component';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { UserService, UserProfile } from '../../../core/services/user.service';
+import { TranslationService, LanguageSelectorComponent, LANGUAGE_OPTIONS, LanguageOption, NAV_COPY, LanguageCode } from '../../../i18n';
 
 interface NavSearchBook {
   googleId: string;
@@ -18,7 +20,7 @@ interface NavSearchBook {
 @Component({
   selector: 'app-top-nav',
   standalone: true,
-  imports: [CommonModule, RouterLink, AsyncPipe, NotificationsPanelComponent, FormsModule],
+  imports: [CommonModule, RouterLink, AsyncPipe, NotificationsPanelComponent, FormsModule, LanguageSelectorComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <header class="top-nav">
@@ -36,7 +38,7 @@ interface NavSearchBook {
           <input
             class="search-input"
             type="text"
-            placeholder="Search books or users..."
+            [placeholder]="copy.searchPlaceholder"
             [(ngModel)]="searchQuery"
             (focus)="onSearchFocus()"
             (input)="onSearchInput()"
@@ -57,13 +59,13 @@ interface NavSearchBook {
         @if (searchOpen && searchQuery.length >= 2) {
           <div class="search-dropdown">
             @if (searchLoading) {
-              <p class="search-state">Searching…</p>
+              <p class="search-state">{{ copy.searchingState }}</p>
             } @else if (searchBookResults.length === 0 && searchUserResults.length === 0) {
-              <p class="search-state">No results for "{{ searchQuery }}"</p>
+              <p class="search-state">{{ copy.searchNoResults.replace('{{ query }}', searchQuery) }}</p>
             } @else {
               @if (searchUserResults.length > 0) {
                 <div class="search-section">
-                  <p class="search-section-label">People</p>
+                  <p class="search-section-label">{{ copy.searchSectionPeople }}</p>
                   @for (user of searchUserResults; track user.id) {
                     <button class="search-item" (click)="goToUser(user)">
                       <img
@@ -79,7 +81,7 @@ interface NavSearchBook {
               }
               @if (searchBookResults.length > 0) {
                 <div class="search-section">
-                  <p class="search-section-label">Books</p>
+                  <p class="search-section-label">{{ copy.searchSectionBooks }}</p>
                   @for (book of searchBookResults; track book.googleId) {
                     <button class="search-item" (click)="goToBook(book)">
                       @if (book.coverUrl) {
@@ -103,7 +105,7 @@ interface NavSearchBook {
                 [queryParams]="{ q: searchQuery }"
                 (click)="closeSearch()"
               >
-                See all book results
+                {{ copy.searchSeeAll }}
                 <iconify-icon icon="lucide:arrow-right" style="font-size: 13px"></iconify-icon>
               </a>
             }
@@ -112,20 +114,20 @@ interface NavSearchBook {
       </div>
 
       <div class="nav-actions">
-        <a routerLink="/shelf" class="nav-icon-btn" aria-label="My Shelf">
+        <a routerLink="/shelf" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/community" class="nav-icon-btn" aria-label="Community">
+        <a routerLink="/community" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel">
           <iconify-icon icon="lucide:users" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/stats" class="nav-icon-btn" aria-label="Stats">
+        <a routerLink="/stats" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel">
           <iconify-icon icon="lucide:bar-chart-2" style="font-size: 20px"></iconify-icon>
         </a>
 
         <div class="bell-wrapper">
-          <button class="nav-icon-btn" aria-label="Notifications" (click)="togglePanel()">
+          <button class="nav-icon-btn" [attr.aria-label]="copy.notificationsAriaLabel" (click)="togglePanel()">
             <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
             @if (unreadCount$ | async; as count) {
               @if (count > 0) {
@@ -143,6 +145,13 @@ interface NavSearchBook {
           }
         </div>
 
+        <app-language-selector
+          class="nav-language-selector"
+          [languages]="languages"
+          [selectedLanguage]="selectedLanguage"
+          [compact]="true"
+        />
+
         <div class="avatar-wrap" (click)="$event.stopPropagation()">
           <img
             [src]="avatarUrl || 'https://ui-avatars.com/api/?name=R&background=E9783F&color=fff&size=44'"
@@ -157,7 +166,7 @@ interface NavSearchBook {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-                My Profile
+                {{ copy.myProfile }}
               </a>
               <div class="user-menu-divider"></div>
               <button class="user-menu-item user-menu-item--danger" (click)="logout()">
@@ -166,7 +175,7 @@ interface NavSearchBook {
                   <polyline points="16 17 21 12 16 7"/>
                   <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
-                Logout
+                {{ copy.logout }}
               </button>
             </div>
           }
@@ -507,6 +516,21 @@ interface NavSearchBook {
       margin: 4px 0;
     }
 
+    .nav-language-selector {
+      display: flex;
+      align-items: center;
+
+      ::ng-deep .language-button {
+        background: var(--surface);
+        &:hover {
+          background: var(--surface);
+        }
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
+
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -522,6 +546,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   private readonly supabaseService = inject(SupabaseService);
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
 
   readonly unreadCount$ = this.notificationsService.unreadCount$;
   notifications: AppNotification[] = [];
@@ -530,16 +555,29 @@ export class TopNavComponent implements OnInit, OnDestroy {
   avatarUrl: string | null = null;
   userMenuOpen = false;
 
+  // Language support
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected selectedLanguage: LanguageOption = LANGUAGE_OPTIONS.find(l => l.code === this.lang) || LANGUAGE_OPTIONS[0];
+  protected languages = LANGUAGE_OPTIONS;
+
   searchQuery = '';
   searchOpen = false;
   searchLoading = false;
   searchBookResults: NavSearchBook[] = [];
   searchUserResults: UserProfile[] = [];
 
+  protected get copy() { return NAV_COPY[this.lang]; }
+
   private sub?: Subscription;
   private searchTimer?: ReturnType<typeof setTimeout>;
 
   async ngOnInit(): Promise<void> {
+    // Subscribe to language changes
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(lang => {
+      this.lang = lang;
+      this.selectedLanguage = LANGUAGE_OPTIONS.find(l => l.code === lang) || LANGUAGE_OPTIONS[0];
+    });
+
     this.sub = this.notificationsService.notifications$.subscribe((n) => {
       this.notifications = n;
     });

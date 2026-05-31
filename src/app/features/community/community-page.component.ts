@@ -7,6 +7,8 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { PostCommentsComponent } from '../home/components/post-comments.component';
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { timeAgo } from '../../core/util/time-ago';
+import { TranslationService, COMMUNITY_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface BookResult {
   googleId: string;
@@ -32,6 +34,14 @@ export class CommunityPageComponent implements OnInit {
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return COMMUNITY_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   currentUserId: string | null = null;
   currentUserAvatar: string | null = null;

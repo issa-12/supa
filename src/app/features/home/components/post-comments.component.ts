@@ -4,6 +4,8 @@ import { RouterLink } from '@angular/router';
 import { CommentService, Comment } from '../../../core/services/comment.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { timeAgo } from '../../../core/util/time-ago';
+import { TranslationService, COMMENTS_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-post-comments',
@@ -38,16 +40,16 @@ import { timeAgo } from '../../../core/util/time-ago';
                       @if (comment.likeCount > 0) { {{ comment.likeCount }} }
                     </button>
                     @if (comment.depth < 3) {
-                      <button class="meta-btn" (click)="startReply(comment)">Reply</button>
+                      <button class="meta-btn" (click)="startReply(comment)">{{ copy.replyBtn }}</button>
                     }
                     <time class="meta-time">{{ timeAgo(comment.createdAt) }}</time>
                     @if (comment.userId === currentUserId) {
-                      <button class="meta-btn meta-btn--danger" (click)="deleteComment(comment)">Delete</button>
+                      <button class="meta-btn meta-btn--danger" (click)="deleteComment(comment)">{{ copy.deleteBtn }}</button>
                     }
                   </div>
                   @if (replyingToId === comment.id) {
                     <div class="reply-form">
-                      <input class="comment-input" type="text" [placeholder]="'Reply to ' + comment.userName + '…'" [(ngModel)]="replyContent" (keydown.enter)="submitReply(comment)" />
+                      <input class="comment-input" type="text" [placeholder]="copy.replyToPlaceholder + comment.userName + '…'" [(ngModel)]="replyContent" (keydown.enter)="submitReply(comment)" />
                       <button class="send-btn" [disabled]="!replyContent.trim() || submitting" (click)="submitReply(comment)">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                       </button>
@@ -70,13 +72,13 @@ import { timeAgo } from '../../../core/util/time-ago';
                             <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="reply.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                             @if (reply.likeCount > 0) { {{ reply.likeCount }} }
                           </button>
-                          @if (reply.depth < 3) { <button class="meta-btn" (click)="startReply(reply)">Reply</button> }
+                          @if (reply.depth < 3) { <button class="meta-btn" (click)="startReply(reply)">{{ copy.replyBtn }}</button> }
                           <time class="meta-time">{{ timeAgo(reply.createdAt) }}</time>
-                          @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(reply)">Delete</button> }
+                          @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(reply)">{{ copy.deleteBtn }}</button> }
                         </div>
                         @if (replyingToId === reply.id) {
                           <div class="reply-form">
-                            <input class="comment-input" type="text" [placeholder]="'Reply to ' + reply.userName + '…'" [(ngModel)]="replyContent" (keydown.enter)="submitReply(reply)" />
+                            <input class="comment-input" type="text" [placeholder]="copy.replyToPlaceholder + reply.userName + '…'" [(ngModel)]="replyContent" (keydown.enter)="submitReply(reply)" />
                             <button class="send-btn" [disabled]="!replyContent.trim() || submitting" (click)="submitReply(reply)">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                             </button>
@@ -100,7 +102,7 @@ import { timeAgo } from '../../../core/util/time-ago';
                                   @if (deep.likeCount > 0) { {{ deep.likeCount }} }
                                 </button>
                                 <time class="meta-time">{{ timeAgo(deep.createdAt) }}</time>
-                                @if (deep.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(deep)">Delete</button> }
+                                @if (deep.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(deep)">{{ copy.deleteBtn }}</button> }
                               </div>
                             </div>
                           </div>
@@ -127,7 +129,7 @@ import { timeAgo } from '../../../core/util/time-ago';
             <input
               class="comment-input"
               type="text"
-              placeholder="Write a comment…"
+              [placeholder]="copy.commentPlaceholder"
               [(ngModel)]="newContent"
               (keydown.enter)="submitComment()"
             />
@@ -326,6 +328,14 @@ export class PostCommentsComponent implements OnInit {
 
   private readonly commentService = inject(CommentService);
   private readonly likesService = inject(LikesService);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return COMMENTS_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   comments: Comment[] = [];
   loading = true;

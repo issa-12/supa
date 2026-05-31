@@ -118,6 +118,20 @@ export class SupabaseService {
     }
   }
 
+  async sendPasswordResetViaFunction(email: string): Promise<void> {
+    const supabase = await this.getClient();
+    const { error } = await supabase.functions.invoke('send-password-reset-email', {
+      body: {
+        email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+  }
+
   async exchangeAuthCodeForSession(code: string): Promise<AuthTokenResponse> {
     const supabase = await this.getClient();
     const response = await supabase.auth.exchangeCodeForSession(code);

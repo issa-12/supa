@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { TranslationService, ONBOARDING_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Genre {
   genre_id: number;
@@ -21,21 +23,21 @@ interface Genre {
             </svg>
             ReadTrack
           </div>
-          <h1 class="onboarding-title">What do you love to read?</h1>
+          <h1 class="onboarding-title">{{ copy.onboardingTitle }}</h1>
           <p class="onboarding-subtitle">
-            Pick at least one genre so we can personalise your recommendations.
+            {{ copy.onboardingSubtitle }}
           </p>
         </header>
 
         @if (isLoading) {
           <div class="loading-state">
             <div class="spinner"></div>
-            <p>Loading genres…</p>
+            <p>{{ copy.loadingGenresMsg }}</p>
           </div>
         } @else if (error) {
           <div class="error-state">
             <p>{{ error }}</p>
-            <button class="btn btn-outline" (click)="loadGenres()">Try again</button>
+            <button class="btn btn-outline" (click)="loadGenres()">{{ copy.tryAgainBtn }}</button>
           </div>
         } @else {
           <div class="genre-grid">
@@ -66,9 +68,9 @@ interface Genre {
             (click)="saveGenres()"
           >
             @if (isSaving) {
-              Saving…
+              {{ copy.savingMsg }}
             } @else {
-              Continue
+              {{ copy.continueBtn }}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -285,6 +287,14 @@ interface Genre {
 export class GenreOnboardingComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return ONBOARDING_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   genres: Genre[] = [];
   selectedGenreIds = new Set<number>();
@@ -311,7 +321,7 @@ export class GenreOnboardingComponent implements OnInit {
       if (error) throw error;
       this.genres = data ?? [];
     } catch (err) {
-      this.error = 'Could not load genres. Please refresh.';
+      this.error = this.copy.couldNotLoadGenresMsg;
     } finally {
       this.isLoading = false;
     }

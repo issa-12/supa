@@ -87,4 +87,8 @@ export class FriendshipService {
   getFriendshipStatus(otherUserId: string): Promise<FriendshipStatus> {
     return this.apiFetch<FriendshipStatus>(`/status/${otherUserId}`);
   }
+
+  getFriendCount(userId: string): Promise<{ count: number }> {
+    return this.apiFetch<{ count: number }>(`/count/${userId}`);
+  }
 }
