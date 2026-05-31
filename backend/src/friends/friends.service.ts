@@ -39,6 +39,7 @@ export type FriendshipStatusValue =
 export interface FriendshipStatusResult {
   status: FriendshipStatusValue;
   friendshipId: number | null;
+  blockedByMe?: boolean;
 }
 
 @Injectable()
@@ -295,7 +296,86 @@ export class FriendsService {
       status = statusName as FriendshipStatusValue;
     }
 
-    return { status, friendshipId };
+    const result: FriendshipStatusResult = { status, friendshipId };
+    if (statusName === 'blocked') {
+      result.blockedByMe = requesterId === userId;
+    }
+    return result;
+  }
+
+  async blockUser(blockerId: string, blockedId: string): Promise<{ success: boolean }> {
+    if (blockerId === blockedId) {
+      throw new BadRequestException('Cannot block yourself.');
+    }
+    if (!isUuid(blockedId)) {
+      throw new BadRequestException('blockedId must be a valid UUID.');
+    }
+
+    const admin = this.supabase.getAdmin();
+    const blockedStatusId = await this.getStatusId('blocked');
+
+    const { data: existing } = await admin
+      .from('friendship')
+      .select('friendship_id')
+      .or(
+        `and(user_id1.eq.${blockerId},user_id2.eq.${blockedId}),and(user_id1.eq.${blockedId},user_id2.eq.${blockerId})`,
+      )
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await admin
+        .from('friendship')
+        .update({ status_id: blockedStatusId, requester_id: blockerId })
+        .eq('friendship_id', existing['friendship_id'] as number);
+      if (error) throw new InternalServerErrorException(error.message);
+    } else {
+      const { error } = await admin.from('friendship').insert({
+        user_id1: blockerId,
+        user_id2: blockedId,
+        status_id: blockedStatusId,
+        requester_id: blockerId,
+      });
+      if (error) {
+        if ((error as { code?: string }).code === '23503') {
+          throw new BadRequestException('Target user does not exist.');
+        }
+        throw new InternalServerErrorException(error.message);
+      }
+    }
+
+    return { success: true };
+  }
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<{ success: boolean }> {
+    if (!isUuid(blockedId)) {
+      throw new BadRequestException('blockedId must be a valid UUID.');
+    }
+
+    const admin = this.supabase.getAdmin();
+    const blockedStatusId = await this.getStatusId('blocked');
+
+    const { data: existing } = await admin
+      .from('friendship')
+      .select('friendship_id, requester_id, status_id')
+      .or(
+        `and(user_id1.eq.${blockerId},user_id2.eq.${blockedId}),and(user_id1.eq.${blockedId},user_id2.eq.${blockerId})`,
+      )
+      .maybeSingle();
+
+    if (!existing) throw new NotFoundException('No block found.');
+    if (existing['status_id'] !== blockedStatusId) {
+      throw new BadRequestException('User is not blocked.');
+    }
+    if (existing['requester_id'] !== blockerId) {
+      throw new ForbiddenException('Only the user who created the block can remove it.');
+    }
+
+    const { error } = await admin
+      .from('friendship')
+      .delete()
+      .eq('friendship_id', existing['friendship_id'] as number);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
   }
 }
 
