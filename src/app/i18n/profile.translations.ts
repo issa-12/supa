@@ -95,6 +95,26 @@ export interface ProfileCopy {
   noUsersFoundMsg: string;
   profileNotFoundMsg: string;
   friendCountDesc: string;
+  blockBtn: string;
+  unblockBtn: string;
+  blockedLabel: string;
+  blockConfirm: string;
+  blockError: string;
+  unblockError: string;
+  reportModalTitle: string;
+  reportReasonLabel: string;
+  reportDescriptionLabel: string;
+  reportDescriptionPlaceholder: string;
+  reportSubmitBtn: string;
+  reportCancelBtn: string;
+  reportSubmitting: string;
+  reportSubmitted: string;
+  reportError: string;
+  reasonSpam: string;
+  reasonHarassment: string;
+  reasonInappropriate: string;
+  reasonImpersonation: string;
+  reasonOther: string;
 }
 
 export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
@@ -193,6 +213,26 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     noUsersFoundMsg: 'No users found',
     profileNotFoundMsg: 'Profile not found',
     friendCountDesc: 'Connected readers',
+    blockBtn: 'Block',
+    unblockBtn: 'Unblock',
+    blockedLabel: 'Blocked',
+    blockConfirm: 'Block this user? They will no longer be able to send you friend requests.',
+    blockError: 'Could not block user. Please try again.',
+    unblockError: 'Could not unblock user. Please try again.',
+    reportModalTitle: 'Report user',
+    reportReasonLabel: 'Reason',
+    reportDescriptionLabel: 'Additional details (optional)',
+    reportDescriptionPlaceholder: 'Tell us more about what happened…',
+    reportSubmitBtn: 'Submit report',
+    reportCancelBtn: 'Cancel',
+    reportSubmitting: 'Submitting…',
+    reportSubmitted: 'Report submitted. Thank you.',
+    reportError: 'Could not submit report. Please try again.',
+    reasonSpam: 'Spam',
+    reasonHarassment: 'Harassment',
+    reasonInappropriate: 'Inappropriate content',
+    reasonImpersonation: 'Impersonation',
+    reasonOther: 'Other',
   },
   ar: {
     ownTitle: 'ملفي الشخصي',
@@ -289,6 +329,26 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     noUsersFoundMsg: 'لم يتم العثور على مستخدمين',
     profileNotFoundMsg: 'الملف الشخصي غير موجود',
     friendCountDesc: 'قراء متصلون',
+    blockBtn: 'حظر',
+    unblockBtn: 'إلغاء الحظر',
+    blockedLabel: 'محظور',
+    blockConfirm: 'حظر هذا المستخدم؟ لن يتمكن من إرسال طلبات صداقة إليك بعد الآن.',
+    blockError: 'تعذر حظر المستخدم. حاول مرة أخرى.',
+    unblockError: 'تعذر إلغاء حظر المستخدم. حاول مرة أخرى.',
+    reportModalTitle: 'الإبلاغ عن مستخدم',
+    reportReasonLabel: 'السبب',
+    reportDescriptionLabel: 'تفاصيل إضافية (اختياري)',
+    reportDescriptionPlaceholder: 'أخبرنا المزيد عما حدث…',
+    reportSubmitBtn: 'إرسال البلاغ',
+    reportCancelBtn: 'إلغاء',
+    reportSubmitting: 'جاري الإرسال…',
+    reportSubmitted: 'تم إرسال البلاغ. شكراً لك.',
+    reportError: 'تعذر إرسال البلاغ. حاول مرة أخرى.',
+    reasonSpam: 'بريد مزعج',
+    reasonHarassment: 'تحرش',
+    reasonInappropriate: 'محتوى غير لائق',
+    reasonImpersonation: 'انتحال شخصية',
+    reasonOther: 'أخرى',
   },
   fr: {
     ownTitle: 'Mon Profil',
@@ -385,5 +445,25 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     noUsersFoundMsg: 'Aucun utilisateur trouvé',
     profileNotFoundMsg: 'Profil non trouvé',
     friendCountDesc: 'Lecteurs connectés',
+    blockBtn: 'Bloquer',
+    unblockBtn: 'Débloquer',
+    blockedLabel: 'Bloqué',
+    blockConfirm: 'Bloquer cet utilisateur ? Il ne pourra plus vous envoyer de demandes d\'amitié.',
+    blockError: 'Impossible de bloquer cet utilisateur. Réessayez.',
+    unblockError: 'Impossible de débloquer cet utilisateur. Réessayez.',
+    reportModalTitle: 'Signaler un utilisateur',
+    reportReasonLabel: 'Motif',
+    reportDescriptionLabel: 'Détails supplémentaires (facultatif)',
+    reportDescriptionPlaceholder: 'Dites-nous-en plus sur ce qui s\'est passé…',
+    reportSubmitBtn: 'Envoyer le signalement',
+    reportCancelBtn: 'Annuler',
+    reportSubmitting: 'Envoi…',
+    reportSubmitted: 'Signalement envoyé. Merci.',
+    reportError: 'Impossible d\'envoyer le signalement. Réessayez.',
+    reasonSpam: 'Spam',
+    reasonHarassment: 'Harcèlement',
+    reasonInappropriate: 'Contenu inapproprié',
+    reasonImpersonation: 'Usurpation d\'identité',
+    reasonOther: 'Autre',
   },
 };

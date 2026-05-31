@@ -30,6 +30,7 @@ export type FriendshipStatusValue =
 export interface FriendshipStatus {
   status: FriendshipStatusValue;
   friendshipId: number | null;
+  blockedByMe?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -90,5 +91,13 @@ export class FriendshipService {
 
   getFriendCount(userId: string): Promise<{ count: number }> {
     return this.apiFetch<{ count: number }>(`/count/${userId}`);
+  }
+
+  blockUser(userId: string): Promise<{ success: boolean }> {
+    return this.apiFetch<{ success: boolean }>(`/block/${userId}`, { method: 'POST' });
+  }
+
+  unblockUser(userId: string): Promise<{ success: boolean }> {
+    return this.apiFetch<{ success: boolean }>(`/block/${userId}`, { method: 'DELETE' });
   }
 }
