@@ -42,11 +42,16 @@ export interface UserBook {
 }
 
 export interface CommunityReview {
+  userBookId: number;
   userId: string;
   userName: string;
   avatarUrl: string | null;
   rating: number | null;
   reviewText: string;
+  likeCount: number;
+  dislikeCount: number;
+  myReaction: 'like' | 'dislike' | null;
+  reactionSaving?: boolean;
 }
 
 export interface ReadingStatus {
@@ -539,7 +544,7 @@ export class BookService {
 
     const { data: reviews } = await supabase
       .from('user_books')
-      .select('user_id, rating, review_text')
+      .select('user_book_id, user_id, rating, review_text')
       .eq('book_id', bookId)
       .not('review_text', 'is', null)
       .neq('user_id', currentUserId);
@@ -547,23 +552,33 @@ export class BookService {
     if (!reviews?.length) return [];
 
     const userIds = reviews.map((r) => r['user_id'] as string);
-    const { data: users } = await supabase
-      .from('users')
-      .select('id, name, profile_picture_url')
-      .in('id', userIds);
+    const userBookIds = reviews.map((r) => r['user_book_id'] as number);
 
-    const userMap = new Map((users ?? []).map((u) => [u['id'] as string, u]));
+    const [usersRes, likesRes] = await Promise.all([
+      supabase.from('users').select('id, name, profile_picture_url').in('id', userIds),
+      supabase.from('review_likes').select('user_book_id, user_id, is_like').in('user_book_id', userBookIds),
+    ]);
+
+    const userMap = new Map((usersRes.data ?? []).map((u) => [u['id'] as string, u]));
+    const likeRows = likesRes.data ?? [];
 
     return reviews
       .filter((r) => r['review_text'])
       .map((r) => {
+        const userBookId = r['user_book_id'] as number;
         const u = userMap.get(r['user_id'] as string);
+        const rowReactions = likeRows.filter((l) => l['user_book_id'] === userBookId);
+        const mine = rowReactions.find((l) => l['user_id'] === currentUserId);
         return {
+          userBookId,
           userId: r['user_id'] as string,
           userName: (u?.['name'] as string) ?? 'Reader',
           avatarUrl: (u?.['profile_picture_url'] as string) ?? null,
           rating: r['rating'] as number | null,
           reviewText: r['review_text'] as string,
+          likeCount: rowReactions.filter((l) => l['is_like'] === true).length,
+          dislikeCount: rowReactions.filter((l) => l['is_like'] === false).length,
+          myReaction: mine ? ((mine['is_like'] ? 'like' : 'dislike') as 'like' | 'dislike') : null,
         };
       });
   }

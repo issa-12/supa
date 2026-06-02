@@ -24,6 +24,38 @@ export class LikesService {
     ).pipe(catchError((err) => throwError(() => err)));
   }
 
+  // Reviews support both like and dislike, so a single row per (review, user)
+  // carries an is_like flag. Clicking the active reaction again clears it.
+  toggleReviewReaction(
+    userBookId: number,
+    userId: string,
+    reviewOwnerId: string,
+    currentReaction: 'like' | 'dislike' | null,
+    wantLike: boolean,
+  ): Observable<void> {
+    const want: 'like' | 'dislike' = wantLike ? 'like' : 'dislike';
+    return from(
+      this.supabaseService.getClient().then(async (supabase) => {
+        if (currentReaction === want) {
+          const { error } = await supabase
+            .from('review_likes')
+            .delete()
+            .eq('user_book_id', userBookId)
+            .eq('user_id', userId);
+          if (error) throw error;
+          return;
+        }
+        const { error } = await supabase
+          .from('review_likes')
+          .upsert({ user_book_id: userBookId, user_id: userId, is_like: wantLike }, { onConflict: 'user_book_id,user_id' });
+        if (error) throw error;
+        if (wantLike && currentReaction !== 'like') {
+          this.notificationsService.fireNotification(reviewOwnerId, userId, 'review_liked', userBookId, 'review');
+        }
+      }),
+    ).pipe(catchError((err) => throwError(() => err)));
+  }
+
   toggleCommentLike(commentId: number, userId: string, commentOwnerId: string, currentlyLiked: boolean): Observable<void> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
