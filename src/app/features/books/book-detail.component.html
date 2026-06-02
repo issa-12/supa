@@ -67,6 +67,40 @@
             }
           </div>
 
+          <!-- Community rating breakdown -->
+          @if (book.ratingStats && book.ratingStats.total > 0) {
+            <div class="rating-breakdown">
+              <div class="rb-summary">
+                <span class="rb-average">{{ book.ratingStats.average }}</span>
+                <div class="rb-summary-meta">
+                  <div class="rb-summary-stars">
+                    @for (star of communityStars(); track star.index) {
+                      <svg class="rb-star" [class.rb-star--filled]="star.filled" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                    }
+                  </div>
+                  <span class="rb-total">{{ book.ratingStats.total }} {{ book.ratingStats.total === 1 ? copy.ratingUnit : copy.ratingsUnit }}</span>
+                </div>
+              </div>
+
+              <div class="rb-bars">
+                @for (bucket of book.ratingStats.distribution; track bucket.star) {
+                  <div class="rb-row">
+                    <span class="rb-row-label">{{ bucket.star }}</span>
+                    <svg class="rb-row-star" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <div class="rb-track">
+                      <div class="rb-fill" [style.width.%]="bucket.percent"></div>
+                    </div>
+                    <span class="rb-percent">{{ bucket.percent }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Rating (only if book is on shelf) -->
           @if (userBook) {
             <div class="rating-section">
@@ -139,43 +173,37 @@
             @if (userBook) {
               <!-- Currently on shelf -->
               <div class="shelf-status-wrap">
-                <span class="on-shelf-badge">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  {{ currentStatusLabel }}
-                </span>
+                <div class="dropdown-wrap">
+                  <button
+                    class="btn btn-outline shelf-status-btn"
+                    (click)="toggleStatusDropdown()"
+                    [disabled]="savingStatus"
+                  >
+                    <svg class="shelf-status-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span class="shelf-status-text">{{ currentStatusLabel }}</span>
+                    <svg class="shelf-status-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
 
-                <div class="shelf-btn-group">
-                  <div class="dropdown-wrap">
-                    <button
-                      class="btn btn-outline"
-                      (click)="toggleStatusDropdown()"
-                      [disabled]="savingStatus"
-                    >
-                      {{ copy.changeStatus }}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
-                    </button>
-
-                    @if (showStatusDropdown) {
-                      <div class="dropdown">
-                        @for (status of statuses; track status.name) {
-                          @if (status.name !== userBook.status?.name) {
-                            <button class="dropdown-item" (click)="changeStatus(status.name)">
-                              <span>{{ status.icon }}</span>
-                              {{ status.label }}
-                            </button>
-                          }
+                  @if (showStatusDropdown) {
+                    <div class="dropdown">
+                      @for (status of statuses; track status.name) {
+                        @if (status.name !== userBook.status?.name) {
+                          <button class="dropdown-item" (click)="changeStatus(status.name)">
+                            <span>{{ status.icon }}</span>
+                            {{ status.label }}
+                          </button>
                         }
-                        <div class="dropdown-divider"></div>
-                        <button class="dropdown-item dropdown-item--danger" (click)="removeFromShelf()">
-                          {{ copy.removeFromShelf }}
-                        </button>
-                      </div>
-                    }
-                  </div>
+                      }
+                      <div class="dropdown-divider"></div>
+                      <button class="dropdown-item dropdown-item--danger" (click)="removeFromShelf()">
+                        {{ copy.removeFromShelf }}
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
             } @else {
@@ -285,6 +313,32 @@
                 }
               </div>
               <p class="review-text">{{ review.reviewText }}</p>
+              <div class="review-actions">
+                <button
+                  class="review-react"
+                  [class.review-react--liked]="review.myReaction === 'like'"
+                  [disabled]="review.reactionSaving"
+                  [attr.aria-label]="copy.likeReview"
+                  (click)="toggleReviewReaction(review, true)"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                  </svg>
+                  @if (review.likeCount > 0) { <span>{{ review.likeCount }}</span> }
+                </button>
+                <button
+                  class="review-react"
+                  [class.review-react--disliked]="review.myReaction === 'dislike'"
+                  [disabled]="review.reactionSaving"
+                  [attr.aria-label]="copy.dislikeReview"
+                  (click)="toggleReviewReaction(review, false)"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+                  </svg>
+                  @if (review.dislikeCount > 0) { <span>{{ review.dislikeCount }}</span> }
+                </button>
+              </div>
             </div>
           }
         </div>

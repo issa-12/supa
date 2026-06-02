@@ -120,6 +120,7 @@ public.user_genres    -- many-to-many user ↔ genre
 public.posts          -- community posts (tied to a book)
 public.comments       -- threaded (parent_comment_id, depth 0-3)
 public.post_likes / comment_likes
+public.review_likes   -- like/dislike on community reviews (user_book_id, user_id, is_like) UNIQUE(user_book_id,user_id)
 public.friendship     -- user_id1, user_id2, status_id, requester_id
 public.friendship_status  -- pending / accepted / rejected / blocked
 public.notifications
@@ -178,7 +179,7 @@ All tables have RLS enabled. Key rules:
 | POST | `/api/auth/verify-email` | OTP verify → returns session tokens |
 | POST | `/api/auth/resend-verification` | Resend OTP |
 | GET | `/api/books/search?q=&maxResults=` | Google Books proxy search |
-| GET | `/api/books/:googleId` | Book detail (DB first, then Google fallback) |
+| GET | `/api/books/:googleId` | Book detail (DB first, then Google fallback); includes `ratingStats` (community star distribution) when the book is in the DB |
 | POST | `/api/friends/request` | Send a friend request |
 | PATCH | `/api/friends/:id/accept` | Accept an incoming request |
 | PATCH | `/api/friends/:id/reject` | Reject an incoming request |
@@ -370,6 +371,31 @@ All tables have RLS enabled. Key rules:
   - `GET /api/community/tags/trending` — trending tags across all posts
   - `POST /api/community/posts` — create post with auto-tagging and moderation (max 2000 chars, up to 5 tags)
 
+### Post-sprint Notifications & i18n Hardening (Post-Day 15)
+- **NG0203 crash fix**: `app.ts` and `top-nav.component.ts` called `takeUntilDestroyed()` inside `ngOnInit` (outside the injection context), which threw `NG0203` and aborted nav init — so the notification bell/panel never loaded. Fixed by injecting `DestroyRef` and passing it: `takeUntilDestroyed(this.destroyRef)`. All other `takeUntilDestroyed()` calls are in constructors (valid) and were left alone.
+- **Notification panel resilience** (`notifications.service.ts`, `notifications-panel.component.ts`, `top-nav.component.ts`):
+  - `markAsRead` / `markAllAsRead` are now optimistic with rollback and never reject (template click handlers fire-and-forget safely).
+  - `loadNotifications` returns a success boolean and pulls the exact unread count from `/unread-count` in parallel (the list endpoint is capped at 20, so deriving the badge from it under-reported). A failed load now shows a distinct **"Couldn't load notifications" + Retry** state instead of masquerading as the empty state.
+  - Realtime INSERT handler reconciles the badge via `loadUnreadCount()` (exact) instead of a blind optimistic `+1`, so the bell can never show a phantom count.
+  - Panel: avatar `(error)` fallback to initials; relative timestamps refresh once a minute via `ChangeDetectorRef.markForCheck()`.
+- **Notification labels translated**: removed the hardcoded English `NOTIFICATION_LABELS` map; the panel resolves labels from the typed `NOTIFICATIONS_COPY` i18n object (EN/AR/FR).
+- **`timeAgo(iso, lang)`**: now takes a `LanguageCode` and returns localized relative-time strings; all call sites (posts-feed, post-comments, community-page, profile-page, notifications-panel) pass `lang`.
+- **Shelf section titles translated**: the library section headings ("Currently Reading" / "Want to Read" / "Already Read") used a hardcoded English map; replaced with a reactive `sectionLabel(statusName)` method reading from `SHELF_COPY`, so they translate and update live on language switch.
+- **RTL dropdown clipping fix**: the notifications panel and nav user-menu were pinned with physical `right: 0`, so in Arabic (`dir="rtl"`) they overflowed off-screen. Switched to logical `inset-inline-end`, which flips with direction. (No `[dir="rtl"]`/`:host-context` CSS exists elsewhere — the app relies on `dir` on `<html>` set in `app.ts`.)
+
+### Post-sprint Friend Request Revival (Post-Day 15)
+- **Bug**: the profile page showed "Add friend" for both `none` and `rejected` statuses, but the backend `sendRequest` only did an `INSERT` — so re-requesting someone whose prior request was rejected hit the `friendship_unique_pair` unique index and returned **409**, with "Please try again" that could never succeed.
+- **Fix** (`backend/src/friends/friends.service.ts`): `sendRequest` now looks up the existing row first — `rejected` → revives it to `pending` with the current user as requester (and fires the `friend_request` notification); `blocked` → 403 with an unblock message; `pending`/`accepted` → 409; no row → insert (keeps the `23505` race guard).
+- **Frontend** (`profile-page.component.ts`): `sendFriendRequest` surfaces the server's actual message instead of generic retry text, and a new `refreshFriendshipStatus()` re-syncs the button state on failure.
+
+### Post-sprint Book Page: Rating Breakdown, Status Dropdown, Review Reactions (Post-Day 15)
+- **Community rating distribution**: `GET /api/books/:googleId` now returns `ratingStats { average, total, distribution[] }` (5★→1★ with count + percent), aggregated from `user_books.rating` via the **admin client** (`BooksService.getRatingStats`) — a client-side query couldn't see all ratings because `user_books` RLS is `user_id = auth.uid() OR is_public = true`. Rendered at the top of the book page (average + stars + percentage bars); hidden when there are zero ratings. `null` for books not yet in the catalog. **Requires the backend to be restarted** to serve the new field.
+- **Status control merged**: the book page previously showed a separate "Currently Reading" badge **and** a "Change status" button. Now a single `.shelf-status-btn` (green check + status label + caret) is the dropdown trigger.
+- **Review like/dislike** (`review_likes` table — see migration `20260602000000_review_likes.sql`):
+  - A "review" is a `user_books` row with `review_text`; reactions key off its `user_book_id`. One row per (review, user) with an `is_like` boolean; clicking the active reaction clears it, switching flips it.
+  - `LikesService.toggleReviewReaction()` (upsert/delete; fires `review_liked` notification on a new like). `BookService.getCommunityReviews` batch-fetches reactions and returns `likeCount`, `dislikeCount`, `myReaction`, `userBookId` on each `CommunityReview`.
+  - `book-detail` has optimistic Helpful/Not-helpful buttons (EN/AR/FR labels). Degrades gracefully if the table is missing (counts show 0, no crash).
+
 ---
 
 ## Production deployment checklist
@@ -418,7 +444,12 @@ Before deploying to a production server:
      ADD COLUMN IF NOT EXISTS review_text  TEXT;
    ```
 
-8. **PostgREST join limitation** — `user_books.user_id` has no FK to `public.users`, so any
+8. **`review_likes` migration** — `supabase/migrations/20260602000000_review_likes.sql` must be
+   run in the Supabase SQL Editor for review like/dislike to persist. **Applied and verified live**
+   (table + RLS + `UNIQUE(user_book_id, user_id)` confirmed). Until applied, reviews still render
+   but reactions show 0 and don't save (no crash).
+
+9. **PostgREST join limitation** — `user_books.user_id` has no FK to `public.users`, so any
    feature needing user profiles from user_books must use the two-query pattern:
    fetch user_ids first → separate `.in('id', userIds)` on `users` table. See
    `StatsService.getTopReaders()` and `BookService.getCommunityReviews()` for reference.

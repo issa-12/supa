@@ -6,8 +6,21 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook, GoogleBook, CommunityReview } from '../../core/services/book.service';
 import { FriendshipService, FriendUser } from '../../core/services/friendship.service';
 import { RecommendationService } from '../../core/services/recommendation.service';
+import { LikesService } from '../../core/services/likes.service';
 import { TranslationService, BOOK_DETAIL_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+interface RatingBucket {
+  star: number;
+  count: number;
+  percent: number;
+}
+
+interface RatingStats {
+  average: number;
+  total: number;
+  distribution: RatingBucket[];
+}
 
 interface BookDetail {
   googleId: string;
@@ -19,6 +32,7 @@ interface BookDetail {
   coverUrl: string | null;
   pageCount: number | null;
   categories: string[];
+  ratingStats: RatingStats | null;
 }
 
 const SHELF_STATUSES = [
@@ -41,6 +55,7 @@ export class BookDetailComponent implements OnInit {
   private readonly bookService = inject(BookService);
   private readonly friendshipService = inject(FriendshipService);
   private readonly recommendationService = inject(RecommendationService);
+  private readonly likesService = inject(LikesService);
   private readonly translationService = inject(TranslationService);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -128,6 +143,12 @@ export class BookDetailComponent implements OnInit {
       index: n,
       filled: n <= this.displayRating,
     }));
+  }
+
+  // Filled/empty stars for the community average (rounded to nearest whole star).
+  communityStars(): Array<{ index: number; filled: boolean }> {
+    const rounded = Math.round(this.book?.ratingStats?.average ?? 0);
+    return [1, 2, 3, 4, 5].map((n) => ({ index: n, filled: n <= rounded }));
   }
 
   async setRating(rating: number): Promise<void> {
@@ -291,6 +312,41 @@ export class BookDetailComponent implements OnInit {
       console.error(err);
     } finally {
       this.reviewSaving = false;
+    }
+  }
+
+  async toggleReviewReaction(review: CommunityReview, wantLike: boolean): Promise<void> {
+    if (!this.userId || review.reactionSaving) return;
+
+    const prev = {
+      likeCount: review.likeCount,
+      dislikeCount: review.dislikeCount,
+      myReaction: review.myReaction,
+    };
+    const target: 'like' | 'dislike' = wantLike ? 'like' : 'dislike';
+
+    // Optimistically apply the toggle: drop the current reaction's count, then
+    // either clear it (same button) or switch to the new one.
+    if (review.myReaction === 'like') review.likeCount--;
+    if (review.myReaction === 'dislike') review.dislikeCount--;
+    if (review.myReaction === target) {
+      review.myReaction = null;
+    } else {
+      if (wantLike) review.likeCount++; else review.dislikeCount++;
+      review.myReaction = target;
+    }
+
+    review.reactionSaving = true;
+    try {
+      await firstValueFrom(
+        this.likesService.toggleReviewReaction(review.userBookId, this.userId, review.userId, prev.myReaction, wantLike),
+      );
+    } catch {
+      review.likeCount = prev.likeCount;
+      review.dislikeCount = prev.dislikeCount;
+      review.myReaction = prev.myReaction;
+    } finally {
+      review.reactionSaving = false;
     }
   }
 
