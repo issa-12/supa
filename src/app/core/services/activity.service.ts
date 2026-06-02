@@ -16,6 +16,8 @@ export interface ActivityPost {
   likeCount: number;
   commentCount: number;
   isLikedByMe: boolean;
+  tags: string[];
+  sentiment: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -56,7 +58,7 @@ export class ActivityService {
 
     const { data: posts, error } = await supabase
       .from('posts')
-      .select('post_id, book_id, content, created_at, user_id')
+      .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
       .in('user_id', feedUserIds)
       .neq('is_deleted', true)
       .order('created_at', { ascending: false })
@@ -101,8 +103,8 @@ export class ActivityService {
       this.supabaseService.getClient().then(async (supabase) => {
         const { data, error } = await supabase
           .from('posts')
-          .insert({ user_id: userId, book_id: bookId, content, is_deleted: false })
-          .select('post_id, book_id, content, created_at, user_id')
+          .insert({ user_id: userId, book_id: bookId, content, tags: [], is_deleted: false })
+          .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
           .single();
 
         if (error) throw error;
@@ -136,7 +138,7 @@ export class ActivityService {
 
         const { data: posts, error } = await supabase
           .from('posts')
-          .select('post_id, book_id, content, created_at, user_id')
+          .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
           .neq('is_deleted', true)
           .gte('created_at', since)
           .limit(100);
@@ -185,7 +187,7 @@ export class ActivityService {
       this.supabaseService.getClient().then(async (supabase) => {
         const { data: posts, error } = await supabase
           .from('posts')
-          .select('post_id, book_id, content, created_at, user_id')
+          .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
           .eq('user_id', targetUserId)
           .neq('is_deleted', true)
           .order('created_at', { ascending: false })
@@ -231,7 +233,7 @@ export class ActivityService {
       this.supabaseService.getClient().then(async (supabase) => {
         const { data: posts, error } = await supabase
           .from('posts')
-          .select('post_id, book_id, content, created_at, user_id')
+          .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
           .eq('book_id', bookId)
           .neq('is_deleted', true)
           .order('created_at', { ascending: false })
@@ -272,6 +274,52 @@ export class ActivityService {
     ).pipe(catchError((err) => throwError(() => err)));
   }
 
+  async getCommunityPosts(userId: string, tag?: string, page = 0): Promise<ActivityPost[]> {
+    const session = await this.supabaseService.getCurrentSession();
+    const token = session?.access_token;
+    if (!token) return [];
+    const params = new URLSearchParams({ page: String(page) });
+    if (tag) params.set('tag', tag);
+    const res = await fetch(`/api/community/posts?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return res.json() as Promise<ActivityPost[]>;
+  }
+
+  async getCommunityTrendingPosts(userId: string): Promise<ActivityPost[]> {
+    const session = await this.supabaseService.getCurrentSession();
+    const token = session?.access_token;
+    if (!token) return [];
+    const res = await fetch('/api/community/posts?trending=true', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return res.json() as Promise<ActivityPost[]>;
+  }
+
+  async createCommunityPost(
+    userId: string,
+    bookId: number,
+    content: string,
+    tags: string[],
+  ): Promise<ActivityPost> {
+    const session = await this.supabaseService.getCurrentSession();
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch('/api/community/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ bookId, content, tags }),
+    });
+    const body = await res.json() as ActivityPost & { message?: string };
+    if (!res.ok) throw new Error(body.message ?? 'Failed to post');
+    return body;
+  }
+
   private mapPost(
     raw: Record<string, unknown>,
     authorMap: Map<string, Record<string, unknown>>,
@@ -296,6 +344,8 @@ export class ActivityService {
       likeCount: likeCountMap.get(pid) ?? 0,
       commentCount: commentCountMap.get(pid) ?? 0,
       isLikedByMe: likedPostIds.has(pid),
+      tags: (raw['tags'] as string[]) ?? [],
+      sentiment: (raw['sentiment'] as string) ?? null,
     };
   }
 }

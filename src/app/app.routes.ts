@@ -27,6 +27,13 @@ export const routes: Routes = [
     path: 'verify-email',
     component: EmailVerificationComponent,
   },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+  },
 
   // ── Onboarding (auth required, not guarded by genre check) ────
   {
@@ -86,6 +93,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/stats/stats-page.component').then(
         (m) => m.StatsPageComponent,
+      ),
+  },
+  {
+    path: 'community',
+    canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/community/community-page.component').then(
+        (m) => m.CommunityPageComponent,
       ),
   },
 

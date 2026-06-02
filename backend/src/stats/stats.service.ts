@@ -43,13 +43,18 @@ export class StatsService {
 
   private async getReadStatusId(): Promise<number> {
     if (this.readStatusId !== null) return this.readStatusId;
-    const { data } = await this.supabase
+    const { data, error } = await this.supabase
       .getAdmin()
       .from('reading_statuses')
       .select('status_id')
       .eq('status_name', 'read')
       .single();
-    this.readStatusId = (data?.['status_id'] as number) ?? 1;
+    if (error || !data) {
+      throw new InternalServerErrorException(
+        'reading_statuses seed missing "read" row — run the day-1 migration.',
+      );
+    }
+    this.readStatusId = data['status_id'] as number;
     return this.readStatusId;
   }
 
@@ -61,7 +66,7 @@ export class StatsService {
       .getAdmin()
       .from('user_books')
       .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id)')
-      .gte('added_at', since);
+      .gte('updated_at', since);
 
     if (error) throw new InternalServerErrorException(error.message);
 

@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Subject } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
+import { TranslationService, STATS_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface TopBook {
   rank: number;
@@ -41,14 +42,21 @@ interface MonthlyPace {
   templateUrl: './stats-page.component.html',
   styleUrl: './stats-page.component.scss',
 })
-export class StatsPageComponent implements OnInit, OnDestroy {
+export class StatsPageComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
-  private readonly destroy$ = new Subject<void>();
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return STATS_COPY[this.lang]; }
 
   period: 'week' | 'month' = 'week';
   isLoadingGlobal = true;
   isLoadingPace = true;
   currentYear = new Date().getFullYear();
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   topBooks: TopBook[] = [];
   trendingGenres: TrendingGenre[] = [];
@@ -66,11 +74,6 @@ export class StatsPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void Promise.all([this.loadGlobalStats(), this.loadPace()]);
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   setPeriod(p: 'week' | 'month'): void {

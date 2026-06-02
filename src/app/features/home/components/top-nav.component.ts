@@ -1,12 +1,14 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription, firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NotificationsService, AppNotification } from '../../../core/services/notifications.service';
 import { NotificationsPanelComponent } from './notifications-panel.component';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { UserService, UserProfile } from '../../../core/services/user.service';
+import { TranslationService, LanguageSelectorComponent, LANGUAGE_OPTIONS, LanguageOption, NAV_COPY, LanguageCode } from '../../../i18n';
 
 interface NavSearchBook {
   googleId: string;
@@ -18,7 +20,7 @@ interface NavSearchBook {
 @Component({
   selector: 'app-top-nav',
   standalone: true,
-  imports: [CommonModule, RouterLink, AsyncPipe, NotificationsPanelComponent, FormsModule],
+  imports: [CommonModule, RouterLink, AsyncPipe, NotificationsPanelComponent, FormsModule, LanguageSelectorComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <header class="top-nav">
@@ -36,7 +38,7 @@ interface NavSearchBook {
           <input
             class="search-input"
             type="text"
-            placeholder="Search books or users..."
+            [placeholder]="copy.searchPlaceholder"
             [(ngModel)]="searchQuery"
             (focus)="onSearchFocus()"
             (input)="onSearchInput()"
@@ -57,13 +59,13 @@ interface NavSearchBook {
         @if (searchOpen && searchQuery.length >= 2) {
           <div class="search-dropdown">
             @if (searchLoading) {
-              <p class="search-state">Searching…</p>
+              <p class="search-state">{{ copy.searchingState }}</p>
             } @else if (searchBookResults.length === 0 && searchUserResults.length === 0) {
-              <p class="search-state">No results for "{{ searchQuery }}"</p>
+              <p class="search-state">{{ copy.searchNoResults.replace('{{ query }}', searchQuery) }}</p>
             } @else {
               @if (searchUserResults.length > 0) {
                 <div class="search-section">
-                  <p class="search-section-label">People</p>
+                  <p class="search-section-label">{{ copy.searchSectionPeople }}</p>
                   @for (user of searchUserResults; track user.id) {
                     <button class="search-item" (click)="goToUser(user)">
                       <img
@@ -79,7 +81,7 @@ interface NavSearchBook {
               }
               @if (searchBookResults.length > 0) {
                 <div class="search-section">
-                  <p class="search-section-label">Books</p>
+                  <p class="search-section-label">{{ copy.searchSectionBooks }}</p>
                   @for (book of searchBookResults; track book.googleId) {
                     <button class="search-item" (click)="goToBook(book)">
                       @if (book.coverUrl) {
@@ -103,7 +105,7 @@ interface NavSearchBook {
                 [queryParams]="{ q: searchQuery }"
                 (click)="closeSearch()"
               >
-                See all book results
+                {{ copy.searchSeeAll }}
                 <iconify-icon icon="lucide:arrow-right" style="font-size: 13px"></iconify-icon>
               </a>
             }
@@ -112,16 +114,20 @@ interface NavSearchBook {
       </div>
 
       <div class="nav-actions">
-        <a routerLink="/shelf" class="nav-icon-btn" aria-label="My Shelf">
+        <a routerLink="/shelf" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/stats" class="nav-icon-btn" aria-label="Stats">
+        <a routerLink="/community" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel">
+          <iconify-icon icon="lucide:users" style="font-size: 20px"></iconify-icon>
+        </a>
+
+        <a routerLink="/stats" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel">
           <iconify-icon icon="lucide:bar-chart-2" style="font-size: 20px"></iconify-icon>
         </a>
 
         <div class="bell-wrapper">
-          <button class="nav-icon-btn" aria-label="Notifications" (click)="togglePanel()">
+          <button class="nav-icon-btn" [attr.aria-label]="copy.notificationsAriaLabel" (click)="togglePanel()">
             <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
             @if (unreadCount$ | async; as count) {
               @if (count > 0) {
@@ -134,10 +140,19 @@ interface NavSearchBook {
             <app-notifications-panel
               [notifications]="notifications"
               [isLoading]="panelLoading"
+              [loadError]="panelError"
               (close)="closePanel()"
+              (reload)="loadPanel()"
             />
           }
         </div>
+
+        <app-language-selector
+          class="nav-language-selector"
+          [languages]="languages"
+          [selectedLanguage]="selectedLanguage"
+          [compact]="true"
+        />
 
         <div class="avatar-wrap" (click)="$event.stopPropagation()">
           <img
@@ -153,7 +168,7 @@ interface NavSearchBook {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-                My Profile
+                {{ copy.myProfile }}
               </a>
               <div class="user-menu-divider"></div>
               <button class="user-menu-item user-menu-item--danger" (click)="logout()">
@@ -162,7 +177,7 @@ interface NavSearchBook {
                   <polyline points="16 17 21 12 16 7"/>
                   <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
-                Logout
+                {{ copy.logout }}
               </button>
             </div>
           }
@@ -180,9 +195,8 @@ interface NavSearchBook {
       align-items: center;
       justify-content: space-between;
       padding: 16px 40px;
-      background: rgba(246, 239, 230, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(126, 107, 93, 0.12);
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
       position: relative;
       z-index: 50;
     }
@@ -203,13 +217,12 @@ interface NavSearchBook {
       width: 44px;
       height: 44px;
       border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      background: var(--primary);
       color: var(--primary-foreground);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 20px rgba(233, 120, 63, 0.2);
-    }
+       }
 
     .brand-text {
       font-size: 28px;
@@ -229,17 +242,15 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: rgba(255, 250, 245, 0.7);
-      border: 1px solid rgba(126, 107, 93, 0.2);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 999px;
       padding: 10px 20px;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-      transition: border-color 0.2s, box-shadow 0.2s;
+       transition: border-color 0.2s;
 
       &.focused, &:focus-within {
-        border-color: rgba(233, 120, 63, 0.4);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02), 0 0 0 3px rgba(233, 120, 63, 0.08);
-      }
+        border-color: rgba(217, 119, 87, 0.4);
+         }
     }
 
     .search-icon {
@@ -266,7 +277,7 @@ interface NavSearchBook {
     .nav-spinner {
       width: 14px;
       height: 14px;
-      border: 2px solid rgba(233, 120, 63, 0.2);
+      border: 2px solid rgba(217, 119, 87, 0.2);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -290,11 +301,9 @@ interface NavSearchBook {
       top: calc(100% + 8px);
       left: 0;
       right: 0;
-      background: rgba(255, 250, 245, 0.98);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 20px 48px rgba(51, 38, 29, 0.16);
-      backdrop-filter: blur(16px);
       z-index: 300;
       overflow: hidden;
     }
@@ -309,7 +318,7 @@ interface NavSearchBook {
 
     .search-section {
       padding: 8px 0;
-      & + & { border-top: 1px solid rgba(126, 107, 93, 0.08); }
+      & + & { border-top: 1px solid var(--border); }
     }
 
     .search-section-label {
@@ -334,7 +343,7 @@ interface NavSearchBook {
       text-align: left;
       transition: background 0.12s;
 
-      &:hover { background: rgba(233, 120, 63, 0.07); }
+      &:hover { background: var(--primary-soft); }
     }
 
     .item-avatar {
@@ -359,7 +368,7 @@ interface NavSearchBook {
       flex-shrink: 0;
 
       &--empty {
-        background: rgba(126, 107, 93, 0.1);
+        background: var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -401,10 +410,10 @@ interface NavSearchBook {
       font-weight: 700;
       color: var(--primary);
       text-decoration: none;
-      border-top: 1px solid rgba(126, 107, 93, 0.08);
+      border-top: 1px solid var(--border);
       transition: background 0.12s;
 
-      &:hover { background: rgba(233, 120, 63, 0.05); }
+      &:hover { background: var(--primary-soft); }
     }
 
     .nav-actions {
@@ -421,13 +430,13 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 250, 245, 0.6);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       color: var(--foreground);
       cursor: pointer;
       transition: all 0.2s ease;
 
-      &:hover { background: rgba(255, 250, 245, 0.8); }
+      &:hover { background: var(--surface); }
       &:active { transform: scale(0.95); }
     }
 
@@ -444,7 +453,7 @@ interface NavSearchBook {
       padding: 0 4px;
       background: var(--destructive);
       border-radius: 999px;
-      border: 2px solid rgba(246, 239, 230, 0.95);
+      border: 2px solid var(--background);
       font-size: 10px;
       font-weight: 700;
       color: #fff;
@@ -463,25 +472,22 @@ interface NavSearchBook {
       height: 44px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid rgba(255, 250, 245, 0.9);
-      box-shadow: 0 4px 12px rgba(51, 38, 29, 0.1);
-      cursor: pointer;
+      border: 2px solid var(--surface);
+       cursor: pointer;
       transition: all 0.2s ease;
       display: block;
 
-      &:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(51, 38, 29, 0.15); }
+      &:hover { transform: scale(1.05);  }
     }
 
     .user-menu {
       position: absolute;
       top: calc(100% + 10px);
-      right: 0;
+      inset-inline-end: 0;
       min-width: 180px;
-      background: rgba(255, 250, 245, 0.98);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      box-shadow: 0 16px 40px rgba(51, 38, 29, 0.14);
-      backdrop-filter: blur(12px);
       z-index: 200;
       overflow: hidden;
       padding: 4px 0;
@@ -502,14 +508,29 @@ interface NavSearchBook {
       cursor: pointer;
       transition: background 0.15s;
 
-      &:hover { background: rgba(126, 107, 93, 0.07); }
+      &:hover { background: var(--border); }
       &--danger { color: #dc2626; &:hover { background: rgba(220, 38, 38, 0.07); } }
     }
 
     .user-menu-divider {
       height: 1px;
-      background: rgba(126, 107, 93, 0.1);
+      background: var(--border);
       margin: 4px 0;
+    }
+
+    .nav-language-selector {
+      display: flex;
+      align-items: center;
+
+      ::ng-deep .language-button {
+        background: var(--surface);
+        &:hover {
+          background: var(--surface);
+        }
+        &:active {
+          transform: scale(0.95);
+        }
+      }
     }
 
 
@@ -527,13 +548,21 @@ export class TopNavComponent implements OnInit, OnDestroy {
   private readonly supabaseService = inject(SupabaseService);
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly unreadCount$ = this.notificationsService.unreadCount$;
   notifications: AppNotification[] = [];
   panelOpen = false;
   panelLoading = false;
+  panelError = false;
   avatarUrl: string | null = null;
   userMenuOpen = false;
+
+  // Language support
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected selectedLanguage: LanguageOption = LANGUAGE_OPTIONS.find(l => l.code === this.lang) || LANGUAGE_OPTIONS[0];
+  protected languages = LANGUAGE_OPTIONS;
 
   searchQuery = '';
   searchOpen = false;
@@ -541,10 +570,19 @@ export class TopNavComponent implements OnInit, OnDestroy {
   searchBookResults: NavSearchBook[] = [];
   searchUserResults: UserProfile[] = [];
 
+  protected get copy() { return NAV_COPY[this.lang]; }
+
   private sub?: Subscription;
   private searchTimer?: ReturnType<typeof setTimeout>;
 
   async ngOnInit(): Promise<void> {
+    // Subscribe to language changes. takeUntilDestroyed() runs here in ngOnInit
+    // (outside the injection context), so it needs an explicit DestroyRef.
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(lang => {
+      this.lang = lang;
+      this.selectedLanguage = LANGUAGE_OPTIONS.find(l => l.code === lang) || LANGUAGE_OPTIONS[0];
+    });
+
     this.sub = this.notificationsService.notifications$.subscribe((n) => {
       this.notifications = n;
     });
@@ -580,8 +618,14 @@ export class TopNavComponent implements OnInit, OnDestroy {
   async togglePanel(): Promise<void> {
     if (this.panelOpen) { this.closePanel(); return; }
     this.panelOpen = true;
+    await this.loadPanel();
+  }
+
+  async loadPanel(): Promise<void> {
     this.panelLoading = true;
-    await this.notificationsService.loadNotifications();
+    this.panelError = false;
+    const ok = await this.notificationsService.loadNotifications();
+    this.panelError = !ok;
     this.panelLoading = false;
   }
 

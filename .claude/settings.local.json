@@ -38,7 +38,16 @@
       "Bash(npx supabase *)",
       "Bash(curl *)",
       "Bash(node *)",
-      "Bash(Select-Object -First 20)"
+      "Bash(Select-Object -First 20)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(docker --version)",
+      "Bash(npm list *)",
+      "Bash(xargs grep -l \"i18n\\\\|translation\\\\|language\")",
+      "Bash(npm run *)",
+      "Bash(grep -rln \"notifications-panel\\\\|NotificationsPanel\\\\|unreadCount\\\\|notifications\\\\$\\\\|subscribeToRealtime\\\\|loadNotifications\" src/app/ --include=\"*.ts\")",
+      "mcp__ide__getDiagnostics",
+      "Bash(sed -n '1,30p' backend/test-stats.mjs)",
+      "Bash(grep -o \"^[A-Z_]*=\" backend/.env)"
     ]
   }
 }

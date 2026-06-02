@@ -84,6 +84,37 @@ export class FriendsController {
     const userId = await this.friendsService.verifyUser(token);
     return this.friendsService.getFriendshipStatus(userId, otherUserId);
   }
+
+  @Get('count/:userId')
+  async getFriendCount(
+    @Headers('authorization') auth: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const token = extractToken(auth);
+    await this.friendsService.verifyUser(token);
+    return this.friendsService.getFriendCount(targetUserId);
+  }
+
+  @Post('block/:userId')
+  @HttpCode(HttpStatus.OK)
+  async blockUser(
+    @Headers('authorization') auth: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const token = extractToken(auth);
+    const blockerId = await this.friendsService.verifyUser(token);
+    return this.friendsService.blockUser(blockerId, targetUserId);
+  }
+
+  @Delete('block/:userId')
+  async unblockUser(
+    @Headers('authorization') auth: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const token = extractToken(auth);
+    const blockerId = await this.friendsService.verifyUser(token);
+    return this.friendsService.unblockUser(blockerId, targetUserId);
+  }
 }
 
 function extractToken(auth: string): string {

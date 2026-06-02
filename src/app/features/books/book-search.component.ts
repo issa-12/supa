@@ -4,17 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, GoogleBook } from '../../core/services/book.service';
+import { TranslationService, BOOK_SEARCH_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ShelfStatus {
   id: number;
+  name: string;
   label: string;
   icon: string;
 }
 
-const SHELF_STATUSES: ShelfStatus[] = [
-  { id: 2, label: 'Want to Read', icon: '📚' },
-  { id: 3, label: 'Currently Reading', icon: '📖' },
-  { id: 1, label: 'Already Read', icon: '✓' },
+const SHELF_STATUS_DEFS: Array<{ name: string; label: string; icon: string }> = [
+  { name: 'want_to_read', label: '', icon: '📚' },
+  { name: 'currently_reading', label: '', icon: '📖' },
+  { name: 'read', label: '', icon: '✓' },
 ];
 
 @Component({
@@ -29,8 +32,12 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly translationService = inject(TranslationService);
 
-  readonly statuses = SHELF_STATUSES;
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return BOOK_SEARCH_COPY[this.lang]; }
+
+  statuses: ShelfStatus[] = [];
 
   query = '';
   results: GoogleBook[] = [];
@@ -49,16 +56,48 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   private readonly pageSize = 20;
   private searchTimer?: ReturnType<typeof setTimeout>;
 
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      SHELF_STATUS_DEFS[0].label = this.copy.wantToReadStatusLabel;
+      SHELF_STATUS_DEFS[1].label = this.copy.currentlyReadingStatusLabel;
+      SHELF_STATUS_DEFS[2].label = this.copy.alreadyReadStatusLabel;
+      if (this.statuses.length > 0) {
+        this.statuses[0].label = this.copy.wantToReadStatusLabel;
+        if (this.statuses.length > 1) this.statuses[1].label = this.copy.currentlyReadingStatusLabel;
+        if (this.statuses.length > 2) this.statuses[2].label = this.copy.alreadyReadStatusLabel;
+      }
+    });
+  }
+
   get hasMore(): boolean {
     return this.results.length < this.totalItems;
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.loadStatuses();
     const q = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
     if (q.length >= 2) {
       this.query = q;
       void this.runSearch();
     }
+  }
+
+  private async loadStatuses(): Promise<void> {
+    const supabase = await this.supabaseService.getClient();
+    const { data } = await supabase
+      .from('reading_statuses')
+      .select('status_id, status_name');
+    const byName = new Map<string, number>(
+      (data ?? []).map((r) => [r['status_name'] as string, r['status_id'] as number]),
+    );
+    this.statuses = SHELF_STATUS_DEFS.flatMap((def) => {
+      const id = byName.get(def.name);
+      const label = def.name === 'want_to_read' ? this.copy.wantToReadStatusLabel
+                  : def.name === 'currently_reading' ? this.copy.currentlyReadingStatusLabel
+                  : this.copy.alreadyReadStatusLabel;
+      return id ? [{ id, name: def.name, label, icon: def.icon }] : [];
+    });
   }
 
   onQueryChange(): void {

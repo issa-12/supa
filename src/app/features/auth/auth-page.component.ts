@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import {
@@ -14,7 +14,7 @@ type AuthMode = 'login' | 'signup';
 
 @Component({
   selector: 'app-auth-page',
-  imports: [ReactiveFormsModule, RouterLink, LanguageSelectorComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, LanguageSelectorComponent],
   templateUrl: './auth-page.component.html',
   styleUrl: './auth-page.component.scss',
 })
@@ -34,8 +34,27 @@ export class AuthPageComponent {
   protected errorMessage = '';
   protected statusMessage = '';
 
+  protected showResetModal = false;
+  protected resetEmail = '';
+  protected resetSubmitting = false;
+  protected resetError = '';
+  protected resetSuccess = '';
+
   constructor() {
     this.configureFormForMode();
+    this.maybeRedirectRecoveryLink();
+  }
+
+  private maybeRedirectRecoveryLink(): void {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.substring(1)
+      : window.location.hash;
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    if (params.get('type') === 'recovery' && params.get('access_token')) {
+      window.location.replace('/reset-password' + window.location.hash);
+    }
   }
 
   private getInitialLanguage(): LanguageOption {
@@ -90,26 +109,43 @@ export class AuthPageComponent {
     }
   }
 
-  protected async sendPasswordReset(): Promise<void> {
-    this.clearMessages();
+  protected sendPasswordReset(): void {
+    this.resetEmail = this.normalizedEmail() || '';
+    this.resetError = '';
+    this.resetSuccess = '';
+    this.showResetModal = true;
+  }
 
-    const email = this.normalizedEmail();
+  protected closeResetModal(): void {
+    this.showResetModal = false;
+    this.resetEmail = '';
+    this.resetError = '';
+    this.resetSuccess = '';
+    this.resetSubmitting = false;
+  }
 
-    if (!email || this.authForm.controls.email.invalid) {
-      this.errorMessage = this.text.enterEmailFirst;
-      this.authForm.controls.email.markAsTouched();
+  protected async submitPasswordReset(): Promise<void> {
+    this.resetError = '';
+    this.resetSuccess = '';
+
+    const email = this.resetEmail.trim().toLowerCase();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email || !emailPattern.test(email)) {
+      this.resetError = this.text.enterEmailFirst;
       return;
     }
 
-    this.isSubmitting = true;
+    this.resetSubmitting = true;
 
     try {
-      await this.supabaseService.sendPasswordReset(email);
-      this.statusMessage = this.text.resetSent;
+      await this.supabaseService.sendPasswordResetViaFunction(email);
+      this.resetSuccess = this.text.resetSent;
+      window.setTimeout(() => this.closeResetModal(), 2000);
     } catch (error) {
-      this.errorMessage = this.readErrorMessage(error, this.text.resetError);
+      this.resetError = this.readErrorMessage(error, this.text.resetError);
     } finally {
-      this.isSubmitting = false;
+      this.resetSubmitting = false;
     }
   }
 

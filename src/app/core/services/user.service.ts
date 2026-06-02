@@ -111,7 +111,18 @@ export class UserService {
 
   async uploadAvatar(userId: string, file: File): Promise<string> {
     const supabase = await this.supabaseService.getClient();
-    const ext = file.name.split('.').pop() ?? 'jpg';
+    // Pick the extension from MIME type rather than filename so users
+    // can't upload `evil.html` as `evil.html` into the public bucket.
+    const allowed: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const ext = allowed[file.type];
+    if (!ext) throw new Error('Avatar must be PNG, JPG, WEBP, or GIF.');
+
     const path = `${userId}/avatar.${ext}`;
     const { error } = await supabase.storage
       .from('avatars')
@@ -178,12 +189,19 @@ export class UserService {
   }
 
   searchUsers(query: string, limit: number = 10): Observable<UserProfile[]> {
+    // PostgREST .or() parses commas/parens/dots in the filter string,
+    // so we strip anything that could break the syntax before
+    // interpolating user input. Wildcards % and _ are also stripped to
+    // keep the pattern literal.
+    const sanitized = query.replace(/[%_,().*]/g, '').trim();
+    if (!sanitized) return from(Promise.resolve<UserProfile[]>([]));
+
     return from(
       this.supabaseService.getClient().then((supabase) =>
         supabase
           .from('users')
           .select('*')
-          .or(`name.ilike.%${query}%,username.ilike.%${query}%`)
+          .or(`name.ilike.%${sanitized}%,username.ilike.%${sanitized}%`)
           .limit(limit)
           .then(({ data, error }) => {
             if (error) throw error;

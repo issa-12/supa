@@ -8,7 +8,7 @@
           <path d="M19 12H5M12 5l-7 7 7 7"/>
         </svg>
       </button>
-      <h1 class="header-title">{{ isOwnProfile ? 'My Profile' : 'Profile' }}</h1>
+      <h1 class="header-title">{{ isOwnProfile ? copy.myProfileTitle : copy.profileTitle }}</h1>
       <div class="header-spacer"></div>
     </div>
   </header>
@@ -57,7 +57,7 @@
   @else if (error) {
     <div class="page-state">
       <p class="error-text">{{ error }}</p>
-      <a routerLink="/home" class="btn btn-outline">Go home</a>
+      <a routerLink="/home" class="btn btn-outline">{{ copy.goHomeBtn }}</a>
     </div>
   }
 
@@ -106,7 +106,7 @@
             @if (profile.username) {
               <p class="profile-username">&#64;{{ profile.username }}</p>
             }
-            <p class="profile-joined">Reading since {{ profile.joinDate }}</p>
+            <p class="profile-joined">{{ copy.readingSincePrefix }} {{ profile.joinDate }}</p>
           </div>
 
           <!-- Friend action error -->
@@ -121,11 +121,16 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                 </svg>
-                Edit Profile
+                {{ copy.editProfileBtn }}
               </button>
             } @else {
               <!-- Dynamic friend button based on relationship status -->
-              @if (friendshipStatus === 'none' || friendshipStatus === 'rejected') {
+              @if (friendshipStatus === 'blocked' && blockedByMe) {
+                <span class="blocked-badge">{{ copy.blockedLabel }}</span>
+                <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="unblockUser()">
+                  {{ copy.unblockBtn }}
+                </button>
+              } @else if (friendshipStatus === 'none' || friendshipStatus === 'rejected') {
                 <button class="btn btn-primary" [disabled]="friendActionLoading" (click)="sendFriendRequest()">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -133,7 +138,7 @@
                     <line x1="19" y1="8" x2="19" y2="14"/>
                     <line x1="22" y1="11" x2="16" y2="11"/>
                   </svg>
-                  Add Friend
+                  {{ copy.addFriendBtn }}
                 </button>
               } @else if (friendshipStatus === 'pending_sent') {
                 <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="cancelRequest()">
@@ -142,11 +147,11 @@
                     <circle cx="9" cy="7" r="4"/>
                     <line x1="22" y1="11" x2="16" y2="11"/>
                   </svg>
-                  Cancel Request
+                  {{ copy.cancelRequestBtn }}
                 </button>
               } @else if (friendshipStatus === 'pending_received') {
-                <button class="btn btn-primary" [disabled]="friendActionLoading" (click)="acceptRequest()">Accept</button>
-                <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="rejectRequest()">Decline</button>
+                <button class="btn btn-primary" [disabled]="friendActionLoading" (click)="acceptRequest()">{{ copy.acceptBtn }}</button>
+                <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="rejectRequest()">{{ copy.declineBtn }}</button>
               } @else if (friendshipStatus === 'accepted') {
                 <button class="btn btn-outline btn-danger" [disabled]="friendActionLoading" (click)="unfriend()">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,10 +159,18 @@
                     <circle cx="9" cy="7" r="4"/>
                     <line x1="22" y1="11" x2="16" y2="11"/>
                   </svg>
-                  Friends
+                  {{ copy.friendsBtn }}
                 </button>
               }
-              <button class="btn btn-outline">Report</button>
+
+              @if (friendshipStatus !== 'blocked' || !blockedByMe) {
+                <button class="btn btn-outline" (click)="openReportModal()">{{ copy.reportBtn }}</button>
+              }
+              @if (friendshipStatus !== 'blocked') {
+                <button class="btn btn-outline btn-danger" [disabled]="friendActionLoading" (click)="blockUser()">
+                  {{ copy.blockBtn }}
+                </button>
+              }
             }
           </div>
         </div>
@@ -190,7 +203,7 @@
         <div class="reading-stats-grid">
           <div class="stat-card">
             <div class="stat-header">
-              <span class="stat-label">Books Read This Year</span>
+              <span class="stat-label">{{ copy.booksReadThisYearLabel }}</span>
               <span class="stat-value-inline">
                 {{ readingStats.booksReadThisYear }}/{{ readingStats.booksGoal }}
               </span>
@@ -213,12 +226,12 @@
                       max="999"
                     />
                     <button class="goal-save-btn" [disabled]="savingGoal" (click)="saveGoal()">
-                      {{ savingGoal ? '…' : 'Save' }}
+                      {{ savingGoal ? copy.savingMsg : copy.saveBtn }}
                     </button>
-                    <button class="goal-cancel-btn" (click)="cancelGoalEdit()">Cancel</button>
+                    <button class="goal-cancel-btn" (click)="cancelGoalEdit()">{{ copy.cancelBtn }}</button>
                   </div>
                 } @else {
-                  <button class="goal-edit-btn" (click)="startEditGoal()">Edit goal</button>
+                  <button class="goal-edit-btn" (click)="startEditGoal()">{{ copy.editGoalBtn }}</button>
                 }
               }
             </div>
@@ -226,12 +239,20 @@
 
           <div class="stat-card">
             <div class="stat-header">
-              <span class="stat-label">Total Rated</span>
+              <span class="stat-label">{{ copy.totalRatedLabel }}</span>
             </div>
             <div class="stat-value">
               {{ mostLikedBooks.length + inBetweenBooks.length + leastLikedBooks.length }}
             </div>
-            <p class="stat-description">Books with ratings</p>
+            <p class="stat-description">{{ copy.booksWithRatingsDesc }}</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">{{ copy.friendsTitle }}</span>
+            </div>
+            <div class="stat-value">{{ friendCount }}</div>
+            <p class="stat-description">{{ copy.friendCountDesc }}</p>
           </div>
         </div>
       }
@@ -240,8 +261,8 @@
       @if (currentlyReadingBooks.length > 0) {
         <section class="books-section">
           <div class="section-header">
-            <h3 class="section-title">Currently Reading</h3>
-            <p class="section-description">Books in progress right now.</p>
+            <h3 class="section-title">{{ copy.currentlyReadingTitle }}</h3>
+            <p class="section-description">{{ copy.currentlyReadingDesc }}</p>
           </div>
           <div class="books-grid">
             @for (book of currentlyReadingBooks; track book.userBookId) {
@@ -257,7 +278,7 @@
                       </svg>
                     </div>
                   }
-                  <div class="reading-badge">Reading</div>
+                  <div class="reading-badge">{{ copy.readingBadge }}</div>
                 </div>
                 <div class="book-info">
                   <h4 class="book-title">{{ book.title }}</h4>
@@ -273,7 +294,7 @@
       @if (recentPosts.length > 0) {
         <section class="posts-section">
           <div class="section-header">
-            <h3 class="section-title">Recent Posts</h3>
+            <h3 class="section-title">{{ copy.recentPostsTitle }}</h3>
           </div>
           <div class="profile-posts">
             @for (post of recentPosts; track post.id) {
@@ -286,7 +307,7 @@
                 </div>
                 <p class="profile-post-content">{{ post.content }}</p>
                 <div class="profile-post-footer">
-                  <span class="profile-post-time">{{ timeAgo(post.createdAt) }}</span>
+                  <span class="profile-post-time">{{ timeAgo(post.createdAt, lang) }}</span>
                   <span class="profile-post-stats">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -308,7 +329,7 @@
       @if (isOwnProfile) {
         <section class="find-friends-section">
           <div class="section-header">
-            <h3 class="section-title">Find Friends</h3>
+            <h3 class="section-title">{{ copy.findFriendsTitle }}</h3>
           </div>
           <div class="search-bar">
             <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -317,7 +338,7 @@
             <input
               class="search-input"
               type="text"
-              placeholder="Search by name or username…"
+              [placeholder]="copy.findFriendsSearchPlaceholder"
               [(ngModel)]="searchQuery"
               (ngModelChange)="onSearchInput()"
             />
@@ -331,7 +352,7 @@
           </div>
 
           @if (searchLoading) {
-            <div class="search-state">Searching…</div>
+            <div class="search-state">{{ copy.searchingMsg }}</div>
           } @else if (searchResults.length > 0) {
             <div class="search-results">
               @for (user of searchResults; track user.id) {
@@ -350,12 +371,12 @@
                     }
                   </div>
                   <div class="request-actions">
-                    <a class="btn btn-outline btn-sm" [routerLink]="['/profile', user.id]">View</a>
+                    <a class="btn btn-outline btn-sm" [routerLink]="['/profile', user.id]">{{ copy.viewBtn }}</a>
                     @if (sentRequestIds.has(user.id)) {
-                      <span class="sent-label">Sent</span>
+                      <span class="sent-label">{{ copy.sentLabel }}</span>
                     } @else {
                       <button class="btn btn-primary btn-sm" (click)="sendRequestFromSearch(user)">
-                        Add Friend
+                        {{ copy.addFriendBtn }}
                       </button>
                     }
                   </div>
@@ -363,7 +384,7 @@
               }
             </div>
           } @else if (searchQuery.trim() && !searchLoading) {
-            <div class="search-state">No users found for "{{ searchQuery }}"</div>
+            <div class="search-state">{{ copy.noUsersFoundMsg }} "{{ searchQuery }}"</div>
           }
         </section>
       }
@@ -372,7 +393,7 @@
       @if (isOwnProfile && incomingRequests.length > 0) {
         <section class="friends-section">
           <div class="section-header">
-            <h3 class="section-title">Friend Requests</h3>
+            <h3 class="section-title">{{ copy.friendRequestsTitle }}</h3>
             <span class="section-badge">{{ incomingRequests.length }}</span>
           </div>
           <div class="requests-list">
@@ -392,8 +413,8 @@
                   }
                 </div>
                 <div class="request-actions">
-                  <button class="btn btn-primary btn-sm" (click)="acceptIncoming(req)">Accept</button>
-                  <button class="btn btn-outline btn-sm" (click)="rejectIncoming(req)">Decline</button>
+                  <button class="btn btn-primary btn-sm" (click)="acceptIncoming(req)">{{ copy.acceptBtn }}</button>
+                  <button class="btn btn-outline btn-sm" (click)="rejectIncoming(req)">{{ copy.declineBtn }}</button>
                 </div>
               </div>
             }
@@ -405,7 +426,7 @@
       @if (isOwnProfile && friends.length > 0) {
         <section class="friends-section">
           <div class="section-header">
-            <h3 class="section-title">Friends</h3>
+            <h3 class="section-title">{{ copy.friendsTitle }}</h3>
             <span class="section-count">{{ friends.length }}</span>
           </div>
           <div class="friends-grid">
@@ -438,8 +459,8 @@
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <p>No friends yet. Find readers to connect with!</p>
-          <a routerLink="/books/search" class="btn btn-primary">Discover Books</a>
+          <p>{{ copy.noFriendsYetMsg }}</p>
+          <a routerLink="/books/search" class="btn btn-primary">{{ copy.discoverBooksBtn }}</a>
         </div>
       }
 
@@ -447,8 +468,8 @@
       @if (mostLikedBooks.length > 0) {
         <section class="books-section">
           <div class="section-header">
-            <h3 class="section-title">Most Liked</h3>
-            <p class="section-description">Five-star reads — the ones that stayed with you.</p>
+            <h3 class="section-title">{{ copy.mostLiked }}</h3>
+            <p class="section-description">{{ copy.mostLikedDesc }}</p>
           </div>
           <div class="books-grid">
             @for (book of mostLikedBooks; track book.userBookId) {
@@ -493,8 +514,8 @@
       @if (inBetweenBooks.length > 0) {
         <section class="books-section">
           <div class="section-header">
-            <h3 class="section-title">In Between</h3>
-            <p class="section-description">Decent reads — not bad, not unforgettable.</p>
+            <h3 class="section-title">{{ copy.inBetween }}</h3>
+            <p class="section-description">{{ copy.inBetweenDesc }}</p>
           </div>
           <div class="books-grid">
             @for (book of inBetweenBooks; track book.userBookId) {
@@ -539,8 +560,8 @@
       @if (leastLikedBooks.length > 0) {
         <section class="books-section">
           <div class="section-header">
-            <h3 class="section-title">Least Liked</h3>
-            <p class="section-description">Books you gave 1–2 stars.</p>
+            <h3 class="section-title">{{ copy.leastLiked }}</h3>
+            <p class="section-description">{{ copy.leastLikedDesc }}</p>
           </div>
           <div class="books-grid">
             @for (book of leastLikedBooks; track book.userBookId) {
@@ -587,8 +608,8 @@
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
           </svg>
-          <p>No rated books yet. Start reading and rating!</p>
-          <a routerLink="/books/search" class="btn btn-primary">Find Books</a>
+          <p>{{ copy.noRatedBooks }}</p>
+          <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooks }}</a>
         </div>
       }
 
@@ -597,7 +618,7 @@
         <div class="edit-overlay" (click)="cancelEditProfile()"></div>
         <div class="edit-panel" (click)="$event.stopPropagation()">
           <div class="edit-panel-header">
-            <h3 class="edit-panel-title">Edit Profile</h3>
+            <h3 class="edit-panel-title">{{ copy.editPanelTitle }}</h3>
             <button class="edit-panel-close" (click)="cancelEditProfile()" aria-label="Close">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -606,26 +627,26 @@
           </div>
           <div class="edit-panel-body">
             <label class="edit-field">
-              <span class="edit-label">Display Name</span>
-              <input class="edit-input" type="text" [(ngModel)]="editName" placeholder="Your name" maxlength="60" />
+              <span class="edit-label">{{ copy.displayName }}</span>
+              <input class="edit-input" type="text" [(ngModel)]="editName" [placeholder]="copy.namePlaceholder" maxlength="60" />
             </label>
             <label class="edit-field">
-              <span class="edit-label">Username</span>
+              <span class="edit-label">{{ copy.username }}</span>
               <div class="edit-input-prefix-wrap">
                 <span class="edit-input-prefix">&#64;</span>
-                <input class="edit-input edit-input--prefixed" type="text" [(ngModel)]="editUsername" placeholder="username" maxlength="30" />
+                <input class="edit-input edit-input--prefixed" type="text" [(ngModel)]="editUsername" [placeholder]="copy.usernamePlaceholder" maxlength="30" />
               </div>
             </label>
             <label class="edit-field">
-              <span class="edit-label">Bio</span>
-              <textarea class="edit-textarea" [(ngModel)]="editBio" placeholder="Tell readers about yourself…" rows="4" maxlength="300"></textarea>
+              <span class="edit-label">{{ copy.bio }}</span>
+              <textarea class="edit-textarea" [(ngModel)]="editBio" [placeholder]="copy.bioPlaceholder" rows="4" maxlength="300"></textarea>
               <span class="edit-char-count">{{ editBio.length }}/300</span>
             </label>
           </div>
           <div class="edit-panel-footer">
-            <button class="btn btn-outline" (click)="cancelEditProfile()">Cancel</button>
+            <button class="btn btn-outline" (click)="cancelEditProfile()">{{ copy.cancelEdit }}</button>
             <button class="btn btn-primary" [disabled]="savingProfile || !editName.trim()" (click)="saveProfile()">
-              {{ savingProfile ? 'Saving…' : 'Save Changes' }}
+              {{ savingProfile ? copy.saving : copy.saveChanges }}
             </button>
           </div>
         </div>
@@ -634,12 +655,68 @@
       <!-- Footer -->
       <footer class="profile-footer">
         <div class="footer-links">
-          <a routerLink="/privacy" class="footer-link">Privacy Policy</a>
-          <a routerLink="/terms" class="footer-link">Terms of Service</a>
+          <a routerLink="/privacy" class="footer-link">{{ copy.privacyPolicy }}</a>
+          <a routerLink="/terms" class="footer-link">{{ copy.termsOfService }}</a>
         </div>
-        <p class="footer-copyright">&copy; 2026 ReadTrack. All rights reserved.</p>
+        <p class="footer-copyright">{{ copy.copyright }}</p>
       </footer>
 
+    </div>
+  }
+
+  @if (showReportModal) {
+    <div class="report-modal-overlay" (click)="closeReportModal()">
+      <div class="report-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <button type="button" class="report-modal__close" (click)="closeReportModal()" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        <h3 class="report-modal__title">{{ copy.reportModalTitle }}</h3>
+
+        <form class="report-modal__form" (ngSubmit)="submitReport()">
+          <label class="report-modal__field">
+            <span class="report-modal__label">{{ copy.reportReasonLabel }}</span>
+            <select class="report-modal__select" [(ngModel)]="reportReason" name="reportReason" [disabled]="reportSubmitting">
+              @for (r of reportReasons; track r) {
+                <option [ngValue]="r">{{ reasonLabel(r) }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="report-modal__field">
+            <span class="report-modal__label">{{ copy.reportDescriptionLabel }}</span>
+            <textarea
+              class="report-modal__textarea"
+              [(ngModel)]="reportDescription"
+              name="reportDescription"
+              [placeholder]="copy.reportDescriptionPlaceholder"
+              rows="3"
+              maxlength="500"
+              [disabled]="reportSubmitting"
+            ></textarea>
+            <span class="report-modal__counter">{{ reportDescription.length }}/500</span>
+          </label>
+
+          @if (reportError) {
+            <p class="report-modal__msg report-modal__msg--error">{{ reportError }}</p>
+          }
+          @if (reportSuccess) {
+            <p class="report-modal__msg report-modal__msg--ok">{{ reportSuccess }}</p>
+          }
+
+          <div class="report-modal__actions">
+            <button type="button" class="btn btn-outline" (click)="closeReportModal()" [disabled]="reportSubmitting">
+              {{ copy.reportCancelBtn }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="reportSubmitting">
+              {{ reportSubmitting ? copy.reportSubmitting : copy.reportSubmitBtn }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   }
 

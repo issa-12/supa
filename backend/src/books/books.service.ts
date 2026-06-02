@@ -68,7 +68,10 @@ export class BooksService {
     if (apiKey) params.set('key', apiKey);
 
     try {
-      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`);
+      const res = await fetchWithTimeout(
+        `https://www.googleapis.com/books/v1/volumes?${params}`,
+        10_000,
+      );
 
       if (res.ok) {
         const data = (await res.json()) as GoogleBooksApiResponse;
@@ -142,7 +145,7 @@ export class BooksService {
 
     let res: Response;
     try {
-      res = await fetch(url);
+      res = await fetchWithTimeout(url, 10_000);
     } catch {
       throw new InternalServerErrorException('Failed to fetch book details.');
     }
@@ -169,5 +172,15 @@ export class BooksService {
       pageCount: v.pageCount ?? null,
       categories: v.categories ?? [],
     };
+  }
+}
+
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
   }
 }

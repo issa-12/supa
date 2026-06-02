@@ -39,6 +39,7 @@ export type FriendshipStatusValue =
 export interface FriendshipStatusResult {
   status: FriendshipStatusValue;
   friendshipId: number | null;
+  blockedByMe?: boolean;
 }
 
 @Injectable()
@@ -73,20 +74,51 @@ export class FriendsService {
     if (requesterId === toUserId) {
       throw new BadRequestException('Cannot send a friend request to yourself.');
     }
+    if (!isUuid(toUserId)) {
+      throw new BadRequestException('toUserId must be a valid UUID.');
+    }
 
     const admin = this.supabase.getAdmin();
+    const [pendingId, acceptedId, blockedId] = await Promise.all([
+      this.getStatusId('pending'),
+      this.getStatusId('accepted'),
+      this.getStatusId('blocked'),
+    ]);
 
+    // The friendship_unique_pair index allows only one row per pair (in any
+    // direction). A previously rejected request therefore still occupies that
+    // slot, so a plain INSERT would 409. Look for an existing row first and
+    // revive it when the relationship is re-requestable.
     const { data: existing } = await admin
       .from('friendship')
-      .select('friendship_id')
+      .select('friendship_id, status_id')
       .or(
         `and(user_id1.eq.${requesterId},user_id2.eq.${toUserId}),and(user_id1.eq.${toUserId},user_id2.eq.${requesterId})`,
       )
       .maybeSingle();
 
-    if (existing) throw new ConflictException('A friendship or pending request already exists.');
+    if (existing) {
+      const statusId = existing['status_id'] as number;
+      const friendshipId = existing['friendship_id'] as number;
+      if (statusId === blockedId) {
+        throw new ForbiddenException('This user is blocked. Unblock them before sending a request.');
+      }
+      if (statusId === pendingId || statusId === acceptedId) {
+        throw new ConflictException('A friendship or pending request already exists.');
+      }
+      // rejected → revive as a fresh pending request from the current user
+      const { error: reviveError } = await admin
+        .from('friendship')
+        .update({ status_id: pendingId, requester_id: requesterId })
+        .eq('friendship_id', friendshipId);
+      if (reviveError) throw new InternalServerErrorException(reviveError.message);
 
-    const pendingId = await this.getStatusId('pending');
+      this.notifications
+        .createNotification(toUserId, requesterId, 'friend_request', friendshipId, 'friendship')
+        .catch(() => undefined);
+      return { friendshipId };
+    }
+
     const { data, error } = await admin
       .from('friendship')
       .insert({
@@ -98,7 +130,18 @@ export class FriendsService {
       .select('friendship_id')
       .single();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) {
+      // 23505 = unique_violation (friendship_unique_pair index) — a row was
+      // created between the lookup above and this insert (rare race).
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException('A friendship or pending request already exists.');
+      }
+      // 23503 = foreign_key_violation (toUserId is not a real user)
+      if ((error as { code?: string }).code === '23503') {
+        throw new BadRequestException('Recipient user does not exist.');
+      }
+      throw new InternalServerErrorException(error.message);
+    }
     const newFriendshipId = data['friendship_id'] as number;
 
     // Notify the recipient about the friend request (fire-and-forget)
@@ -177,6 +220,20 @@ export class FriendsService {
     return { success: true };
   }
 
+  async getFriendCount(userId: string): Promise<{ count: number }> {
+    const admin = this.supabase.getAdmin();
+    const acceptedId = await this.getStatusId('accepted');
+
+    const { count, error } = await admin
+      .from('friendship')
+      .select('friendship_id', { count: 'exact', head: true })
+      .or(`user_id1.eq.${userId},user_id2.eq.${userId}`)
+      .eq('status_id', acceptedId);
+
+    if (error) throw new InternalServerErrorException(error.message);
+    return { count: count ?? 0 };
+  }
+
   async getFriends(userId: string): Promise<FriendUser[]> {
     const admin = this.supabase.getAdmin();
     const acceptedId = await this.getStatusId('accepted');
@@ -252,6 +309,9 @@ export class FriendsService {
   }
 
   async getFriendshipStatus(userId: string, otherUserId: string): Promise<FriendshipStatusResult> {
+    if (!isUuid(otherUserId)) {
+      return { status: 'none', friendshipId: null };
+    }
     const admin = this.supabase.getAdmin();
 
     const { data } = await admin
@@ -275,6 +335,90 @@ export class FriendsService {
       status = statusName as FriendshipStatusValue;
     }
 
-    return { status, friendshipId };
+    const result: FriendshipStatusResult = { status, friendshipId };
+    if (statusName === 'blocked') {
+      result.blockedByMe = requesterId === userId;
+    }
+    return result;
   }
+
+  async blockUser(blockerId: string, blockedId: string): Promise<{ success: boolean }> {
+    if (blockerId === blockedId) {
+      throw new BadRequestException('Cannot block yourself.');
+    }
+    if (!isUuid(blockedId)) {
+      throw new BadRequestException('blockedId must be a valid UUID.');
+    }
+
+    const admin = this.supabase.getAdmin();
+    const blockedStatusId = await this.getStatusId('blocked');
+
+    const { data: existing } = await admin
+      .from('friendship')
+      .select('friendship_id')
+      .or(
+        `and(user_id1.eq.${blockerId},user_id2.eq.${blockedId}),and(user_id1.eq.${blockedId},user_id2.eq.${blockerId})`,
+      )
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await admin
+        .from('friendship')
+        .update({ status_id: blockedStatusId, requester_id: blockerId })
+        .eq('friendship_id', existing['friendship_id'] as number);
+      if (error) throw new InternalServerErrorException(error.message);
+    } else {
+      const { error } = await admin.from('friendship').insert({
+        user_id1: blockerId,
+        user_id2: blockedId,
+        status_id: blockedStatusId,
+        requester_id: blockerId,
+      });
+      if (error) {
+        if ((error as { code?: string }).code === '23503') {
+          throw new BadRequestException('Target user does not exist.');
+        }
+        throw new InternalServerErrorException(error.message);
+      }
+    }
+
+    return { success: true };
+  }
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<{ success: boolean }> {
+    if (!isUuid(blockedId)) {
+      throw new BadRequestException('blockedId must be a valid UUID.');
+    }
+
+    const admin = this.supabase.getAdmin();
+    const blockedStatusId = await this.getStatusId('blocked');
+
+    const { data: existing } = await admin
+      .from('friendship')
+      .select('friendship_id, requester_id, status_id')
+      .or(
+        `and(user_id1.eq.${blockerId},user_id2.eq.${blockedId}),and(user_id1.eq.${blockedId},user_id2.eq.${blockerId})`,
+      )
+      .maybeSingle();
+
+    if (!existing) throw new NotFoundException('No block found.');
+    if (existing['status_id'] !== blockedStatusId) {
+      throw new BadRequestException('User is not blocked.');
+    }
+    if (existing['requester_id'] !== blockerId) {
+      throw new ForbiddenException('Only the user who created the block can remove it.');
+    }
+
+    const { error } = await admin
+      .from('friendship')
+      .delete()
+      .eq('friendship_id', existing['friendship_id'] as number);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
+  }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(value: string): boolean {
+  return typeof value === 'string' && UUID_RE.test(value);
 }

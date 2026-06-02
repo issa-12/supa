@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Book {
   id: string;
@@ -20,8 +22,8 @@ interface Book {
     <section class="recommended-section">
       <div class="section-header">
         <div class="section-title-wrap">
-          <h2 class="text-h2">Recommended for You</h2>
-          <span class="eyebrow">Based on your favorite genres</span>
+          <h2 class="text-h2">{{ copy.recommendedTitle }}</h2>
+          <span class="eyebrow">{{ copy.recommendedSubtitle }}</span>
         </div>
       </div>
 
@@ -114,7 +116,7 @@ interface Book {
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(126, 107, 93, 0.2);
+        background: var(--border);
         border-radius: 3px;
 
         &:hover {
@@ -140,8 +142,7 @@ interface Book {
 
     .book-card-clean.zoomed .book-cover-clean {
       transform: scale(1.04);
-      box-shadow: 0 16px 32px rgba(51, 38, 29, 0.18);
-    }
+       }
 
     .book-card-clean.zoomed .quick-add-btn {
       opacity: 1;
@@ -158,13 +159,11 @@ interface Book {
       height: 225px;
       border-radius: 6px 10px 10px 6px;
       object-fit: cover;
-      box-shadow: 0 10px 24px rgba(51, 38, 29, 0.12);
-
-      &.book-cover--empty {
-        background: rgba(126, 107, 93, 0.1);
+       &.book-cover--empty {
+        background: var(--border);
       }
       display: block;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transition: transform 0.3s ease;
     }
 
     .quick-add-btn {
@@ -179,16 +178,14 @@ interface Book {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 16px rgba(233, 120, 63, 0.3);
-      opacity: 0;
+       opacity: 0;
       border: none;
       cursor: pointer;
       transition: all 0.2s ease;
 
       &:hover {
         transform: scale(1.1);
-        box-shadow: 0 8px 20px rgba(233, 120, 63, 0.4);
-      }
+         }
 
       &:active {
         transform: scale(0.95);
@@ -255,11 +252,19 @@ interface Book {
 })
 export class RecommendedBooksComponent {
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
 
   @Input() books: Book[] = [];
   @Output() addBook = new EventEmitter<Book>();
 
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
   hoveredBookId: string | null = null;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onCardClick(book: Book): void {
     if (book.googleBooksId) {

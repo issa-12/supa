@@ -3,18 +3,18 @@
   <!-- Header -->
   <header class="shelf-header">
     <div class="header-content">
-      <a class="back-btn" routerLink="/home" aria-label="Go home">
+      <a class="back-btn" routerLink="/home" [attr.aria-label]="copy.ariaGoHome">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 12H5M12 5l-7 7 7 7"/>
         </svg>
       </a>
       <div class="header-center">
-        <h1 class="header-title">My Library</h1>
+        <h1 class="header-title">{{ copy.myLibraryTitle }}</h1>
         @if (!isLoading && totalBooks > 0) {
           <span class="book-count">{{ totalBooks }} book{{ totalBooks !== 1 ? 's' : '' }}</span>
         }
       </div>
-      <a routerLink="/books/search" class="header-add-btn" aria-label="Find books">
+      <a routerLink="/books/search" class="header-add-btn" [attr.aria-label]="copy.ariaFindBooks">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -64,9 +64,9 @@
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
       </svg>
-      <p class="state-title">Your library is empty</p>
-      <p class="state-hint">Search for books and add them to your shelf.</p>
-      <a routerLink="/books/search" class="btn btn-primary">Find Books</a>
+      <p class="state-title">{{ copy.emptyLibraryTitle }}</p>
+      <p class="state-hint">{{ copy.emptyLibraryHint }}</p>
+      <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooksBtn }}</a>
     </div>
   }
 
@@ -74,15 +74,15 @@
   @else {
     <div class="filter-bar">
       <div class="filter-pills">
-        <button class="filter-pill" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">All</button>
-        <button class="filter-pill" [class.active]="activeFilter === 'currently_reading'" (click)="activeFilter = 'currently_reading'">Reading</button>
-        <button class="filter-pill" [class.active]="activeFilter === 'want_to_read'" (click)="activeFilter = 'want_to_read'">Want to Read</button>
-        <button class="filter-pill" [class.active]="activeFilter === 'read'" (click)="activeFilter = 'read'">Read</button>
+        <button class="filter-pill" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">{{ copy.allFilter }}</button>
+        <button class="filter-pill" [class.active]="activeFilter === 'currently_reading'" (click)="activeFilter = 'currently_reading'">{{ copy.readingFilter }}</button>
+        <button class="filter-pill" [class.active]="activeFilter === 'want_to_read'" (click)="activeFilter = 'want_to_read'">{{ copy.wantToReadFilter }}</button>
+        <button class="filter-pill" [class.active]="activeFilter === 'read'" (click)="activeFilter = 'read'">{{ copy.readFilter }}</button>
       </div>
       <select class="sort-select" [(ngModel)]="sortBy">
-        <option value="date">Date Added</option>
-        <option value="title">Title A–Z</option>
-        <option value="rating">Rating</option>
+        <option value="date">{{ copy.dateAddedSort }}</option>
+        <option value="title">{{ copy.titleAZSort }}</option>
+        <option value="rating">{{ copy.ratingSort }}</option>
       </select>
     </div>
 
@@ -90,7 +90,7 @@
       @for (section of displayedSections; track section.statusName) {
         <section class="shelf-section">
           <div class="section-header">
-            <h2 class="section-title">{{ section.label }}</h2>
+            <h2 class="section-title">{{ sectionLabel(section.statusName) }}</h2>
             <span class="section-count">{{ section.books.length }}</span>
           </div>
 
@@ -142,7 +142,7 @@
                           <input
                             type="number"
                             [(ngModel)]="progressCurrent"
-                            placeholder="Page"
+                            [placeholder]="copy.progressPagePlaceholder"
                             class="progress-input"
                             min="1"
                             (click)="$event.stopPropagation()"
@@ -151,7 +151,7 @@
                           <input
                             type="number"
                             [(ngModel)]="progressTotal"
-                            placeholder="Total"
+                            [placeholder]="copy.progressTotalPlaceholder"
                             class="progress-input"
                             min="1"
                             (click)="$event.stopPropagation()"
@@ -172,7 +172,7 @@
                             </span>
                           </div>
                         } @else {
-                          <button class="progress-start" (click)="openProgressEdit(book, $event)">+ Track progress</button>
+                          <button class="progress-start" (click)="openProgressEdit(book, $event)">{{ copy.trackProgress }}</button>
                         }
                       }
                     </div>
@@ -188,7 +188,7 @@
 
                     @if (openMenuId === book.id) {
                       <div class="dropdown">
-                        <p class="dropdown-label">Move to</p>
+                        <p class="dropdown-label">{{ copy.dropdownMoveTo }}</p>
                         @for (status of SHELF_STATUSES; track status.name) {
                           @if (status.name !== section.statusName) {
                             <button class="dropdown-item" (click)="changeStatus(book, status.name)">
@@ -198,7 +198,7 @@
                         }
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item dropdown-item--danger" (click)="removeBook(book)">
-                          Remove from shelf
+                          {{ copy.dropdownRemove }}
                         </button>
                       </div>
                     }

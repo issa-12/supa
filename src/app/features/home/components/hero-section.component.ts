@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Book {
   id: string;
@@ -24,9 +26,9 @@ interface Book {
         <div class="hero-labels">
           <div class="hero-pill">
             <iconify-icon icon="lucide:sparkles" style="font-size: 14px; margin-right: 6px"></iconify-icon>
-            Recommended for you
+            {{ copy.heroPill }}
           </div>
-          <span class="eyebrow">Because you like Mystery</span>
+          <span class="eyebrow">{{ copy.heroEyebrow }}</span>
         </div>
 
         <div class="hero-title-group">
@@ -35,16 +37,16 @@ interface Book {
         </div>
 
         <p class="text-body">
-          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : 'A compelling read waiting to be discovered. Add it to your shelf to start your journey.' }}
+          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : copy.heroFallbackDescription }}
         </p>
 
         <div class="hero-actions">
           <button class="btn btn-primary" (click)="onViewBook()" [disabled]="!book.googleBooksId">
-            View Book
+            {{ copy.heroViewBook }}
           </button>
           <button class="btn btn-outline" (click)="onAddToReading()" [disabled]="addingToReading">
             <iconify-icon icon="lucide:bookmark-plus" style="font-size: 18px"></iconify-icon>
-            {{ addingToReading ? 'Adding…' : 'Add to Reading' }}
+            {{ addingToReading ? copy.heroAdding : copy.heroAddToReading }}
           </button>
         </div>
       </div>
@@ -80,11 +82,9 @@ interface Book {
       justify-content: space-between;
       gap: 48px;
       padding: 56px 64px;
-      background: rgba(255, 250, 245, 0.65);
+      background: var(--surface);
       border-radius: 32px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 20px 40px rgba(51, 38, 29, 0.04);
-      backdrop-filter: blur(8px);
+      border: 1px solid transparent;
     }
 
     .hero-content {
@@ -108,7 +108,7 @@ interface Book {
       height: 32px;
       padding: 0 14px;
       border-radius: 999px;
-      background: rgba(233, 120, 63, 0.12);
+      background: var(--primary-soft);
       color: var(--primary);
       font-size: 13px;
       font-weight: 700;
@@ -170,14 +170,11 @@ interface Book {
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       color: var(--primary-foreground);
-      box-shadow: 0 12px 24px rgba(233, 120, 63, 0.22);
-
-      &:hover {
+       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 16px 32px rgba(233, 120, 63, 0.3);
-      }
+         }
 
       &:active {
         transform: translateY(0);
@@ -185,12 +182,12 @@ interface Book {
     }
 
     .btn-outline {
-      background: rgba(255, 250, 245, 0.7);
+      background: var(--surface);
       color: var(--foreground);
       border: 1px solid rgba(126, 107, 93, 0.3);
 
       &:hover {
-        background: rgba(255, 250, 245, 0.9);
+        background: var(--surface);
       }
 
       &:active {
@@ -208,12 +205,11 @@ interface Book {
       height: 360px;
       object-fit: cover;
       border-radius: 8px 12px 12px 8px;
-      box-shadow: 20px 24px 40px rgba(51, 38, 29, 0.2);
-      transform: perspective(1000px) rotateY(-10deg);
+       transform: perspective(1000px) rotateY(-10deg);
       display: block;
 
       &--placeholder {
-        background: rgba(126, 107, 93, 0.12);
+        background: var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -222,15 +218,7 @@ interface Book {
     }
 
     .hero-cover-shadow {
-      position: absolute;
-      bottom: 20px;
-      left: 10%;
-      width: 80%;
-      height: 16px;
-      border-radius: 50%;
-      background: rgba(51, 38, 29, 0.3);
-      filter: blur(14px);
-      z-index: -1;
+      display: none;
     }
 
     .eyebrow {
@@ -285,12 +273,20 @@ interface Book {
 })
 export class HeroSectionComponent {
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
 
   @Input() book!: Book;
   @Output() addToReading = new EventEmitter<Book>();
 
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
   coverBroken = false;
   addingToReading = false;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onViewBook(): void {
     if (this.book.googleBooksId) {

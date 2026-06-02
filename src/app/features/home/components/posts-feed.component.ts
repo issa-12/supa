@@ -4,6 +4,9 @@ import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { timeAgo } from '../../../core/util/time-ago';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostCommentsComponent } from './post-comments.component';
 
 interface BookSearchResult {
@@ -33,14 +36,14 @@ interface BookSearchResult {
                   <span>{{ currentUserInitial }}</span>
                 }
               </div>
-              <span class="compose-placeholder">Share your thoughts on a book…</span>
+              <span class="compose-placeholder">{{ copy.composePlaceholder }}</span>
             </button>
           } @else {
             <div class="compose-form">
               <textarea
                 class="compose-textarea"
                 [(ngModel)]="postContent"
-                placeholder="What did you think? Any quotes? Recommend it?"
+                [placeholder]="copy.composeTextareaPlaceholder"
                 rows="3"
                 autofocus
               ></textarea>
@@ -70,7 +73,7 @@ interface BookSearchResult {
                     <input
                       class="book-search-input"
                       type="text"
-                      placeholder="Search for a book…"
+                      [placeholder]="copy.bookSearchPlaceholder"
                       [(ngModel)]="bookQuery"
                       (ngModelChange)="onBookQueryChange()"
                     />
@@ -94,13 +97,13 @@ interface BookSearchResult {
               </div>
 
               <div class="compose-actions">
-                <button class="btn-cancel" (click)="closeCompose()">Cancel</button>
+                <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelBtn }}</button>
                 <button
                   class="btn-post"
                   [disabled]="!canPost || submitting"
                   (click)="submitPost()"
                 >
-                  {{ submitting ? 'Posting…' : 'Post' }}
+                  {{ submitting ? copy.postingBtn : copy.postBtn }}
                 </button>
               </div>
             </div>
@@ -111,8 +114,8 @@ interface BookSearchResult {
       <!-- Feed -->
       <div class="feed-header">
         <div class="feed-tabs">
-          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'friends'" (click)="switchTab('friends')">Friends</button>
-          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">Trending</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'friends'" (click)="switchTab('friends')">{{ copy.friendsTab }}</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">{{ copy.trendingTab }}</button>
         </div>
       </div>
 
@@ -128,7 +131,7 @@ interface BookSearchResult {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <p>{{ activeTab === 'friends' ? 'No posts yet. Add friends and start sharing!' : 'No trending posts this week.' }}</p>
+          <p>{{ activeTab === 'friends' ? copy.noPostsFriendsMsg : copy.noTrendingPostsMsg }}</p>
         </div>
       } @else {
         <div class="posts-list">
@@ -140,12 +143,12 @@ interface BookSearchResult {
                     @if (post.userAvatar) {
                       <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
                     } @else {
-                      <span>{{ post.userName[0].toUpperCase() }}</span>
+                      <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
                     }
                   </div>
                   <div class="post-meta">
                     <span class="post-author">{{ post.userName }}</span>
-                    <time class="post-time">{{ timeAgo(post.createdAt) }}</time>
+                    <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
                   </div>
                 </a>
                 @if (post.userId === currentUserId) {
@@ -158,6 +161,14 @@ interface BookSearchResult {
               </div>
 
               <p class="post-content">{{ post.content }}</p>
+
+              @if (post.tags && post.tags.length > 0) {
+                <div class="post-tags">
+                  @for (tag of post.tags; track tag) {
+                    <span class="tag-pill">#{{ tag }}</span>
+                  }
+                </div>
+              }
 
               @if (post.bookTitle) {
                 <a class="post-book" [routerLink]="['/books/search']" [queryParams]="{ q: post.bookTitle }">
@@ -209,14 +220,12 @@ interface BookSearchResult {
     // ── Compose card ──────────────────────────────────────────
 
     .compose-card {
-      background: rgba(255, 250, 245, 0.8);
+      background: var(--surface);
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 4px 16px rgba(51, 38, 29, 0.05);
-      overflow: hidden;
-      transition: box-shadow 0.2s;
+      border: 1px solid transparent;
+       overflow: hidden;
 
-      &--expanded { box-shadow: 0 8px 32px rgba(51, 38, 29, 0.1); }
+      &--expanded {  }
     }
 
     .compose-trigger {
@@ -239,7 +248,7 @@ interface BookSearchResult {
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -265,8 +274,8 @@ interface BookSearchResult {
       width: 100%;
       padding: 12px;
       border-radius: 10px;
-      border: 1px solid rgba(126, 107, 93, 0.2);
-      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--border);
+      background: transparent;
       font-size: 14px;
       color: var(--foreground);
       resize: vertical;
@@ -274,7 +283,7 @@ interface BookSearchResult {
       font-family: inherit;
       box-sizing: border-box;
 
-      &:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(233, 120, 63, 0.1); }
+      &:focus { border-color: var(--primary);  }
       &::placeholder { color: var(--muted-foreground); }
     }
 
@@ -286,8 +295,8 @@ interface BookSearchResult {
       gap: 8px;
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid rgba(126, 107, 93, 0.2);
-      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--border);
+      background: transparent;
 
       &:focus-within { border-color: var(--primary); }
     }
@@ -308,8 +317,8 @@ interface BookSearchResult {
       list-style: none;
       margin: 0;
       padding: 4px 0;
-      background: rgba(255, 250, 245, 0.95);
-      border: 1px solid rgba(126, 107, 93, 0.15);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
       max-height: 200px;
@@ -324,7 +333,7 @@ interface BookSearchResult {
       cursor: pointer;
       transition: background 0.15s;
 
-      &:hover { background: rgba(233, 120, 63, 0.06); }
+      &:hover { background: var(--primary-soft); }
     }
 
     .book-result-cover {
@@ -356,9 +365,9 @@ interface BookSearchResult {
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: rgba(233, 120, 63, 0.08);
+      background: var(--primary-soft);
       border-radius: 10px;
-      border: 1px solid rgba(233, 120, 63, 0.2);
+      border: 1px solid rgba(217, 119, 87, 0.2);
     }
 
     .selected-book-cover {
@@ -395,7 +404,7 @@ interface BookSearchResult {
       border-radius: 50%;
       display: flex;
 
-      &:hover { color: var(--foreground); background: rgba(126, 107, 93, 0.1); }
+      &:hover { color: var(--foreground); background: var(--border); }
     }
 
     .compose-actions {
@@ -407,21 +416,21 @@ interface BookSearchResult {
     .btn-cancel {
       padding: 8px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(126, 107, 93, 0.25);
+      border: 1px solid var(--border);
       background: transparent;
       font-size: 13px;
       font-weight: 600;
       color: var(--muted-foreground);
       cursor: pointer;
 
-      &:hover { background: rgba(126, 107, 93, 0.06); }
+      &:hover { background: var(--border); }
     }
 
     .btn-post {
       padding: 8px 20px;
       border-radius: 999px;
       border: none;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       font-size: 13px;
       font-weight: 700;
       color: #fff;
@@ -441,7 +450,7 @@ interface BookSearchResult {
     .feed-tab {
       padding: 6px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(126, 107, 93, 0.2);
+      border: 1px solid var(--border);
       background: transparent;
       font-size: 13px;
       font-weight: 600;
@@ -470,7 +479,7 @@ interface BookSearchResult {
     .spinner {
       width: 28px;
       height: 28px;
-      border: 3px solid rgba(233, 120, 63, 0.2);
+      border: 3px solid rgba(217, 119, 87, 0.2);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -481,11 +490,10 @@ interface BookSearchResult {
     .posts-list { display: flex; flex-direction: column; gap: 16px; }
 
     .post-card {
-      background: rgba(255, 250, 245, 0.7);
+      background: var(--surface);
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 4px 12px rgba(51, 38, 29, 0.04);
-      padding: 16px;
+      border: 1px solid transparent;
+       padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -512,7 +520,7 @@ interface BookSearchResult {
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -556,18 +564,34 @@ interface BookSearchResult {
       word-break: break-word;
     }
 
+    .post-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-pill {
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(217, 119, 87, 0.22);
+      background: var(--primary-soft);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
     .post-book {
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: rgba(126, 107, 93, 0.06);
+      background: var(--border);
       border-radius: 10px;
-      border: 1px solid rgba(126, 107, 93, 0.12);
+      border: 1px solid var(--border);
       text-decoration: none;
       transition: background 0.15s;
 
-      &:hover { background: rgba(233, 120, 63, 0.08); border-color: rgba(233, 120, 63, 0.2); }
+      &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); }
     }
 
     .post-book-cover {
@@ -604,7 +628,7 @@ interface BookSearchResult {
       transition: all 0.15s;
 
       svg { flex-shrink: 0; }
-      &:hover { background: rgba(126, 107, 93, 0.08); color: var(--foreground); }
+      &:hover { background: var(--border); color: var(--foreground); }
       &--liked { color: #e74c3c; }
       &--active { color: var(--primary); }
     }
@@ -622,6 +646,10 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
 
   posts: ActivityPost[] = [];
   trendingPosts: ActivityPost[] = [];
@@ -646,6 +674,10 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     return this.postContent.trim().length > 0 && this.selectedBook !== null;
   }
 
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
   ngOnInit(): void {
     if (this.currentUserId) this.loadFeed();
   }
@@ -657,11 +689,15 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     }
   }
 
+  private trendingFetchedAt = 0;
+  private readonly TRENDING_TTL_MS = 60_000;
+
   switchTab(tab: 'friends' | 'trending'): void {
     if (this.activeTab === tab) return;
     this.activeTab = tab;
-    if (tab === 'trending' && this.trendingPosts.length === 0) {
-      this.loadTrending();
+    if (tab === 'trending') {
+      const stale = Date.now() - this.trendingFetchedAt > this.TRENDING_TTL_MS;
+      if (this.trendingPosts.length === 0 || stale) this.loadTrending();
     }
   }
 
@@ -676,8 +712,12 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   private loadTrending(): void {
     this.loading = true;
     this.activityService.getTrendingPosts(this.currentUserId!, 20).subscribe({
-      next: (posts) => { this.trendingPosts = posts; this.loading = false; },
-      error: () => { this.loading = false; },
+      next: (posts) => {
+        this.trendingPosts = posts;
+        this.trendingFetchedAt = Date.now();
+        this.loading = false;
+      },
+      error: () => { this.trendingPosts = []; this.loading = false; },
     });
   }
 
@@ -788,6 +828,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   }
 
   deletePost(post: ActivityPost): void {
+    if (!confirm(this.copy.deletePostConfirm)) return;
     const prev = [...this.posts];
     this.posts = this.posts.filter((p) => p.id !== post.id);
     this.activityService.deletePost(post.id).subscribe({
@@ -795,14 +836,5 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     });
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    if (diff < 0) return 'just now';
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 }

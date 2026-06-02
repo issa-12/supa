@@ -1,6 +1,8 @@
 import { Component, Input, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Book {
   id: string;
@@ -19,11 +21,11 @@ interface Book {
     <section class="trending-section">
       <div class="section-header">
         <div class="section-title-wrap">
-          <h2 class="text-h2">Trending This Week</h2>
+          <h2 class="text-h2">{{ copy.trendingTitle }}</h2>
         </div>
         <div class="tag-list">
-          <span class="small-tag">Popular</span>
-          <span class="small-tag">Top Rated</span>
+          <span class="small-tag">{{ copy.trendingTagPopular }}</span>
+          <span class="small-tag">{{ copy.trendingTagTopRated }}</span>
         </div>
       </div>
 
@@ -83,7 +85,7 @@ interface Book {
     .small-tag {
       padding: 4px 10px;
       border-radius: 4px;
-      background: rgba(126, 107, 93, 0.1);
+      background: var(--border);
       color: var(--secondary-foreground);
       font-size: 11px;
       font-weight: 700;
@@ -107,7 +109,7 @@ interface Book {
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(126, 107, 93, 0.2);
+        background: var(--border);
         border-radius: 3px;
 
         &:hover {
@@ -135,16 +137,13 @@ interface Book {
       height: 225px;
       border-radius: 6px 10px 10px 6px;
       object-fit: cover;
-      box-shadow: 0 10px 24px rgba(51, 38, 29, 0.12);
-      display: block;
-      transition: box-shadow 0.2s ease;
+       display: block;
 
       .book-card-clean:hover & {
-        box-shadow: 0 16px 32px rgba(51, 38, 29, 0.18);
-      }
+         }
 
       &.book-cover--empty {
-        background: rgba(126, 107, 93, 0.1);
+        background: var(--border);
       }
     }
 
@@ -199,8 +198,16 @@ interface Book {
 })
 export class TrendingBooksComponent {
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
 
   @Input() books: Book[] = [];
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onCardClick(book: Book): void {
     if (book.googleBooksId) {

@@ -1,7 +1,9 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BookService } from '../../core/services/book.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
 import { TopNavComponent } from './components/top-nav.component';
@@ -10,6 +12,7 @@ import { ContinueReadingComponent } from './components/continue-reading.componen
 import { RecommendedBooksComponent } from './components/recommended-books.component';
 import { TrendingBooksComponent } from './components/trending-books.component';
 import { PostsFeedComponent } from './components/posts-feed.component';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../i18n';
 
 interface Book {
   id: string;
@@ -46,7 +49,16 @@ interface ContinueReadingBook extends Book {
 export class HomePageComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly userService = inject(UserService);
+  private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
   private readonly destroy$ = new Subject<void>();
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   @ViewChild(PostsFeedComponent) private postsFeed?: PostsFeedComponent;
 
@@ -79,10 +91,25 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .getCurrentUserProfile()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (user) => {
-          this.currentUser = user;
-          this.currentUserId = user.id;
-          this.currentUserAvatar = user.avatarUrl;
+        next: (basicUser) => {
+          // getCurrentUserProfile only reads auth.users — fetch the full
+          // public.users row so avatar + bio + username are available
+          // for the top-nav and post composer.
+          this.userService
+            .getUserProfileById(basicUser.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (full) => {
+                this.currentUser = full;
+                this.currentUserAvatar = full.avatarUrl;
+              },
+              error: () => {
+                this.currentUser = basicUser;
+                this.currentUserAvatar = basicUser.avatarUrl;
+              },
+            });
+
+          this.currentUserId = basicUser.id;
           this.isLoading = false;
 
           this.loadContinueReadingBooks();
@@ -183,7 +210,9 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   onContinueReading(book: ContinueReadingBook): void {
-    console.log('Continue reading:', book);
+    if (book.googleBooksId) {
+      void this.router.navigate(['/books', book.googleBooksId]);
+    }
   }
 
   onAddBook(book: Book): void {

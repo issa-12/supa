@@ -12,6 +12,10 @@ import {
   FriendRequest,
   FriendshipStatusValue,
 } from '../../core/services/friendship.service';
+import { ReportService, ReportReason } from '../../core/services/report.service';
+import { timeAgo } from '../../core/util/time-ago';
+import { TranslationService, PROFILE_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ProfileBook {
   userBookId: number;
@@ -34,8 +38,13 @@ export class ProfilePageComponent implements OnInit {
   private readonly bookService = inject(BookService);
   private readonly activityService = inject(ActivityService);
   private readonly friendshipService = inject(FriendshipService);
+  private readonly reportService = inject(ReportService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return PROFILE_COPY[this.lang]; }
 
   profile: UserProfile | null = null;
   readingStats: ReadingStats | null = null;
@@ -65,6 +74,23 @@ export class ProfilePageComponent implements OnInit {
   incomingRequests: FriendRequest[] = [];
   friendActionLoading = false;
   friendActionError: string | null = null;
+  friendCount = 0;
+  blockedByMe = false;
+
+  showReportModal = false;
+  reportReason: ReportReason = 'spam';
+  reportDescription = '';
+  reportSubmitting = false;
+  reportError = '';
+  reportSuccess = '';
+
+  readonly reportReasons: ReportReason[] = [
+    'spam',
+    'harassment',
+    'inappropriate_content',
+    'impersonation',
+    'other',
+  ];
 
   searchQuery = '';
   searchResults: UserProfile[] = [];
@@ -77,6 +103,10 @@ export class ProfilePageComponent implements OnInit {
   isLoading = true;
   error: string | null = null;
 
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
   async ngOnInit(): Promise<void> {
     try {
       const supabase = await this.supabaseService.getClient();
@@ -88,7 +118,7 @@ export class ProfilePageComponent implements OnInit {
       this.isOwnProfile = !routeId || routeId === this.currentUserId;
 
       if (!targetId) {
-        this.error = 'Profile not found.';
+        this.error = this.copy.profileNotFoundMsg;
         return;
       }
 
@@ -115,21 +145,41 @@ export class ProfilePageComponent implements OnInit {
       this.recentPosts = recentPosts;
 
       if (this.isOwnProfile) {
-        const [friends, requests] = await Promise.all([
+        const [friends, requests, count] = await Promise.all([
           this.friendshipService.getFriends(),
           this.friendshipService.getIncomingRequests(),
+          this.friendshipService.getFriendCount(targetId),
         ]);
         this.friends = friends;
         this.incomingRequests = requests;
+        this.friendCount = count.count;
       } else if (this.currentUserId) {
-        const status = await this.friendshipService.getFriendshipStatus(targetId);
+        const [status, count] = await Promise.all([
+          this.friendshipService.getFriendshipStatus(targetId),
+          this.friendshipService.getFriendCount(targetId),
+        ]);
         this.friendshipStatus = status.status;
         this.friendshipId = status.friendshipId;
+        this.blockedByMe = status.blockedByMe ?? false;
+        this.friendCount = count.count;
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Failed to load profile.';
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  private async refreshFriendshipStatus(): Promise<void> {
+    const targetId = this.route.snapshot.paramMap.get('id');
+    if (!targetId || targetId === this.currentUserId) return;
+    try {
+      const status = await this.friendshipService.getFriendshipStatus(targetId);
+      this.friendshipStatus = status.status;
+      this.friendshipId = status.friendshipId;
+      this.blockedByMe = status.blockedByMe ?? false;
+    } catch {
+      // best-effort re-sync; leave the existing button state untouched
     }
   }
 
@@ -142,8 +192,13 @@ export class ProfilePageComponent implements OnInit {
       const result = await this.friendshipService.sendRequest(targetId);
       this.friendshipStatus = 'pending_sent';
       this.friendshipId = result.friendshipId;
-    } catch {
-      this.friendActionError = 'Could not send friend request. Please try again.';
+    } catch (err) {
+      // The backend returns a specific reason (e.g. blocked / already exists);
+      // surface it so the user isn't told to "try again" on an unretryable error.
+      const msg = err instanceof Error ? err.message : '';
+      this.friendActionError = msg || 'Could not send friend request. Please try again.';
+      // Our local view of the relationship is stale — re-sync the button state.
+      void this.refreshFriendshipStatus();
     } finally {
       this.friendActionLoading = false;
     }
@@ -171,6 +226,7 @@ export class ProfilePageComponent implements OnInit {
     try {
       await this.friendshipService.acceptRequest(this.friendshipId);
       this.friendshipStatus = 'accepted';
+      this.friendCount += 1;
     } catch {
       this.friendActionError = 'Could not accept request. Please try again.';
     } finally {
@@ -184,7 +240,7 @@ export class ProfilePageComponent implements OnInit {
     this.friendActionError = null;
     try {
       await this.friendshipService.rejectRequest(this.friendshipId);
-      this.friendshipStatus = 'rejected';
+      this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
       this.friendActionError = 'Could not decline request. Please try again.';
@@ -201,10 +257,93 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.deleteFriendship(this.friendshipId);
       this.friendshipStatus = 'none';
       this.friendshipId = null;
+      this.friendCount = Math.max(0, this.friendCount - 1);
     } catch {
       this.friendActionError = 'Could not remove friend. Please try again.';
     } finally {
       this.friendActionLoading = false;
+    }
+  }
+
+  async blockUser(): Promise<void> {
+    const targetId = this.route.snapshot.paramMap.get('id');
+    if (!targetId || this.friendActionLoading) return;
+    if (!window.confirm(this.copy.blockConfirm)) return;
+
+    const wasAccepted = this.friendshipStatus === 'accepted';
+    this.friendActionLoading = true;
+    this.friendActionError = null;
+    try {
+      await this.friendshipService.blockUser(targetId);
+      this.friendshipStatus = 'blocked';
+      this.blockedByMe = true;
+      if (wasAccepted) {
+        this.friendCount = Math.max(0, this.friendCount - 1);
+      }
+    } catch {
+      this.friendActionError = this.copy.blockError;
+    } finally {
+      this.friendActionLoading = false;
+    }
+  }
+
+  async unblockUser(): Promise<void> {
+    const targetId = this.route.snapshot.paramMap.get('id');
+    if (!targetId || this.friendActionLoading) return;
+    this.friendActionLoading = true;
+    this.friendActionError = null;
+    try {
+      await this.friendshipService.unblockUser(targetId);
+      this.friendshipStatus = 'none';
+      this.friendshipId = null;
+      this.blockedByMe = false;
+    } catch {
+      this.friendActionError = this.copy.unblockError;
+    } finally {
+      this.friendActionLoading = false;
+    }
+  }
+
+  openReportModal(): void {
+    this.reportReason = 'spam';
+    this.reportDescription = '';
+    this.reportError = '';
+    this.reportSuccess = '';
+    this.showReportModal = true;
+  }
+
+  closeReportModal(): void {
+    this.showReportModal = false;
+  }
+
+  async submitReport(): Promise<void> {
+    const targetId = this.route.snapshot.paramMap.get('id');
+    if (!targetId || this.reportSubmitting) return;
+    this.reportError = '';
+    this.reportSuccess = '';
+    this.reportSubmitting = true;
+    try {
+      await this.reportService.reportUser(
+        targetId,
+        this.reportReason,
+        this.reportDescription,
+      );
+      this.reportSuccess = this.copy.reportSubmitted;
+      window.setTimeout(() => this.closeReportModal(), 1800);
+    } catch (err) {
+      this.reportError = err instanceof Error ? err.message : this.copy.reportError;
+    } finally {
+      this.reportSubmitting = false;
+    }
+  }
+
+  reasonLabel(r: ReportReason): string {
+    switch (r) {
+      case 'spam': return this.copy.reasonSpam;
+      case 'harassment': return this.copy.reasonHarassment;
+      case 'inappropriate_content': return this.copy.reasonInappropriate;
+      case 'impersonation': return this.copy.reasonImpersonation;
+      case 'other': return this.copy.reasonOther;
     }
   }
 
@@ -213,6 +352,7 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.acceptRequest(req.friendshipId);
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
       this.friends = await this.friendshipService.getFriends();
+      this.friendCount = this.friends.length;
     } catch {
       this.friendActionError = 'Could not accept request. Please try again.';
     }
@@ -366,16 +506,7 @@ export class ProfilePageComponent implements OnInit {
     }
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    if (diff < 0) return 'just now';
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 
   private toProfileBooks(userBooks: UserBook[]): ProfileBook[] {
     return userBooks

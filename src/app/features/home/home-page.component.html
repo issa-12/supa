@@ -70,7 +70,7 @@
   </div>
 
   <!-- Floating Action Button — opens compose form in feed -->
-  <button class="fab-btn" aria-label="Write a post" (click)="openCompose()">
+  <button class="fab-btn" [attr.aria-label]="copy.writePostAriaLabel" (click)="openCompose()">
     <iconify-icon icon="lucide:pencil" style="font-size: 24px"></iconify-icon>
   </button>
 </div>

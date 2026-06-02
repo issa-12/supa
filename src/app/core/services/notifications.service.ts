@@ -14,16 +14,6 @@ export interface AppNotification {
   referenceType: string | null;
 }
 
-export const NOTIFICATION_LABELS: Record<string, string> = {
-  friend_request: 'sent you a friend request',
-  friend_accepted: 'accepted your friend request',
-  book_recommended: 'recommended a book to you',
-  post_liked: 'liked your post',
-  comment_liked: 'liked your comment',
-  review_liked: 'liked your review',
-  friend_posted: 'shared a new post',
-};
-
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private readonly supabaseService = inject(SupabaseService);
@@ -60,33 +50,66 @@ export class NotificationsService {
     }
   }
 
-  async loadNotifications(): Promise<void> {
+  async loadNotifications(): Promise<boolean> {
     try {
-      const items = await this.apiFetch<AppNotification[]>('');
+      // The list endpoint is capped (default 20 rows), so deriving the badge
+      // from `items` would under-report once a user has more unread than that.
+      // Pull the exact count from the dedicated endpoint in parallel instead.
+      const [items] = await Promise.all([
+        this.apiFetch<AppNotification[]>(''),
+        this.loadUnreadCount(),
+      ]);
       this.notifications$.next(items);
-      const unread = items.filter((n) => !n.isRead).length;
-      this.unreadCount$.next(unread);
+      return true;
     } catch {
-      // silently ignore
+      // Surface the failure to the caller so the panel can show an error
+      // state instead of a misleading "no notifications" empty state.
+      return false;
     }
   }
 
   async markAsRead(id: number): Promise<void> {
-    await this.apiFetch(`/${id}/read`, { method: 'PATCH' });
-    this.notifications$.next(
-      this.notifications$.value.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-    );
+    const prev = this.notifications$.value;
+    const target = prev.find((n) => n.id === id);
+    if (!target || target.isRead) return;
+
+    // Optimistic: flip the row and decrement the badge immediately, then roll
+    // back if the request fails. Never rejects, so template click handlers
+    // can fire-and-forget without risking an unhandled promise rejection.
+    this.notifications$.next(prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     this.unreadCount$.next(Math.max(0, this.unreadCount$.value - 1));
+    try {
+      await this.apiFetch(`/${id}/read`, { method: 'PATCH' });
+    } catch {
+      this.notifications$.next(prev);
+      void this.loadUnreadCount();
+    }
   }
 
   async markAllAsRead(): Promise<void> {
-    await this.apiFetch('/read-all', { method: 'PATCH' });
-    this.notifications$.next(this.notifications$.value.map((n) => ({ ...n, isRead: true })));
+    const prev = this.notifications$.value;
+    const prevCount = this.unreadCount$.value;
+    if (prevCount === 0 && prev.every((n) => n.isRead)) return;
+
+    this.notifications$.next(prev.map((n) => ({ ...n, isRead: true })));
     this.unreadCount$.next(0);
+    try {
+      await this.apiFetch('/read-all', { method: 'PATCH' });
+    } catch {
+      this.notifications$.next(prev);
+      this.unreadCount$.next(prevCount);
+    }
   }
 
+  private subscribedUserId: string | null = null;
+  private refetchTimer: ReturnType<typeof setTimeout> | null = null;
+
   async subscribeToRealtime(userId: string): Promise<void> {
+    if (this.subscribedUserId === userId && this.realtimeChannel) return;
+    this.unsubscribe();
+
     const supabase = await this.supabaseService.getClient();
+    this.subscribedUserId = userId;
     this.realtimeChannel = supabase
       .channel(`notifications:${userId}`)
       .on(
@@ -98,12 +121,22 @@ export class NotificationsService {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          this.unreadCount$.next(this.unreadCount$.value + 1);
-          this.loadNotifications();
+          // Reconcile the badge against the exact server count rather than a
+          // blind +1 — that way the bell can never show a number with no
+          // matching row behind it. Debounce the full list refetch so a burst
+          // of inserts collapses into a single round-trip.
+          void this.loadUnreadCount();
+          if (this.refetchTimer) clearTimeout(this.refetchTimer);
+          this.refetchTimer = setTimeout(() => {
+            this.refetchTimer = null;
+            void this.loadNotifications();
+          }, 500);
         },
       )
       .subscribe();
   }
+
+  private readonly typeIdCache = new Map<string, number>();
 
   async fireNotification(
     recipientId: string,
@@ -115,16 +148,21 @@ export class NotificationsService {
     if (recipientId === actorId) return;
     try {
       const supabase = await this.supabaseService.getClient();
-      const { data: typeRow } = await supabase
-        .from('notifications_type')
-        .select('notifications_typeid')
-        .eq('notifications_type', typeName)
-        .single();
-      if (!typeRow) return;
+      let typeId = this.typeIdCache.get(typeName);
+      if (typeId === undefined) {
+        const { data: typeRow } = await supabase
+          .from('notifications_type')
+          .select('notifications_typeid')
+          .eq('notifications_type', typeName)
+          .single();
+        if (!typeRow) return;
+        typeId = typeRow['notifications_typeid'] as number;
+        this.typeIdCache.set(typeName, typeId);
+      }
       await supabase.from('notifications').insert({
         user_id: recipientId,
         actor_user_id: actorId,
-        notifications_typeid: typeRow['notifications_typeid'],
+        notifications_typeid: typeId,
         reference_id: referenceId ?? null,
         reference_type: referenceType ?? null,
         read_status: false,
@@ -139,5 +177,8 @@ export class NotificationsService {
       this.realtimeChannel.unsubscribe();
       this.realtimeChannel = null;
     }
+    this.subscribedUserId = null;
+    this.unreadCount$.next(0);
+    this.notifications$.next([]);
   }
 }

@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook } from '../../core/services/book.service';
+import { TranslationService, SHELF_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ShelfSection {
   statusName: string;
-  label: string;
   books: UserBook[];
 }
 
@@ -15,13 +16,6 @@ const STATUS_ORDER: Record<string, number> = {
   currently_reading: 0,
   want_to_read: 1,
   read: 2,
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  currently_reading: 'Currently Reading',
-  want_to_read: 'Want to Read',
-  read: 'Already Read',
-  recommended_by_friend: 'Recommended',
 };
 
 @Component({
@@ -35,6 +29,10 @@ export class ShelfComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly bookService = inject(BookService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return SHELF_COPY[this.lang]; }
 
   sections: ShelfSection[] = [];
   isLoading = true;
@@ -52,10 +50,19 @@ export class ShelfComponent implements OnInit {
   sortBy: 'date' | 'title' | 'rating' = 'date';
 
   readonly SHELF_STATUSES = [
-    { name: 'currently_reading', label: 'Currently Reading' },
-    { name: 'want_to_read', label: 'Want to Read' },
-    { name: 'read', label: 'Already Read' },
+    { name: 'currently_reading', label: this.copy.currentlyReadingLabel },
+    { name: 'want_to_read', label: this.copy.wantToReadLabel },
+    { name: 'read', label: this.copy.alreadyReadLabel },
   ];
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.SHELF_STATUSES[0].label = this.copy.currentlyReadingLabel;
+      this.SHELF_STATUSES[1].label = this.copy.wantToReadLabel;
+      this.SHELF_STATUSES[2].label = this.copy.alreadyReadLabel;
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -66,7 +73,7 @@ export class ShelfComponent implements OnInit {
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user.id));
       this.buildSections(allBooks);
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to load shelf.';
+      this.error = err instanceof Error ? err.message : this.copy.failedToLoadShelfMsg;
     } finally {
       this.isLoading = false;
     }
@@ -82,12 +89,19 @@ export class ShelfComponent implements OnInit {
     }
 
     this.sections = [...map.entries()]
-      .map(([statusName, books]) => ({
-        statusName,
-        label: STATUS_LABELS[statusName] ?? statusName,
-        books,
-      }))
+      .map(([statusName, books]) => ({ statusName, books }))
       .sort((a, b) => (STATUS_ORDER[a.statusName] ?? 99) - (STATUS_ORDER[b.statusName] ?? 99));
+  }
+
+  // Resolved from the active language so headings translate (and re-render
+  // live on language switch) rather than being baked in at build time.
+  sectionLabel(statusName: string): string {
+    switch (statusName) {
+      case 'currently_reading': return this.copy.currentlyReadingLabel;
+      case 'want_to_read': return this.copy.wantToReadLabel;
+      case 'read': return this.copy.alreadyReadLabel;
+      default: return statusName;
+    }
   }
 
   get totalBooks(): number {
@@ -113,7 +127,9 @@ export class ShelfComponent implements OnInit {
     if (this.sortBy === 'rating') {
       return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
-    return sorted; // 'date' — already ordered by added_at DESC from DB
+    // 'date' — DB returns them sorted by added_at DESC, but resort
+    // defensively in case bucketing changes order.
+    return sorted.sort((a, b) => (b.addedAt ?? '').localeCompare(a.addedAt ?? ''));
   }
 
   toggleMenu(userBookId: number): void {

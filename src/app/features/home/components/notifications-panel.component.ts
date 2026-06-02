@@ -1,11 +1,25 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   NotificationsService,
   AppNotification,
-  NOTIFICATION_LABELS,
 } from '../../../core/services/notifications.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { timeAgo } from '../../../core/util/time-ago';
+import { TranslationService, NOTIFICATIONS_COPY, NotificationsCopy, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+const LABEL_KEY_BY_TYPE: Record<string, keyof NotificationsCopy> = {
+  friend_request: 'friendRequestSent',
+  friend_accepted: 'friendRequestAccepted',
+  book_recommended: 'bookRecommended',
+  post_liked: 'postLiked',
+  post_commented: 'postCommented',
+  comment_liked: 'commentLiked',
+  comment_replied: 'commentReply',
+  review_liked: 'reviewLiked',
+  friend_posted: 'newPost',
+};
 
 @Component({
   selector: 'app-notifications-panel',
@@ -15,21 +29,31 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     <div class="panel-overlay" (click)="close.emit()"></div>
     <div class="panel">
       <div class="panel-header">
-        <h3 class="panel-title">Notifications</h3>
+        <h3 class="panel-title">{{ copy.notificationsPanelTitle }}</h3>
         @if (hasUnread) {
-          <button class="mark-all-btn" (click)="markAllRead()">Mark all read</button>
+          <button class="mark-all-btn" (click)="markAllRead()">{{ copy.markAllReadBtn }}</button>
         }
       </div>
 
       @if (isLoading) {
-        <div class="panel-state">Loading…</div>
+        <div class="panel-state">{{ copy.loadingMsg }}</div>
+      } @else if (loadError) {
+        <div class="panel-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p>{{ copy.loadErrorMsg }}</p>
+          <button class="retry-btn" (click)="reload.emit()">{{ copy.retryBtn }}</button>
+        </div>
       } @else if (notifications.length === 0) {
         <div class="panel-state">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
-          <p>No notifications yet</p>
+          <p>{{ copy.noNotificationsMsg }}</p>
         </div>
       } @else {
         <ul class="notif-list">
@@ -37,16 +61,16 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             <li class="notif-item" [class.notif-item--unread]="!n.isRead" (click)="onNotifClick(n)">
               <div class="notif-avatar">
                 @if (n.actorAvatarUrl) {
-                  <img [src]="n.actorAvatarUrl" [alt]="n.actorName" />
+                  <img [src]="n.actorAvatarUrl" [alt]="n.actorName" loading="lazy" (error)="n.actorAvatarUrl = null" />
                 } @else {
-                  <span>{{ n.actorName[0].toUpperCase() }}</span>
+                  <span>{{ (n.actorName || '?').charAt(0).toUpperCase() }}</span>
                 }
               </div>
               <div class="notif-body">
                 <p class="notif-text">
                   <strong>{{ n.actorName }}</strong> {{ label(n.type) }}
                 </p>
-                <time class="notif-time">{{ timeAgo(n.createdAt) }}</time>
+                <time class="notif-time">{{ timeAgo(n.createdAt, lang) }}</time>
               </div>
               @if (!n.isRead) {
                 <div class="notif-dot"></div>
@@ -67,15 +91,13 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     .panel {
       position: absolute;
       top: calc(100% + 12px);
-      right: 0;
+      inset-inline-end: 0;
       width: 360px;
       max-height: 480px;
-      background: rgba(255, 250, 245, 0.97);
-      backdrop-filter: blur(16px);
+      background: var(--surface);
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 20px 60px rgba(51, 38, 29, 0.14);
-      overflow: hidden;
+      border: 1px solid transparent;
+       overflow: hidden;
       display: flex;
       flex-direction: column;
       z-index: 100;
@@ -86,7 +108,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       align-items: center;
       justify-content: space-between;
       padding: 20px 20px 14px;
-      border-bottom: 1px solid rgba(126, 107, 93, 0.1);
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
 
@@ -122,6 +144,21 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       p { margin: 0; }
     }
 
+    .retry-btn {
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 18px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+
+      &:hover { opacity: 0.8; }
+    }
+
     .notif-list {
       list-style: none;
       margin: 0;
@@ -139,9 +176,9 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       transition: background 0.15s;
       position: relative;
 
-      &:hover { background: rgba(126, 107, 93, 0.06); }
+      &:hover { background: var(--border); }
 
-      &--unread { background: rgba(233, 120, 63, 0.05); }
+      &--unread { background: var(--primary-soft); }
     }
 
     .notif-avatar {
@@ -150,7 +187,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -190,61 +227,81 @@ import { SupabaseService } from '../../../core/services/supabase.service';
     @media (max-width: 480px) {
       .panel {
         width: calc(100vw - 32px);
-        right: -16px;
+        inset-inline-end: -16px;
       }
     }
   `],
 })
-export class NotificationsPanelComponent {
+export class NotificationsPanelComponent implements OnInit, OnDestroy {
   @Input() notifications: AppNotification[] = [];
   @Input() isLoading = false;
+  @Input() loadError = false;
   @Output() close = new EventEmitter<void>();
+  @Output() reload = new EventEmitter<void>();
 
   private readonly notificationsService = inject(NotificationsService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return NOTIFICATIONS_COPY[this.lang]; }
+
+  // Re-render once a minute so the relative timestamps ("2m ago") stay accurate
+  // while the panel is open, without re-fetching from the server.
+  private tickInterval: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
+  ngOnInit(): void {
+    this.tickInterval = setInterval(() => this.cdr.markForCheck(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.tickInterval) clearInterval(this.tickInterval);
+  }
 
   get hasUnread(): boolean {
     return this.notifications.some((n) => !n.isRead);
   }
 
   label(type: string): string {
-    return NOTIFICATION_LABELS[type] ?? 'interacted with you';
+    const key = LABEL_KEY_BY_TYPE[type];
+    return key ? this.copy[key] : this.copy.interactedWithYou;
   }
 
-  async onNotifClick(n: AppNotification): Promise<void> {
-    if (!n.isRead) this.notificationsService.markAsRead(n.id);
+  onNotifClick(n: AppNotification): void {
+    if (!n.isRead) void this.notificationsService.markAsRead(n.id);
     this.close.emit();
-    await this.navigate(n);
+    void this.navigate(n);
   }
 
   private async navigate(n: AppNotification): Promise<void> {
-    if (n.type === 'book_recommended' && n.referenceId) {
-      const supabase = await this.supabaseService.getClient();
-      const { data } = await supabase
-        .from('books')
-        .select('google_books_id')
-        .eq('book_id', n.referenceId)
-        .single();
-      if (data?.['google_books_id']) {
-        this.router.navigate(['/books', data['google_books_id']]);
+    try {
+      if (n.type === 'book_recommended' && n.referenceId) {
+        const supabase = await this.supabaseService.getClient();
+        const { data } = await supabase
+          .from('books')
+          .select('google_books_id')
+          .eq('book_id', n.referenceId)
+          .maybeSingle();
+        if (data?.['google_books_id']) {
+          this.router.navigate(['/books', data['google_books_id']]);
+        }
+      } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
+        this.router.navigate(['/profile', n.actorId]);
       }
-    } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
-      this.router.navigate(['/profile', n.actorId]);
+    } catch {
+      // navigation is best-effort — never surface a routing/lookup error
     }
   }
 
   markAllRead(): void {
-    this.notificationsService.markAllAsRead();
+    void this.notificationsService.markAllAsRead();
   }
 
-  timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
+  readonly timeAgo = timeAgo;
 }

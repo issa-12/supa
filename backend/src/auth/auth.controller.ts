@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -34,10 +35,9 @@ export class AuthController {
     const password = body.password ?? '';
 
     if (!name || !email || password.length < 6) {
-      return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Name, valid email, and a 6 character password are required.',
-      };
+      throw new BadRequestException(
+        'Name, valid email, and a 6 character password are required.',
+      );
     }
 
     await this.authService.requestSignup(email, password, name);
@@ -51,10 +51,7 @@ export class AuthController {
     const code = normalizeCode(body.code);
 
     if (!email || !code) {
-      return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Email and verification code are required.',
-      };
+      throw new BadRequestException('Email and verification code are required.');
     }
 
     const tokens = await this.authService.verifyEmail(email, code);
@@ -72,10 +69,7 @@ export class AuthController {
     const email = normalizeEmail(body.email);
 
     if (!email) {
-      return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'A valid email is required.',
-      };
+      throw new BadRequestException('A valid email is required.');
     }
 
     await this.authService.resendVerification(email);

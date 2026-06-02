@@ -1,5 +1,7 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ContinueReadingBook {
   id: string;
@@ -20,7 +22,7 @@ interface ContinueReadingBook {
     <section class="continue-reading-section">
       <div class="section-header">
         <div class="section-title-wrap">
-          <h2 class="text-h2">Continue Reading</h2>
+          <h2 class="text-h2">{{ copy.continueReadingTitle }}</h2>
         </div>
       </div>
 
@@ -32,12 +34,17 @@ interface ContinueReadingBook {
           (mouseleave)="hoveredBook = null"
           [class.mock-hover]="hoveredBook === book.id"
         >
-          <img
-            class="continue-cover"
-            [src]="book.coverUrl"
-            [alt]="book.title + ' Cover'"
-            loading="lazy"
-          />
+          @if (book.coverUrl) {
+            <img
+              class="continue-cover"
+              [src]="book.coverUrl"
+              [alt]="book.title + ' Cover'"
+              loading="lazy"
+              (error)="book.coverUrl = null"
+            />
+          } @else {
+            <div class="continue-cover continue-cover--placeholder"></div>
+          }
 
           <div class="continue-details">
             <div class="continue-text">
@@ -50,7 +57,7 @@ interface ContinueReadingBook {
                 <div class="progress-bar-fill" [style.width.%]="book.progress"></div>
               </div>
               <div class="progress-label">
-                {{ book.currentPage > 0 ? 'Page ' + book.currentPage + (book.totalPages > 0 ? ' / ' + book.totalPages : '') : 'No progress tracked yet' }}
+                {{ book.currentPage > 0 ? copy.progressLabel + book.currentPage + (book.totalPages > 0 ? ' / ' + book.totalPages : '') : copy.noProgressTracked }}
               </div>
             </div>
           </div>
@@ -59,7 +66,7 @@ interface ContinueReadingBook {
           <div class="continue-hover-overlay">
             <button class="btn btn-primary btn-small" (click)="onContinueReading(book)">
               <iconify-icon icon="lucide:book-open" style="font-size: 16px"></iconify-icon>
-              Continue reading
+              {{ copy.continueReadingBtn }}
             </button>
           </div>
         </div>
@@ -114,7 +121,7 @@ interface ContinueReadingBook {
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(126, 107, 93, 0.2);
+        background: var(--border);
         border-radius: 3px;
 
         &:hover {
@@ -136,7 +143,7 @@ interface ContinueReadingBook {
     }
 
     .continue-item.mock-hover {
-      background: rgba(255, 250, 245, 0.4);
+      background: var(--surface);
     }
 
     .continue-cover {
@@ -144,8 +151,11 @@ interface ContinueReadingBook {
       height: 132px;
       border-radius: 4px 6px 6px 4px;
       object-fit: cover;
-      box-shadow: 0 8px 16px rgba(51, 38, 29, 0.12);
-      flex-shrink: 0;
+       flex-shrink: 0;
+
+      &--placeholder {
+        background: var(--border);
+      }
     }
 
     .continue-details {
@@ -190,14 +200,14 @@ interface ContinueReadingBook {
     .progress-bar-bg {
       width: 100%;
       height: 6px;
-      background: rgba(126, 107, 93, 0.15);
+      background: var(--border);
       border-radius: 999px;
       overflow: hidden;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      background: var(--primary);
       border-radius: 999px;
       transition: width 0.3s ease;
     }
@@ -211,8 +221,7 @@ interface ContinueReadingBook {
     .continue-hover-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(255, 250, 245, 0.85);
-      backdrop-filter: blur(4px);
+      background: var(--surface);
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -224,8 +233,7 @@ interface ContinueReadingBook {
 
     .continue-item.mock-hover .continue-hover-overlay {
       opacity: 1;
-      box-shadow: 0 12px 24px rgba(51, 38, 29, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+       border: 1px solid transparent;
     }
 
     .btn {
@@ -245,14 +253,11 @@ interface ContinueReadingBook {
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       color: var(--primary-foreground);
-      box-shadow: 0 12px 24px rgba(233, 120, 63, 0.22);
-
-      &:hover {
+       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 16px 32px rgba(233, 120, 63, 0.3);
-      }
+         }
 
       &:active {
         transform: translateY(0);
@@ -275,10 +280,19 @@ interface ContinueReadingBook {
   `],
 })
 export class ContinueReadingComponent {
+  private readonly translationService = inject(TranslationService);
+
   @Input() books: ContinueReadingBook[] = [];
   @Output() continueReading = new EventEmitter<ContinueReadingBook>();
 
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return HOME_COPY[this.lang]; }
+
   hoveredBook: string | null = null;
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   onContinueReading(book: ContinueReadingBook): void {
     this.continueReading.emit(book);

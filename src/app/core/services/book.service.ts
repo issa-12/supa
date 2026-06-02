@@ -63,14 +63,14 @@ export class BookService {
   getContinueReadingBooks(userId: string): Observable<UserBook[]> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
-        // Resolve the status_id for 'currently_reading' dynamically
         const { data: status } = await supabase
           .from('reading_statuses')
           .select('status_id')
           .eq('status_name', 'currently_reading')
           .maybeSingle();
 
-        const statusId = status?.['status_id'] ?? 3;
+        const statusId = status?.['status_id'] as number | undefined;
+        if (!statusId) return [];
 
         return supabase
           .from('user_books')
@@ -103,19 +103,25 @@ export class BookService {
 
   getUserBookByGoogleId(userId: string, googleBooksId: string): Observable<UserBook | null> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then(async (supabase) => {
+        const { data: book } = await supabase
+          .from('books')
+          .select('book_id')
+          .eq('google_books_id', googleBooksId)
+          .maybeSingle();
+
+        if (!book) return null;
+
+        const { data, error } = await supabase
           .from('user_books')
           .select('*, book:books(*), status:reading_statuses(*)')
           .eq('user_id', userId)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            const match = (data || []).find(
-              (ub) => ub.book?.google_books_id === googleBooksId,
-            );
-            return match ? this.mapUserBook(match) : null;
-          })
-      )
+          .eq('book_id', book['book_id'])
+          .maybeSingle();
+
+        if (error) throw error;
+        return data ? this.mapUserBook(data) : null;
+      })
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
@@ -319,7 +325,7 @@ export class BookService {
     if (existing) {
       bookId = existing['book_id'] as number;
     } else {
-      const publishDate = /^\d{4}-\d{2}-\d{2}$/.test(book.publishedDate ?? '') ? book.publishedDate : null;
+      const publishDate = normalizePublishedDate(book.publishedDate);
       const { data: inserted, error: insertErr } = await supabase
         .from('books')
         .insert({
@@ -337,20 +343,32 @@ export class BookService {
       bookId = inserted['book_id'] as number;
     }
 
-    // Upsert user_books (handles re-adding with a different status)
-    const { error: shelfErr } = await supabase
+    // If the user already has this book on a shelf, just update the
+    // status — preserve the original added_at so first-added date stays
+    // intact. Otherwise insert a fresh row.
+    const { data: existingUserBook } = await supabase
       .from('user_books')
-      .upsert(
-        {
-          user_id: userId,
-          book_id: bookId,
-          status_id: statusId,
-          added_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,book_id' },
-      );
+      .select('user_book_id')
+      .eq('user_id', userId)
+      .eq('book_id', bookId)
+      .maybeSingle();
 
-    if (shelfErr) throw shelfErr;
+    if (existingUserBook) {
+      const { error: updateErr } = await supabase
+        .from('user_books')
+        .update({ status_id: statusId, updated_at: new Date().toISOString() })
+        .eq('user_book_id', existingUserBook['user_book_id']);
+      if (updateErr) throw updateErr;
+      return;
+    }
+
+    const { error: insertErr } = await supabase.from('user_books').insert({
+      user_id: userId,
+      book_id: bookId,
+      status_id: statusId,
+      added_at: new Date().toISOString(),
+    });
+    if (insertErr) throw insertErr;
   }
 
   getReadingStatuses(): Observable<ReadingStatus[]> {
@@ -386,22 +404,27 @@ export class BookService {
         const statusId = statusRow?.['status_id'] as number | undefined;
         if (!statusId) throw new Error(`Status '${statusName}' not found`);
 
-        const { data, error } = await supabase
+        const { data: existing } = await supabase
           .from('user_books')
-          .upsert(
-            {
-              user_id: userId,
-              book_id: bookId,
-              status_id: statusId,
-              added_at: new Date().toISOString(),
-            },
-            { onConflict: 'user_id,book_id', ignoreDuplicates: true },
-          )
           .select('*, book:books(*), status:reading_statuses(*)')
+          .eq('user_id', userId)
+          .eq('book_id', bookId)
           .maybeSingle();
 
+        if (existing) return this.mapUserBook(existing);
+
+        const { data, error } = await supabase
+          .from('user_books')
+          .insert({
+            user_id: userId,
+            book_id: bookId,
+            status_id: statusId,
+            added_at: new Date().toISOString(),
+          })
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .single();
+
         if (error) throw error;
-        if (!data) throw new Error('Book already on shelf');
         return this.mapUserBook(data);
       })
     ).pipe(catchError((error) => throwError(() => error)));
@@ -565,4 +588,14 @@ export class BookService {
         : undefined,
     };
   }
+}
+
+// Google Books returns publishedDate as 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'.
+// Normalize to a Postgres DATE-compatible 'YYYY-MM-DD' string (or null).
+function normalizePublishedDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
+  if (/^\d{4}$/.test(value)) return `${value}-01-01`;
+  return null;
 }

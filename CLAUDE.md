@@ -1,9 +1,9 @@
 # ReadTrack — Claude Code Handoff
 
 ## What this project is
-ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint.
+ReadTrack is a social reading app (think Goodreads) built in a 15-day sprint, plus post-sprint enhancements.
 Users can search books via Google Books, manage a personal shelf, follow friends,
-post about books, and receive AI-powered reading recommendations.
+post about books in a community feed with content moderation, and receive AI-powered reading recommendations.
 
 **Current day: 15 of 15. All 15 days complete. Project is production-ready.**
 
@@ -164,6 +164,9 @@ All tables have RLS enabled. Key rules:
 | `/books/:googleId` | BookDetailComponent | authGuard + genreOnboardingGuard |
 | `/shelf` | ShelfComponent | authGuard + genreOnboardingGuard |
 | `/stats` | StatsPageComponent | authGuard + genreOnboardingGuard |
+| `/community` | CommunityPageComponent | authGuard + genreOnboardingGuard |
+| `/privacy` | PrivacyPolicyComponent | — |
+| `/terms` | TermsOfServiceComponent | — |
 
 ---
 
@@ -186,6 +189,10 @@ All tables have RLS enabled. Key rules:
 | GET | `/api/recommendations/:userId` | AI book recommendations (Claude, 24h cache) |
 | GET | `/api/stats/global?period=week\|month` | Top books, trending genres, top readers |
 | GET | `/api/stats/pace` | Authenticated user's monthly reading pace |
+| GET | `/api/community/posts?tag=&page=&trending=` | Get all posts or trending posts (with optional tag filter) |
+| GET | `/api/community/tags/trending` | Get trending tags across all community posts |
+| POST | `/api/community/posts` | Create a new community post (with content moderation) |
+| GET | `/api/health` | Health check endpoint for Docker |
 
 ---
 
@@ -351,6 +358,17 @@ All tables have RLS enabled. Key rules:
 - **U2 — Profile join date**: Already correct — `joinDate` is mapped to a 4-digit year string and rendered as "Reading since YYYY". No change needed.
 - **U3 — Book search pagination**: `book.service.ts` — `searchBooks()` now accepts `startIndex` and returns `{ books, totalItems }`. `book-search.component.ts` — added `startIndex`, `totalItems`, `isLoadingMore`, `hasMore` getter, and `loadMore()` method. `book-search.component.html` — added "Load more results" button below the grid (shown only when more results exist); result count shows "X of Y results". `book-search.component.scss` — added `.load-more-wrap`, `.load-more-btn`, `.btn-spinner` styles.
 - **Stats top books clickable**: `stats-page.component.html` — top book rows now have `[routerLink]` when `googleBooksId` is available; `stats-page.component.scss` — added `.book-row--clickable` hover style. Backend `stats.service.ts` — added `google_books_id` to the top books query and response (`TopBook` interface updated).
+
+### Post-sprint Community Page (Post-Day 15)
+- **Community page added**: `/community` route with full social features
+- **Frontend**: `CommunityPageComponent` (`src/app/features/community/community-page.component.ts`) — two-tab interface (All Posts / Trending), book picker for posts, tag filtering, trending tags sidebar
+- **Backend**: `CommunityModule` in `backend/src/community/` with full REST API for post CRUD
+- **Content moderation**: `CommunityService` uses Anthropic API to analyze post sentiment and moderate content (flagged/rejected/approved states)
+- **Database**: Posts table with `tags` (string array), `sentiment` (positive/negative/neutral/mixed), soft-delete support
+- **API endpoints**:
+  - `GET /api/community/posts?tag=&page=&trending=` — paginated post feed with optional tag filter
+  - `GET /api/community/tags/trending` — trending tags across all posts
+  - `POST /api/community/posts` — create post with auto-tagging and moderation (max 2000 chars, up to 5 tags)
 
 ---
 

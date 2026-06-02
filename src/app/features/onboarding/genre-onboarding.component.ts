@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { TranslationService, ONBOARDING_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Genre {
   genre_id: number;
@@ -21,21 +23,21 @@ interface Genre {
             </svg>
             ReadTrack
           </div>
-          <h1 class="onboarding-title">What do you love to read?</h1>
+          <h1 class="onboarding-title">{{ copy.onboardingTitle }}</h1>
           <p class="onboarding-subtitle">
-            Pick at least one genre so we can personalise your recommendations.
+            {{ copy.onboardingSubtitle }}
           </p>
         </header>
 
         @if (isLoading) {
           <div class="loading-state">
             <div class="spinner"></div>
-            <p>Loading genres…</p>
+            <p>{{ copy.loadingGenresMsg }}</p>
           </div>
         } @else if (error) {
           <div class="error-state">
             <p>{{ error }}</p>
-            <button class="btn btn-outline" (click)="loadGenres()">Try again</button>
+            <button class="btn btn-outline" (click)="loadGenres()">{{ copy.tryAgainBtn }}</button>
           </div>
         } @else {
           <div class="genre-grid">
@@ -66,9 +68,9 @@ interface Genre {
             (click)="saveGenres()"
           >
             @if (isSaving) {
-              Saving…
+              {{ copy.savingMsg }}
             } @else {
-              Continue
+              {{ copy.continueBtn }}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -93,10 +95,9 @@ interface Genre {
     }
 
     .onboarding-card {
-      background: rgba(255, 250, 245, 0.9);
+      background: var(--surface);
       border-radius: 28px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 28px 60px rgba(51, 38, 29, 0.12);
+      border: 1px solid transparent;
       padding: 48px 40px;
       width: 100%;
       max-width: 680px;
@@ -154,8 +155,8 @@ interface Genre {
       gap: 6px;
       padding: 10px 18px;
       border-radius: 999px;
-      border: 1.5px solid rgba(126, 107, 93, 0.25);
-      background: rgba(255, 250, 245, 0.7);
+      border: 1.5px solid var(--border);
+      background: var(--surface);
       color: var(--foreground);
       font-size: 14px;
       font-weight: 600;
@@ -165,7 +166,7 @@ interface Genre {
 
       &:hover {
         border-color: var(--primary);
-        background: rgba(233, 120, 63, 0.06);
+        background: var(--primary-soft);
         color: var(--primary);
       }
 
@@ -173,7 +174,6 @@ interface Genre {
         background: var(--primary);
         border-color: var(--primary);
         color: #fff;
-        box-shadow: 0 4px 12px rgba(233, 120, 63, 0.28);
 
         &:hover {
           background: var(--accent);
@@ -217,14 +217,12 @@ interface Genre {
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      background: var(--primary);
       color: #fff;
-      box-shadow: 0 12px 24px rgba(233, 120, 63, 0.22);
       align-self: flex-start;
 
       &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 16px 32px rgba(233, 120, 63, 0.3);
       }
     }
 
@@ -254,7 +252,7 @@ interface Genre {
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid rgba(233, 120, 63, 0.2);
+      border: 3px solid rgba(217, 119, 87, 0.2);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -289,6 +287,14 @@ interface Genre {
 export class GenreOnboardingComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return ONBOARDING_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   genres: Genre[] = [];
   selectedGenreIds = new Set<number>();
@@ -315,7 +321,7 @@ export class GenreOnboardingComponent implements OnInit {
       if (error) throw error;
       this.genres = data ?? [];
     } catch (err) {
-      this.error = 'Could not load genres. Please refresh.';
+      this.error = this.copy.couldNotLoadGenresMsg;
     } finally {
       this.isLoading = false;
     }
@@ -334,6 +340,7 @@ export class GenreOnboardingComponent implements OnInit {
   }
 
   async saveGenres(): Promise<void> {
+    if (this.isSaving) return;
     if (this.selectedGenreIds.size === 0) {
       this.submitError = 'Please select at least one genre.';
       return;
@@ -348,16 +355,25 @@ export class GenreOnboardingComponent implements OnInit {
 
       if (!user) throw new Error('Not authenticated');
 
-      // Delete existing selections, then re-insert (handles re-onboarding)
-      await supabase.from('user_genres').delete().eq('user_id', user.id);
+      const desired = Array.from(this.selectedGenreIds);
 
-      const rows = Array.from(this.selectedGenreIds).map(genre_id => ({
-        user_id: user.id,
-        genre_id,
-      }));
+      // Idempotent: ensure every selected pair exists (insert ignoring
+      // duplicates), then delete any pairs that weren't selected. Either
+      // ordering is safe to retry, unlike the previous delete-then-insert
+      // pattern which could leave the user with zero genres on partial
+      // failure.
+      const rows = desired.map((genre_id) => ({ user_id: user.id, genre_id }));
+      const { error: upsertErr } = await supabase
+        .from('user_genres')
+        .upsert(rows, { onConflict: 'user_id,genre_id', ignoreDuplicates: true });
+      if (upsertErr) throw upsertErr;
 
-      const { error } = await supabase.from('user_genres').insert(rows);
-      if (error) throw error;
+      const { error: deleteErr } = await supabase
+        .from('user_genres')
+        .delete()
+        .eq('user_id', user.id)
+        .not('genre_id', 'in', `(${desired.join(',')})`);
+      if (deleteErr) throw deleteErr;
 
       await this.router.navigateByUrl('/home');
     } catch (err) {
