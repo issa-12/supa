@@ -14,18 +14,6 @@ export interface AppNotification {
   referenceType: string | null;
 }
 
-export const NOTIFICATION_LABELS: Record<string, string> = {
-  friend_request: 'sent you a friend request',
-  friend_accepted: 'accepted your friend request',
-  book_recommended: 'recommended a book to you',
-  post_liked: 'liked your post',
-  post_commented: 'commented on your post',
-  comment_liked: 'liked your comment',
-  comment_replied: 'replied to your comment',
-  review_liked: 'liked your review',
-  friend_posted: 'shared a new post',
-};
-
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private readonly supabaseService = inject(SupabaseService);
@@ -62,29 +50,55 @@ export class NotificationsService {
     }
   }
 
-  async loadNotifications(): Promise<void> {
+  async loadNotifications(): Promise<boolean> {
     try {
-      const items = await this.apiFetch<AppNotification[]>('');
+      // The list endpoint is capped (default 20 rows), so deriving the badge
+      // from `items` would under-report once a user has more unread than that.
+      // Pull the exact count from the dedicated endpoint in parallel instead.
+      const [items] = await Promise.all([
+        this.apiFetch<AppNotification[]>(''),
+        this.loadUnreadCount(),
+      ]);
       this.notifications$.next(items);
-      const unread = items.filter((n) => !n.isRead).length;
-      this.unreadCount$.next(unread);
+      return true;
     } catch {
-      // silently ignore
+      // Surface the failure to the caller so the panel can show an error
+      // state instead of a misleading "no notifications" empty state.
+      return false;
     }
   }
 
   async markAsRead(id: number): Promise<void> {
-    await this.apiFetch(`/${id}/read`, { method: 'PATCH' });
-    this.notifications$.next(
-      this.notifications$.value.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-    );
+    const prev = this.notifications$.value;
+    const target = prev.find((n) => n.id === id);
+    if (!target || target.isRead) return;
+
+    // Optimistic: flip the row and decrement the badge immediately, then roll
+    // back if the request fails. Never rejects, so template click handlers
+    // can fire-and-forget without risking an unhandled promise rejection.
+    this.notifications$.next(prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     this.unreadCount$.next(Math.max(0, this.unreadCount$.value - 1));
+    try {
+      await this.apiFetch(`/${id}/read`, { method: 'PATCH' });
+    } catch {
+      this.notifications$.next(prev);
+      void this.loadUnreadCount();
+    }
   }
 
   async markAllAsRead(): Promise<void> {
-    await this.apiFetch('/read-all', { method: 'PATCH' });
-    this.notifications$.next(this.notifications$.value.map((n) => ({ ...n, isRead: true })));
+    const prev = this.notifications$.value;
+    const prevCount = this.unreadCount$.value;
+    if (prevCount === 0 && prev.every((n) => n.isRead)) return;
+
+    this.notifications$.next(prev.map((n) => ({ ...n, isRead: true })));
     this.unreadCount$.next(0);
+    try {
+      await this.apiFetch('/read-all', { method: 'PATCH' });
+    } catch {
+      this.notifications$.next(prev);
+      this.unreadCount$.next(prevCount);
+    }
   }
 
   private subscribedUserId: string | null = null;
@@ -107,10 +121,11 @@ export class NotificationsService {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          // Optimistic bump so the badge updates instantly. Debounce the
-          // full refetch so a burst of inserts (e.g. multiple likes in a
-          // few hundred ms) collapses into a single round-trip.
-          this.unreadCount$.next(this.unreadCount$.value + 1);
+          // Reconcile the badge against the exact server count rather than a
+          // blind +1 — that way the bell can never show a number with no
+          // matching row behind it. Debounce the full list refetch so a burst
+          // of inserts collapses into a single round-trip.
+          void this.loadUnreadCount();
           if (this.refetchTimer) clearTimeout(this.refetchTimer);
           this.refetchTimer = setTimeout(() => {
             this.refetchTimer = null;

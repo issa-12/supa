@@ -42,7 +42,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                     @if (comment.depth < 3) {
                       <button class="meta-btn" (click)="startReply(comment)">{{ copy.replyBtn }}</button>
                     }
-                    <time class="meta-time">{{ timeAgo(comment.createdAt) }}</time>
+                    <time class="meta-time">{{ timeAgo(comment.createdAt, lang) }}</time>
                     @if (comment.userId === currentUserId) {
                       <button class="meta-btn meta-btn--danger" (click)="deleteComment(comment)">{{ copy.deleteBtn }}</button>
                     }
@@ -73,7 +73,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                             @if (reply.likeCount > 0) { {{ reply.likeCount }} }
                           </button>
                           @if (reply.depth < 3) { <button class="meta-btn" (click)="startReply(reply)">{{ copy.replyBtn }}</button> }
-                          <time class="meta-time">{{ timeAgo(reply.createdAt) }}</time>
+                          <time class="meta-time">{{ timeAgo(reply.createdAt, lang) }}</time>
                           @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(reply)">{{ copy.deleteBtn }}</button> }
                         </div>
                         @if (replyingToId === reply.id) {
@@ -101,7 +101,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                                   <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="deep.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                                   @if (deep.likeCount > 0) { {{ deep.likeCount }} }
                                 </button>
-                                <time class="meta-time">{{ timeAgo(deep.createdAt) }}</time>
+                                <time class="meta-time">{{ timeAgo(deep.createdAt, lang) }}</time>
                                 @if (deep.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(deep)">{{ copy.deleteBtn }}</button> }
                               </div>
                             </div>

@@ -90,7 +90,7 @@
       @for (section of displayedSections; track section.statusName) {
         <section class="shelf-section">
           <div class="section-header">
-            <h2 class="section-title">{{ section.label }}</h2>
+            <h2 class="section-title">{{ sectionLabel(section.statusName) }}</h2>
             <span class="section-count">{{ section.books.length }}</span>
           </div>
 

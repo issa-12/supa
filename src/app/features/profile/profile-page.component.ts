@@ -170,6 +170,19 @@ export class ProfilePageComponent implements OnInit {
     }
   }
 
+  private async refreshFriendshipStatus(): Promise<void> {
+    const targetId = this.route.snapshot.paramMap.get('id');
+    if (!targetId || targetId === this.currentUserId) return;
+    try {
+      const status = await this.friendshipService.getFriendshipStatus(targetId);
+      this.friendshipStatus = status.status;
+      this.friendshipId = status.friendshipId;
+      this.blockedByMe = status.blockedByMe ?? false;
+    } catch {
+      // best-effort re-sync; leave the existing button state untouched
+    }
+  }
+
   async sendFriendRequest(): Promise<void> {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.friendActionLoading) return;
@@ -179,8 +192,13 @@ export class ProfilePageComponent implements OnInit {
       const result = await this.friendshipService.sendRequest(targetId);
       this.friendshipStatus = 'pending_sent';
       this.friendshipId = result.friendshipId;
-    } catch {
-      this.friendActionError = 'Could not send friend request. Please try again.';
+    } catch (err) {
+      // The backend returns a specific reason (e.g. blocked / already exists);
+      // surface it so the user isn't told to "try again" on an unretryable error.
+      const msg = err instanceof Error ? err.message : '';
+      this.friendActionError = msg || 'Could not send friend request. Please try again.';
+      // Our local view of the relationship is stale — re-sync the button state.
+      void this.refreshFriendshipStatus();
     } finally {
       this.friendActionLoading = false;
     }

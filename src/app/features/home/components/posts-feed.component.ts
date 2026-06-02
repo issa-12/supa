@@ -148,7 +148,7 @@ interface BookSearchResult {
                   </div>
                   <div class="post-meta">
                     <span class="post-author">{{ post.userName }}</span>
-                    <time class="post-time">{{ timeAgo(post.createdAt) }}</time>
+                    <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
                   </div>
                 </a>
                 @if (post.userId === currentUserId) {
