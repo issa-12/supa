@@ -1,14 +1,25 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   NotificationsService,
   AppNotification,
-  NOTIFICATION_LABELS,
 } from '../../../core/services/notifications.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { timeAgo } from '../../../core/util/time-ago';
-import { TranslationService, NOTIFICATIONS_COPY, LanguageCode } from '../../../i18n';
+import { TranslationService, NOTIFICATIONS_COPY, NotificationsCopy, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+const LABEL_KEY_BY_TYPE: Record<string, keyof NotificationsCopy> = {
+  friend_request: 'friendRequestSent',
+  friend_accepted: 'friendRequestAccepted',
+  book_recommended: 'bookRecommended',
+  post_liked: 'postLiked',
+  post_commented: 'postCommented',
+  comment_liked: 'commentLiked',
+  comment_replied: 'commentReply',
+  review_liked: 'reviewLiked',
+  friend_posted: 'newPost',
+};
 
 @Component({
   selector: 'app-notifications-panel',
@@ -26,6 +37,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
       @if (isLoading) {
         <div class="panel-state">{{ copy.loadingMsg }}</div>
+      } @else if (loadError) {
+        <div class="panel-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p>{{ copy.loadErrorMsg }}</p>
+          <button class="retry-btn" (click)="reload.emit()">{{ copy.retryBtn }}</button>
+        </div>
       } @else if (notifications.length === 0) {
         <div class="panel-state">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -40,7 +61,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             <li class="notif-item" [class.notif-item--unread]="!n.isRead" (click)="onNotifClick(n)">
               <div class="notif-avatar">
                 @if (n.actorAvatarUrl) {
-                  <img [src]="n.actorAvatarUrl" [alt]="n.actorName" />
+                  <img [src]="n.actorAvatarUrl" [alt]="n.actorName" loading="lazy" (error)="n.actorAvatarUrl = null" />
                 } @else {
                   <span>{{ (n.actorName || '?').charAt(0).toUpperCase() }}</span>
                 }
@@ -49,7 +70,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                 <p class="notif-text">
                   <strong>{{ n.actorName }}</strong> {{ label(n.type) }}
                 </p>
-                <time class="notif-time">{{ timeAgo(n.createdAt) }}</time>
+                <time class="notif-time">{{ timeAgo(n.createdAt, lang) }}</time>
               </div>
               @if (!n.isRead) {
                 <div class="notif-dot"></div>
@@ -70,7 +91,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     .panel {
       position: absolute;
       top: calc(100% + 12px);
-      right: 0;
+      inset-inline-end: 0;
       width: 360px;
       max-height: 480px;
       background: var(--surface);
@@ -121,6 +142,21 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
       svg { opacity: 0.35; }
       p { margin: 0; }
+    }
+
+    .retry-btn {
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 18px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+
+      &:hover { opacity: 0.8; }
     }
 
     .notif-list {
@@ -191,26 +227,41 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     @media (max-width: 480px) {
       .panel {
         width: calc(100vw - 32px);
-        right: -16px;
+        inset-inline-end: -16px;
       }
     }
   `],
 })
-export class NotificationsPanelComponent {
+export class NotificationsPanelComponent implements OnInit, OnDestroy {
   @Input() notifications: AppNotification[] = [];
   @Input() isLoading = false;
+  @Input() loadError = false;
   @Output() close = new EventEmitter<void>();
+  @Output() reload = new EventEmitter<void>();
 
   private readonly notificationsService = inject(NotificationsService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return NOTIFICATIONS_COPY[this.lang]; }
 
+  // Re-render once a minute so the relative timestamps ("2m ago") stay accurate
+  // while the panel is open, without re-fetching from the server.
+  private tickInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
+  ngOnInit(): void {
+    this.tickInterval = setInterval(() => this.cdr.markForCheck(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.tickInterval) clearInterval(this.tickInterval);
   }
 
   get hasUnread(): boolean {
@@ -218,33 +269,38 @@ export class NotificationsPanelComponent {
   }
 
   label(type: string): string {
-    return NOTIFICATION_LABELS[type] ?? 'interacted with you';
+    const key = LABEL_KEY_BY_TYPE[type];
+    return key ? this.copy[key] : this.copy.interactedWithYou;
   }
 
-  async onNotifClick(n: AppNotification): Promise<void> {
-    if (!n.isRead) this.notificationsService.markAsRead(n.id);
+  onNotifClick(n: AppNotification): void {
+    if (!n.isRead) void this.notificationsService.markAsRead(n.id);
     this.close.emit();
-    await this.navigate(n);
+    void this.navigate(n);
   }
 
   private async navigate(n: AppNotification): Promise<void> {
-    if (n.type === 'book_recommended' && n.referenceId) {
-      const supabase = await this.supabaseService.getClient();
-      const { data } = await supabase
-        .from('books')
-        .select('google_books_id')
-        .eq('book_id', n.referenceId)
-        .single();
-      if (data?.['google_books_id']) {
-        this.router.navigate(['/books', data['google_books_id']]);
+    try {
+      if (n.type === 'book_recommended' && n.referenceId) {
+        const supabase = await this.supabaseService.getClient();
+        const { data } = await supabase
+          .from('books')
+          .select('google_books_id')
+          .eq('book_id', n.referenceId)
+          .maybeSingle();
+        if (data?.['google_books_id']) {
+          this.router.navigate(['/books', data['google_books_id']]);
+        }
+      } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
+        this.router.navigate(['/profile', n.actorId]);
       }
-    } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
-      this.router.navigate(['/profile', n.actorId]);
+    } catch {
+      // navigation is best-effort — never surface a routing/lookup error
     }
   }
 
   markAllRead(): void {
-    this.notificationsService.markAllAsRead();
+    void this.notificationsService.markAllAsRead();
   }
 
   readonly timeAgo = timeAgo;

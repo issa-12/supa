@@ -9,6 +9,8 @@ export interface NotificationsCopy {
   loadingMsg: string;
   emptyState: string;
   noNotificationsMsg: string;
+  loadErrorMsg: string;
+  retryBtn: string;
   interactedWithYou: string;
   friendRequestSent: string;
   friendRequestAccepted: string;
@@ -31,6 +33,8 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     loadingMsg: 'Loading…',
     emptyState: 'No notifications yet',
     noNotificationsMsg: 'No notifications yet',
+    loadErrorMsg: "Couldn't load notifications",
+    retryBtn: 'Try again',
     interactedWithYou: 'interacted with you',
     friendRequestSent: 'sent you a friend request',
     friendRequestAccepted: 'accepted your friend request',
@@ -51,6 +55,8 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     loadingMsg: 'جاري التحميل…',
     emptyState: 'لا توجد إشعارات حتى الآن',
     noNotificationsMsg: 'لا توجد إشعارات حتى الآن',
+    loadErrorMsg: 'تعذّر تحميل الإشعارات',
+    retryBtn: 'حاول مرة أخرى',
     interactedWithYou: 'تفاعل معك',
     friendRequestSent: 'أرسل لك طلب صداقة',
     friendRequestAccepted: 'قَبِل طلب صداقتك',
@@ -71,6 +77,8 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     loadingMsg: 'Chargement…',
     emptyState: 'Aucune notification pour le moment',
     noNotificationsMsg: 'Aucune notification pour le moment',
+    loadErrorMsg: 'Impossible de charger les notifications',
+    retryBtn: 'Réessayer',
     interactedWithYou: 'a interagi avec vous',
     friendRequestSent: 'vous a envoyé une demande d\'amitié',
     friendRequestAccepted: 'a accepté votre demande d\'amitié',

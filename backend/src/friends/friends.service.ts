@@ -79,7 +79,45 @@ export class FriendsService {
     }
 
     const admin = this.supabase.getAdmin();
-    const pendingId = await this.getStatusId('pending');
+    const [pendingId, acceptedId, blockedId] = await Promise.all([
+      this.getStatusId('pending'),
+      this.getStatusId('accepted'),
+      this.getStatusId('blocked'),
+    ]);
+
+    // The friendship_unique_pair index allows only one row per pair (in any
+    // direction). A previously rejected request therefore still occupies that
+    // slot, so a plain INSERT would 409. Look for an existing row first and
+    // revive it when the relationship is re-requestable.
+    const { data: existing } = await admin
+      .from('friendship')
+      .select('friendship_id, status_id')
+      .or(
+        `and(user_id1.eq.${requesterId},user_id2.eq.${toUserId}),and(user_id1.eq.${toUserId},user_id2.eq.${requesterId})`,
+      )
+      .maybeSingle();
+
+    if (existing) {
+      const statusId = existing['status_id'] as number;
+      const friendshipId = existing['friendship_id'] as number;
+      if (statusId === blockedId) {
+        throw new ForbiddenException('This user is blocked. Unblock them before sending a request.');
+      }
+      if (statusId === pendingId || statusId === acceptedId) {
+        throw new ConflictException('A friendship or pending request already exists.');
+      }
+      // rejected → revive as a fresh pending request from the current user
+      const { error: reviveError } = await admin
+        .from('friendship')
+        .update({ status_id: pendingId, requester_id: requesterId })
+        .eq('friendship_id', friendshipId);
+      if (reviveError) throw new InternalServerErrorException(reviveError.message);
+
+      this.notifications
+        .createNotification(toUserId, requesterId, 'friend_request', friendshipId, 'friendship')
+        .catch(() => undefined);
+      return { friendshipId };
+    }
 
     const { data, error } = await admin
       .from('friendship')
@@ -93,7 +131,8 @@ export class FriendsService {
       .single();
 
     if (error) {
-      // 23505 = unique_violation (friendship_unique_pair index)
+      // 23505 = unique_violation (friendship_unique_pair index) — a row was
+      // created between the lookup above and this insert (rare race).
       if ((error as { code?: string }).code === '23505') {
         throw new ConflictException('A friendship or pending request already exists.');
       }

@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -140,7 +140,9 @@ interface NavSearchBook {
             <app-notifications-panel
               [notifications]="notifications"
               [isLoading]="panelLoading"
+              [loadError]="panelError"
               (close)="closePanel()"
+              (reload)="loadPanel()"
             />
           }
         </div>
@@ -481,7 +483,7 @@ interface NavSearchBook {
     .user-menu {
       position: absolute;
       top: calc(100% + 10px);
-      right: 0;
+      inset-inline-end: 0;
       min-width: 180px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -547,11 +549,13 @@ export class TopNavComponent implements OnInit, OnDestroy {
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly unreadCount$ = this.notificationsService.unreadCount$;
   notifications: AppNotification[] = [];
   panelOpen = false;
   panelLoading = false;
+  panelError = false;
   avatarUrl: string | null = null;
   userMenuOpen = false;
 
@@ -572,8 +576,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
   private searchTimer?: ReturnType<typeof setTimeout>;
 
   async ngOnInit(): Promise<void> {
-    // Subscribe to language changes
-    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(lang => {
+    // Subscribe to language changes. takeUntilDestroyed() runs here in ngOnInit
+    // (outside the injection context), so it needs an explicit DestroyRef.
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(lang => {
       this.lang = lang;
       this.selectedLanguage = LANGUAGE_OPTIONS.find(l => l.code === lang) || LANGUAGE_OPTIONS[0];
     });
@@ -613,8 +618,14 @@ export class TopNavComponent implements OnInit, OnDestroy {
   async togglePanel(): Promise<void> {
     if (this.panelOpen) { this.closePanel(); return; }
     this.panelOpen = true;
+    await this.loadPanel();
+  }
+
+  async loadPanel(): Promise<void> {
     this.panelLoading = true;
-    await this.notificationsService.loadNotifications();
+    this.panelError = false;
+    const ok = await this.notificationsService.loadNotifications();
+    this.panelError = !ok;
     this.panelLoading = false;
   }
 

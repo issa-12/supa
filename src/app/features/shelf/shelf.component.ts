@@ -9,7 +9,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ShelfSection {
   statusName: string;
-  label: string;
   books: UserBook[];
 }
 
@@ -17,13 +16,6 @@ const STATUS_ORDER: Record<string, number> = {
   currently_reading: 0,
   want_to_read: 1,
   read: 2,
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  currently_reading: 'Currently Reading',
-  want_to_read: 'Want to Read',
-  read: 'Already Read',
-  recommended_by_friend: 'Recommended',
 };
 
 @Component({
@@ -97,12 +89,19 @@ export class ShelfComponent implements OnInit {
     }
 
     this.sections = [...map.entries()]
-      .map(([statusName, books]) => ({
-        statusName,
-        label: STATUS_LABELS[statusName] ?? statusName,
-        books,
-      }))
+      .map(([statusName, books]) => ({ statusName, books }))
       .sort((a, b) => (STATUS_ORDER[a.statusName] ?? 99) - (STATUS_ORDER[b.statusName] ?? 99));
+  }
+
+  // Resolved from the active language so headings translate (and re-render
+  // live on language switch) rather than being baked in at build time.
+  sectionLabel(statusName: string): string {
+    switch (statusName) {
+      case 'currently_reading': return this.copy.currentlyReadingLabel;
+      case 'want_to_read': return this.copy.wantToReadLabel;
+      case 'read': return this.copy.alreadyReadLabel;
+      default: return statusName;
+    }
   }
 
   get totalBooks(): number {
