@@ -396,6 +396,21 @@ All tables have RLS enabled. Key rules:
   - `LikesService.toggleReviewReaction()` (upsert/delete; fires `review_liked` notification on a new like). `BookService.getCommunityReviews` batch-fetches reactions and returns `likeCount`, `dislikeCount`, `myReaction`, `userBookId` on each `CommunityReview`.
   - `book-detail` has optimistic Helpful/Not-helpful buttons (EN/AR/FR labels). Degrades gracefully if the table is missing (counts show 0, no crash).
 
+### Post-sprint Online Presence (Post-Day 15)
+- **What/why**: adds live online/offline status for users, completing the last gap in the **Standard User Management** major module ("add friends and see their online status").
+- **`PresenceService`** (`src/app/core/services/presence.service.ts`): one shared Supabase **Realtime Presence** channel (`online-users`) keyed by user id. Channel membership *is* the online set — Supabase auto-drops a user on tab close / disconnect, so there's **no DB table, no migration, no RLS, and no stale-row cleanup**. Exposes `onlineUserIds$: BehaviorSubject<Set<string>>` and `isOnline(id)`. Presence-sync updates are re-entered into Angular's zone via `NgZone.run` so dots update live.
+- **App-wide init**: `App.ngOnInit` (`app.ts`) calls `presenceService.init()` once. The service joins for the current session and re-joins/leaves on `supabase.auth.onAuthStateChange`. This is deliberately **not** tied to `top-nav` (which is per-page, not a global layout — it's absent on profile/shelf/book pages), so presence stays connected across all routes and survives logout/login.
+- **UI** (profile page): green dot on each friend's avatar in the friends grid (`presence-dot--avatar`), a green dot on the viewed user's profile avatar, and an Online/Offline text label under their name. Dots use logical `inset-inline-end` so they flip in RTL. `.friend-avatar` switched from `overflow: hidden` to `overflow: visible` (image re-clipped via `border-radius: 50%`) so the dot isn't clipped.
+- **i18n**: `onlineLabel` / `offlineLabel` added to `PROFILE_COPY` (EN/AR/FR).
+
+### Post-sprint HTTPS (Post-Day 15)
+- **TLS termination at nginx**: the frontend nginx now serves the whole app (SPA + `/api/` proxy) over **HTTPS on 443**, satisfying the mandatory "HTTPS everywhere" requirement. The backend stays unexposed on the internal Docker network, so the only public surface is the TLS-terminated proxy.
+- **Self-signed cert baked at build time** (`Dockerfile` frontend stage): `apk add openssl` + `openssl req -x509` generates `/etc/nginx/certs/selfsigned.{crt,key}` (CN=localhost, SAN localhost + 127.0.0.1, 825 days). Single-command `docker compose up` still works; browsers show a trust warning until a real cert is mounted.
+- **nginx.conf**: split into two server blocks — `:80` 301-redirects everything to HTTPS (except a plain-HTTP `/healthz` used by the Docker healthcheck so it needs no cert), and `:443 ssl http2` serves the app with TLSv1.2/1.3, HSTS (`max-age=31536000; includeSubDomains`), and the existing CSP/security headers. Because nginx drops inherited `add_header`s in any location that sets its own, the security headers + HSTS + CSP are **repeated in `location = /index.html`** so they reach the document response and every SPA route (try_files rewrites to it).
+- **docker-compose.yml**: frontend now publishes `80:80` and `443:443` (was `4200:80`); healthcheck hits `http://localhost/healthz`.
+- **App URL is now `https://localhost`** (was `http://localhost:4200`). `.env.example` `FRONTEND_URL` updated to `https://localhost`. No mixed-content risk — there are no hardcoded `http://` URLs in `src/`; the SPA calls `/api/` same-origin and Supabase over https/wss.
+- **CSP correction**: the existing CSP had never actually been enforced (nginx dropped it on the document via the `add_header` inheritance behavior above), so it had drifted out of sync with `index.html`. Once enforced it blocked the top-nav icons + the PT Serif font. Widened `script-src` to allow `cdn.jsdelivr.net` (iconify-icon component), `style-src` → `fonts.googleapis.com`, `font-src` → `fonts.gstatic.com`, and `connect-src` → all three iconify API hosts (`api.iconify.design`, `api.simplesvg.com`, `api.unisvg.com`). **If you add any new external CDN/script/font, update the CSP in BOTH places in `nginx.conf` (server block + `location = /index.html`).**
+
 ---
 
 ## Production deployment checklist
@@ -403,12 +418,11 @@ All tables have RLS enabled. Key rules:
 Before deploying to a production server:
 
 1. **Set `FRONTEND_URL`** in `.env` / `backend/.env` to the actual production domain (e.g. `https://readtrack.example.com`) so CORS works correctly.
-2. **Change `ports: "4200:80"` to `"80:80"`** (or `"443:443"`) in `docker-compose.yml` for production.
-3. **Set up TLS** — put a reverse proxy (Caddy, Traefik, or nginx on the host) in front of port 80 to handle HTTPS.
-4. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
-5. **Run the Day 12 migration** if not already done (see Known Issues #7).
-6. **Build and start**: `docker compose up --build -d`
-7. **Verify health**: `curl http://localhost/api/health` should return `{"status":"ok"}`.
+2. **TLS is built in** — nginx serves HTTPS on port 443 and 301-redirects HTTP→HTTPS. The image bakes a **self-signed** cert (`/etc/nginx/certs/`), so browsers show a trust warning on first visit. For production, mount a CA-issued cert/key over `/etc/nginx/certs/selfsigned.crt` and `selfsigned.key` (e.g. via a volume), or terminate TLS at an upstream proxy (Caddy/Traefik) and point it at port 80.
+3. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
+4. **Run the Day 12 migration** if not already done (see Known Issues #7).
+5. **Build and start**: `docker compose up --build -d`
+6. **Verify health**: `curl -k https://localhost/api/health` should return `{"status":"ok"}` (`-k` skips the self-signed cert check).
 
 ---
 

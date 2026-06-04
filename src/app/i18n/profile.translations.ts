@@ -22,6 +22,8 @@ export interface ProfileCopy {
   friends: string;
   friendsBtn: string;
   friendsTitle: string;
+  onlineLabel: string;
+  offlineLabel: string;
   report: string;
   reportBtn: string;
   booksReadThisYear: string;
@@ -140,6 +142,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friends: 'Friends',
     friendsBtn: 'Friends',
     friendsTitle: 'Friends',
+    onlineLabel: 'Online',
+    offlineLabel: 'Offline',
     report: 'Report',
     reportBtn: 'Report',
     booksReadThisYear: 'Books Read This Year',
@@ -256,6 +260,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friends: 'الأصدقاء',
     friendsBtn: 'الأصدقاء',
     friendsTitle: 'الأصدقاء',
+    onlineLabel: 'متصل',
+    offlineLabel: 'غير متصل',
     report: 'الإبلاغ عن',
     reportBtn: 'الإبلاغ عن',
     booksReadThisYear: 'الكتب المقروءة هذا العام',
@@ -372,6 +378,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friends: 'Amis',
     friendsBtn: 'Amis',
     friendsTitle: 'Amis',
+    onlineLabel: 'En ligne',
+    offlineLabel: 'Hors ligne',
     report: 'Signaler',
     reportBtn: 'Signaler',
     booksReadThisYear: 'Livres lus cette année',
