@@ -1338,10 +1338,13 @@
 }
 
 .friend-avatar {
+  position: relative;
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  overflow: hidden;
+  // overflow stays visible so the absolutely-positioned presence dot isn't
+  // clipped; the image re-clips itself to a circle below.
+  overflow: visible;
   background: var(--primary);
   display: flex;
   align-items: center;
@@ -1352,6 +1355,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
   }
 
   span {
@@ -1367,6 +1371,60 @@
   align-items: center;
   gap: 2px;
   text-align: center;
+}
+
+// Online-presence indicators
+.presence-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9ca3af; // offline / neutral grey
+  flex-shrink: 0;
+}
+
+.presence-dot--avatar {
+  position: absolute;
+  bottom: 0;
+  inset-inline-end: 0; // logical so it flips correctly in RTL (Arabic)
+  width: 16px;
+  height: 16px;
+  background: #22c55e;
+  border: 3px solid var(--surface);
+}
+
+.presence-dot--profile {
+  position: absolute;
+  bottom: 12px;
+  inset-inline-end: 12px;
+  width: 26px;
+  height: 26px;
+  background: #22c55e;
+  border: 4px solid var(--surface);
+  z-index: 2;
+}
+
+.profile-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+
+  .presence-dot {
+    width: 9px;
+    height: 9px;
+  }
+
+  &.is-online {
+    color: #16a34a;
+
+    .presence-dot {
+      background: #22c55e;
+    }
+  }
 }
 
 .friend-name {

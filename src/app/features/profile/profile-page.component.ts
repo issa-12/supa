@@ -13,6 +13,7 @@ import {
   FriendshipStatusValue,
 } from '../../core/services/friendship.service';
 import { ReportService, ReportReason } from '../../core/services/report.service';
+import { PresenceService } from '../../core/services/presence.service';
 import { timeAgo } from '../../core/util/time-ago';
 import { TranslationService, PROFILE_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -39,6 +40,7 @@ export class ProfilePageComponent implements OnInit {
   private readonly activityService = inject(ActivityService);
   private readonly friendshipService = inject(FriendshipService);
   private readonly reportService = inject(ReportService);
+  private readonly presenceService = inject(PresenceService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
@@ -99,12 +101,20 @@ export class ProfilePageComponent implements OnInit {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   currentUserId: string | null = null;
+  viewedUserId: string | null = null;
   isOwnProfile = true;
   isLoading = true;
   error: string | null = null;
 
+  onlineIds = new Set<string>();
+
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+    this.presenceService.onlineUserIds$.pipe(takeUntilDestroyed()).subscribe(ids => this.onlineIds = ids);
+  }
+
+  isOnline(userId: string | null | undefined): boolean {
+    return !!userId && this.onlineIds.has(userId);
   }
 
   async ngOnInit(): Promise<void> {
@@ -115,6 +125,7 @@ export class ProfilePageComponent implements OnInit {
 
       const routeId = this.route.snapshot.paramMap.get('id');
       const targetId = routeId ?? this.currentUserId;
+      this.viewedUserId = targetId;
       this.isOwnProfile = !routeId || routeId === this.currentUserId;
 
       if (!targetId) {
