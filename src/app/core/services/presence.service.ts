@@ -1,14 +1,12 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
 
 /**
- * Tracks which users are currently online using a single shared Supabase
- * Realtime Presence channel keyed by user id. The channel membership IS the
- * online set — when a user closes the tab / loses connection, Supabase emits a
- * `leave` and drops them from presence state automatically, so there is no
- * stale "online" row to clean up and no DB table to maintain.
+ * Tracks online presence via a DB heartbeat on users.last_seen_at.
+ * Every 2 minutes the current user's last_seen_at is updated.
+ * isOnline() checks whether a given user's last_seen_at is within
+ * the last 5 minutes, fetched on demand via loadPresenceForUser().
  */
 @Injectable({ providedIn: 'root' })
 export class PresenceService {
@@ -17,15 +15,10 @@ export class PresenceService {
 
   readonly onlineUserIds$ = new BehaviorSubject<Set<string>>(new Set());
 
-  private channel: RealtimeChannel | null = null;
-  private joinedUserId: string | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private currentUserId: string | null = null;
   private authListenerSet = false;
 
-  /**
-   * Call once at app startup. Joins presence for the current session (if any)
-   * and keeps it in sync with auth changes, so presence is app-wide and does
-   * not depend on any particular page/component being mounted.
-   */
   async init(): Promise<void> {
     const supabase = await this.supabaseService.getClient();
 
@@ -33,57 +26,71 @@ export class PresenceService {
       this.authListenerSet = true;
       supabase.auth.onAuthStateChange((_event, session) => {
         const uid = session?.user?.id ?? null;
-        // Defer out of the callback: doing supabase/realtime work synchronously
-        // inside onAuthStateChange can deadlock the auth LockManager.
         setTimeout(() => {
-          if (uid) void this.join(uid);
-          else this.leave();
+          if (uid) void this.startHeartbeat(uid);
+          else this.stopHeartbeat();
         }, 0);
       });
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) await this.join(user.id);
+    if (user) await this.startHeartbeat(user.id);
   }
 
-  private async join(userId: string): Promise<void> {
-    if (this.joinedUserId === userId && this.channel) return;
-    this.leave();
+  private async startHeartbeat(userId: string): Promise<void> {
+    if (this.currentUserId === userId) return;
+    this.stopHeartbeat();
+    this.currentUserId = userId;
+    await this.touch(userId);
+    this.heartbeatTimer = setInterval(() => void this.touch(userId), 120_000);
+  }
 
-    const supabase = await this.supabaseService.getClient();
-    this.joinedUserId = userId;
+  private async touch(userId: string): Promise<void> {
+    try {
+      const supabase = await this.supabaseService.getClient();
+      await supabase
+        .from('users')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('id', userId);
+    } catch { /* non-critical */ }
+  }
 
-    const channel = supabase.channel('online-users', {
-      config: { presence: { key: userId } },
-    });
-    this.channel = channel;
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+    this.currentUserId = null;
+  }
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const ids = new Set(Object.keys(channel.presenceState()));
-        // Realtime callbacks can fire outside Angular's zone; re-enter it so
-        // subscribed components run change detection and the dots update live.
-        this.zone.run(() => this.onlineUserIds$.next(ids));
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          void channel.track({ online_at: new Date().toISOString() });
-        }
-      });
+  async loadPresenceForUser(userId: string): Promise<void> {
+    if (!userId) return;
+    try {
+      const supabase = await this.supabaseService.getClient();
+      const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('users')
+        .select('last_seen_at')
+        .eq('id', userId)
+        .not('last_seen_at', 'is', null)
+        .gte('last_seen_at', cutoff)
+        .maybeSingle();
+
+      const online = !!data;
+      const current = this.onlineUserIds$.value;
+      const hasIt = current.has(userId);
+
+      if (online && !hasIt) {
+        this.zone.run(() => this.onlineUserIds$.next(new Set([...current, userId])));
+      } else if (!online && hasIt) {
+        const next = new Set(current);
+        next.delete(userId);
+        this.zone.run(() => this.onlineUserIds$.next(next));
+      }
+    } catch { /* non-critical */ }
   }
 
   isOnline(userId: string | null | undefined): boolean {
     return !!userId && this.onlineUserIds$.value.has(userId);
-  }
-
-  private leave(): void {
-    if (this.channel) {
-      this.channel.unsubscribe();
-      this.channel = null;
-    }
-    this.joinedUserId = null;
-    if (this.onlineUserIds$.value.size > 0) {
-      this.zone.run(() => this.onlineUserIds$.next(new Set()));
-    }
   }
 }
