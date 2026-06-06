@@ -164,6 +164,7 @@ export class ProfilePageComponent implements OnInit {
         this.friends = friends;
         this.incomingRequests = requests;
         this.friendCount = count.count;
+        friends.forEach(f => void this.presenceService.loadPresenceForUser(f.userId));
       } else if (this.currentUserId) {
         const [status, count] = await Promise.all([
           this.friendshipService.getFriendshipStatus(targetId),
@@ -173,6 +174,7 @@ export class ProfilePageComponent implements OnInit {
         this.friendshipId = status.friendshipId;
         this.blockedByMe = status.blockedByMe ?? false;
         this.friendCount = count.count;
+        void this.presenceService.loadPresenceForUser(targetId);
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Failed to load profile.';
@@ -451,6 +453,7 @@ export class ProfilePageComponent implements OnInit {
         this.userService.updateUserProfile(this.currentUserId, { avatarUrl: url }),
       );
       if (this.profile) this.profile = { ...this.profile, avatarUrl: url };
+      this.userService.setCurrentUserAvatar(url);
     } catch {
       this.avatarError = 'Could not upload photo. Please try again.';
     } finally {

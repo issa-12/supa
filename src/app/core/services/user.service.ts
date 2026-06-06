@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { Observable, from, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, from, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 export interface UserProfile {
@@ -29,6 +29,12 @@ export interface UserGenre {
 })
 export class UserService {
   private readonly supabaseService = inject(SupabaseService);
+
+  readonly currentUserAvatar$ = new BehaviorSubject<string | null>(null);
+
+  setCurrentUserAvatar(url: string | null): void {
+    this.currentUserAvatar$.next(url);
+  }
 
   getCurrentUserProfile(): Observable<UserProfile> {
     return from(this.supabaseService.syncCurrentUser()).pipe(
