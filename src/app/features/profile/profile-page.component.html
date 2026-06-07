@@ -77,6 +77,10 @@
               <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
             }
 
+            @if (!isOwnProfile && isOnline(viewedUserId)) {
+              <span class="presence-dot presence-dot--profile" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
+            }
+
             @if (isOwnProfile) {
               <label class="avatar-edit-overlay" [class.is-loading]="uploadingAvatar" aria-label="Change profile photo">
                 <input
@@ -107,6 +111,12 @@
               <p class="profile-username">&#64;{{ profile.username }}</p>
             }
             <p class="profile-joined">{{ copy.readingSincePrefix }} {{ profile.joinDate }}</p>
+            @if (!isOwnProfile) {
+              <p class="profile-presence" [class.is-online]="isOnline(viewedUserId)">
+                <span class="presence-dot"></span>
+                {{ isOnline(viewedUserId) ? copy.onlineLabel : copy.offlineLabel }}
+              </p>
+            }
           </div>
 
           <!-- Friend action error -->
@@ -437,6 +447,9 @@
                     <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
                   } @else {
                     <span>{{ friend.name[0].toUpperCase() }}</span>
+                  }
+                  @if (isOnline(friend.userId)) {
+                    <span class="presence-dot presence-dot--avatar" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
                   }
                 </div>
                 <div class="friend-info">

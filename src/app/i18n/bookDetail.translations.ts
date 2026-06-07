@@ -9,6 +9,8 @@ export interface BookDetailCopy {
   pagesUnit: string;
   byAuthor: string;
   yourRating: string;
+  ratingUnit: string;
+  ratingsUnit: string;
   recommendToFriend: string;
   noFriends: string;
   recommendSent: string;
@@ -32,6 +34,8 @@ export interface BookDetailCopy {
   reviewPlaceholder: string;
   saveReview: string;
   communityReviews: string;
+  likeReview: string;
+  dislikeReview: string;
   confirmRemove: string;
   currentlyReadingStatusLabel: string;
   wantToReadStatusLabel: string;
@@ -48,6 +52,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     pagesUnit: 'pages',
     byAuthor: 'by',
     yourRating: 'Your Rating',
+    ratingUnit: 'rating',
+    ratingsUnit: 'ratings',
     recommendToFriend: 'Recommend to Friend',
     noFriends: 'No friends yet.',
     recommendSent: 'Sent!',
@@ -71,6 +77,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     reviewPlaceholder: 'Share your thoughts about this book…',
     saveReview: 'Save Review',
     communityReviews: 'Community Reviews',
+    likeReview: 'Helpful',
+    dislikeReview: 'Not helpful',
     confirmRemove: 'Remove this book from your shelf?',
     currentlyReadingStatusLabel: 'Currently Reading',
     wantToReadStatusLabel: 'Want to Read',
@@ -85,6 +93,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     pagesUnit: 'صفحة',
     byAuthor: 'بقلم',
     yourRating: 'تقييمك',
+    ratingUnit: 'تقييم',
+    ratingsUnit: 'تقييمات',
     recommendToFriend: 'أوصي به لصديق',
     noFriends: 'لا توجد أصدقاء حتى الآن.',
     recommendSent: 'تم الإرسال!',
@@ -108,6 +118,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     reviewPlaceholder: 'شارك أفكارك حول هذا الكتاب…',
     saveReview: 'حفظ التقييم',
     communityReviews: 'تقييمات المجتمع',
+    likeReview: 'مفيد',
+    dislikeReview: 'غير مفيد',
     confirmRemove: 'إزالة هذا الكتاب من رفك؟',
     currentlyReadingStatusLabel: 'قيد القراءة حالياً',
     wantToReadStatusLabel: 'أريد أن أقرأ',
@@ -122,6 +134,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     pagesUnit: 'pages',
     byAuthor: 'par',
     yourRating: 'Votre note',
+    ratingUnit: 'évaluation',
+    ratingsUnit: 'évaluations',
     recommendToFriend: 'Recommander à un ami',
     noFriends: 'Aucun ami pour le moment.',
     recommendSent: 'Envoyé !',
@@ -145,6 +159,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     reviewPlaceholder: 'Partagez vos réflexions sur ce livre…',
     saveReview: 'Enregistrer l\'avis',
     communityReviews: 'Avis de la communauté',
+    likeReview: 'Utile',
+    dislikeReview: 'Pas utile',
     confirmRemove: 'Supprimer ce livre de votre bibliothèque ?',
     currentlyReadingStatusLabel: 'En cours de lecture',
     wantToReadStatusLabel: 'À lire',

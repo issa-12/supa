@@ -225,6 +225,110 @@
   &:disabled { cursor: default; }
 }
 
+// ── Community rating breakdown ───────────────────────────────────
+.rating-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  margin-bottom: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.rb-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.rb-average {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.rb-summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rb-summary-stars {
+  display: flex;
+  gap: 2px;
+
+  .rb-star {
+    width: 16px;
+    height: 16px;
+    color: var(--border);
+
+    &--filled { color: var(--warning); fill: var(--warning); }
+  }
+}
+
+.rb-total {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.rb-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.rb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rb-row-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  width: 8px;
+  text-align: center;
+}
+
+.rb-row-star {
+  width: 12px;
+  height: 12px;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.rb-track {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rb-fill {
+  height: 100%;
+  background: var(--warning);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.rb-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  width: 34px;
+  text-align: end;
+}
+
 // ── Recommend ───────────────────────────────────────────────────
 .recommend-wrap {
   position: relative;
@@ -319,22 +423,14 @@
   gap: 12px;
 }
 
-.on-shelf-badge {
+.shelf-status-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  background: rgba(122, 166, 111, 0.12);
-  color: var(--success);
-  font-size: 13px;
-  font-weight: 700;
-  width: fit-content;
-}
-
-.shelf-btn-group {
-  display: flex;
   gap: 8px;
+
+  .shelf-status-check { color: var(--success); flex-shrink: 0; }
+  .shelf-status-text { font-weight: 700; }
+  .shelf-status-caret { color: var(--muted-foreground); margin-inline-start: 2px; flex-shrink: 0; }
 }
 
 // ── Buttons ─────────────────────────────────────────────────────
@@ -547,6 +643,46 @@
   line-height: 1.65;
   color: var(--muted-foreground);
   margin: 0;
+}
+
+.review-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.review-react {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  svg { width: 15px; height: 15px; }
+
+  &:hover:not(:disabled) { color: var(--foreground); border-color: var(--muted-foreground); }
+  &:disabled { opacity: 0.6; cursor: default; }
+
+  &--liked {
+    color: var(--success);
+    border-color: var(--success);
+    background: rgba(122, 166, 111, 0.1);
+    svg { fill: currentColor; }
+  }
+
+  &--disliked {
+    color: var(--destructive);
+    border-color: var(--destructive);
+    background: rgba(224, 82, 82, 0.08);
+    svg { fill: currentColor; }
+  }
 }
 
 // ── Animations ──────────────────────────────────────────────────

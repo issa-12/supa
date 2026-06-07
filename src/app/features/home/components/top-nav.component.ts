@@ -156,7 +156,7 @@ interface NavSearchBook {
 
         <div class="avatar-wrap" (click)="$event.stopPropagation()">
           <img
-            [src]="avatarUrl || 'https://ui-avatars.com/api/?name=R&background=E9783F&color=fff&size=44'"
+            [src]="avatarUrl || avatarFallback"
             alt="Profile"
             class="nav-avatar"
             (click)="toggleUserMenu()"
@@ -557,7 +557,13 @@ export class TopNavComponent implements OnInit, OnDestroy {
   panelLoading = false;
   panelError = false;
   avatarUrl: string | null = null;
+  userName = '';
   userMenuOpen = false;
+
+  get avatarFallback(): string {
+    const initial = encodeURIComponent(this.userName?.[0]?.toUpperCase() || 'U');
+    return `https://ui-avatars.com/api/?name=${initial}&background=E9783F&color=fff&size=44`;
+  }
 
   // Language support
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -587,6 +593,10 @@ export class TopNavComponent implements OnInit, OnDestroy {
       this.notifications = n;
     });
 
+    this.userService.currentUserAvatar$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(url => { this.avatarUrl = url; });
+
     try {
       const supabase = await this.supabaseService.getClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -594,11 +604,13 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('profile_picture_url')
+        .select('profile_picture_url, name')
         .eq('id', user.id)
         .maybeSingle();
 
-      this.avatarUrl = profile?.['profile_picture_url'] ?? null;
+      this.userName = profile?.['name'] ?? '';
+      const avatarUrl = profile?.['profile_picture_url'] ?? null;
+      this.userService.setCurrentUserAvatar(avatarUrl);
 
       await Promise.all([
         this.notificationsService.loadUnreadCount(),

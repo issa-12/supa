@@ -25,6 +25,18 @@ interface GoogleBookItem {
   };
 }
 
+export interface RatingBucket {
+  star: number;
+  count: number;
+  percent: number;
+}
+
+export interface RatingStats {
+  average: number;
+  total: number;
+  distribution: RatingBucket[];
+}
+
 export interface BookDetail {
   googleId: string;
   dbBookId: number | null;
@@ -35,6 +47,7 @@ export interface BookDetail {
   coverUrl: string | null;
   pageCount: number | null;
   categories: string[];
+  ratingStats: RatingStats | null;
 }
 
 export interface SearchedBook {
@@ -126,9 +139,10 @@ export class BooksService {
       .maybeSingle();
 
     if (dbBook) {
+      const bookId = dbBook['book_id'] as number;
       return {
         googleId,
-        dbBookId: dbBook['book_id'] as number,
+        dbBookId: bookId,
         title: dbBook['title'],
         author: dbBook['author_name'],
         description: dbBook['description'] ?? null,
@@ -136,6 +150,7 @@ export class BooksService {
         coverUrl: dbBook['cover_image_url'] ?? null,
         pageCount: dbBook['page_count'] ?? null,
         categories: dbBook['categories'] ?? [],
+        ratingStats: await this.getRatingStats(bookId),
       };
     }
 
@@ -156,7 +171,51 @@ export class BooksService {
 
     const item = (await res.json()) as GoogleBookItem;
     const mapped = this.mapItem(item);
-    return { ...mapped, dbBookId: null };
+    // Not in our catalog yet, so no ReadTrack users have rated it.
+    return { ...mapped, dbBookId: null, ratingStats: null };
+  }
+
+  // Aggregates the 1-5 star ratings ReadTrack users have given this book.
+  // Runs with the admin client so it sees every rating (the user_books RLS
+  // policy would otherwise hide other users' private rows from a direct query).
+  private async getRatingStats(bookId: number): Promise<RatingStats> {
+    const empty: RatingStats = {
+      average: 0,
+      total: 0,
+      distribution: [5, 4, 3, 2, 1].map((star) => ({ star, count: 0, percent: 0 })),
+    };
+
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .from('user_books')
+      .select('rating')
+      .eq('book_id', bookId)
+      .not('rating', 'is', null);
+
+    if (error || !data?.length) return empty;
+
+    const counts = [0, 0, 0, 0, 0]; // index 0 = 1 star … index 4 = 5 stars
+    let sum = 0;
+    for (const row of data) {
+      const r = row['rating'] as number;
+      if (r >= 1 && r <= 5) {
+        counts[r - 1]++;
+        sum += r;
+      }
+    }
+
+    const total = counts.reduce((a, b) => a + b, 0);
+    if (total === 0) return empty;
+
+    return {
+      average: Math.round((sum / total) * 10) / 10,
+      total,
+      distribution: [5, 4, 3, 2, 1].map((star) => ({
+        star,
+        count: counts[star - 1],
+        percent: Math.round((counts[star - 1] / total) * 100),
+      })),
+    };
   }
 
   private mapItem(item: GoogleBookItem): SearchedBook {

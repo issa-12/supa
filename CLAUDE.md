@@ -120,6 +120,7 @@ public.user_genres    -- many-to-many user ↔ genre
 public.posts          -- community posts (tied to a book)
 public.comments       -- threaded (parent_comment_id, depth 0-3)
 public.post_likes / comment_likes
+public.review_likes   -- like/dislike on community reviews (user_book_id, user_id, is_like) UNIQUE(user_book_id,user_id)
 public.friendship     -- user_id1, user_id2, status_id, requester_id
 public.friendship_status  -- pending / accepted / rejected / blocked
 public.notifications
@@ -178,7 +179,7 @@ All tables have RLS enabled. Key rules:
 | POST | `/api/auth/verify-email` | OTP verify → returns session tokens |
 | POST | `/api/auth/resend-verification` | Resend OTP |
 | GET | `/api/books/search?q=&maxResults=` | Google Books proxy search |
-| GET | `/api/books/:googleId` | Book detail (DB first, then Google fallback) |
+| GET | `/api/books/:googleId` | Book detail (DB first, then Google fallback); includes `ratingStats` (community star distribution) when the book is in the DB |
 | POST | `/api/friends/request` | Send a friend request |
 | PATCH | `/api/friends/:id/accept` | Accept an incoming request |
 | PATCH | `/api/friends/:id/reject` | Reject an incoming request |
@@ -370,6 +371,46 @@ All tables have RLS enabled. Key rules:
   - `GET /api/community/tags/trending` — trending tags across all posts
   - `POST /api/community/posts` — create post with auto-tagging and moderation (max 2000 chars, up to 5 tags)
 
+### Post-sprint Notifications & i18n Hardening (Post-Day 15)
+- **NG0203 crash fix**: `app.ts` and `top-nav.component.ts` called `takeUntilDestroyed()` inside `ngOnInit` (outside the injection context), which threw `NG0203` and aborted nav init — so the notification bell/panel never loaded. Fixed by injecting `DestroyRef` and passing it: `takeUntilDestroyed(this.destroyRef)`. All other `takeUntilDestroyed()` calls are in constructors (valid) and were left alone.
+- **Notification panel resilience** (`notifications.service.ts`, `notifications-panel.component.ts`, `top-nav.component.ts`):
+  - `markAsRead` / `markAllAsRead` are now optimistic with rollback and never reject (template click handlers fire-and-forget safely).
+  - `loadNotifications` returns a success boolean and pulls the exact unread count from `/unread-count` in parallel (the list endpoint is capped at 20, so deriving the badge from it under-reported). A failed load now shows a distinct **"Couldn't load notifications" + Retry** state instead of masquerading as the empty state.
+  - Realtime INSERT handler reconciles the badge via `loadUnreadCount()` (exact) instead of a blind optimistic `+1`, so the bell can never show a phantom count.
+  - Panel: avatar `(error)` fallback to initials; relative timestamps refresh once a minute via `ChangeDetectorRef.markForCheck()`.
+- **Notification labels translated**: removed the hardcoded English `NOTIFICATION_LABELS` map; the panel resolves labels from the typed `NOTIFICATIONS_COPY` i18n object (EN/AR/FR).
+- **`timeAgo(iso, lang)`**: now takes a `LanguageCode` and returns localized relative-time strings; all call sites (posts-feed, post-comments, community-page, profile-page, notifications-panel) pass `lang`.
+- **Shelf section titles translated**: the library section headings ("Currently Reading" / "Want to Read" / "Already Read") used a hardcoded English map; replaced with a reactive `sectionLabel(statusName)` method reading from `SHELF_COPY`, so they translate and update live on language switch.
+- **RTL dropdown clipping fix**: the notifications panel and nav user-menu were pinned with physical `right: 0`, so in Arabic (`dir="rtl"`) they overflowed off-screen. Switched to logical `inset-inline-end`, which flips with direction. (No `[dir="rtl"]`/`:host-context` CSS exists elsewhere — the app relies on `dir` on `<html>` set in `app.ts`.)
+
+### Post-sprint Friend Request Revival (Post-Day 15)
+- **Bug**: the profile page showed "Add friend" for both `none` and `rejected` statuses, but the backend `sendRequest` only did an `INSERT` — so re-requesting someone whose prior request was rejected hit the `friendship_unique_pair` unique index and returned **409**, with "Please try again" that could never succeed.
+- **Fix** (`backend/src/friends/friends.service.ts`): `sendRequest` now looks up the existing row first — `rejected` → revives it to `pending` with the current user as requester (and fires the `friend_request` notification); `blocked` → 403 with an unblock message; `pending`/`accepted` → 409; no row → insert (keeps the `23505` race guard).
+- **Frontend** (`profile-page.component.ts`): `sendFriendRequest` surfaces the server's actual message instead of generic retry text, and a new `refreshFriendshipStatus()` re-syncs the button state on failure.
+
+### Post-sprint Book Page: Rating Breakdown, Status Dropdown, Review Reactions (Post-Day 15)
+- **Community rating distribution**: `GET /api/books/:googleId` now returns `ratingStats { average, total, distribution[] }` (5★→1★ with count + percent), aggregated from `user_books.rating` via the **admin client** (`BooksService.getRatingStats`) — a client-side query couldn't see all ratings because `user_books` RLS is `user_id = auth.uid() OR is_public = true`. Rendered at the top of the book page (average + stars + percentage bars); hidden when there are zero ratings. `null` for books not yet in the catalog. **Requires the backend to be restarted** to serve the new field.
+- **Status control merged**: the book page previously showed a separate "Currently Reading" badge **and** a "Change status" button. Now a single `.shelf-status-btn` (green check + status label + caret) is the dropdown trigger.
+- **Review like/dislike** (`review_likes` table — see migration `20260602000000_review_likes.sql`):
+  - A "review" is a `user_books` row with `review_text`; reactions key off its `user_book_id`. One row per (review, user) with an `is_like` boolean; clicking the active reaction clears it, switching flips it.
+  - `LikesService.toggleReviewReaction()` (upsert/delete; fires `review_liked` notification on a new like). `BookService.getCommunityReviews` batch-fetches reactions and returns `likeCount`, `dislikeCount`, `myReaction`, `userBookId` on each `CommunityReview`.
+  - `book-detail` has optimistic Helpful/Not-helpful buttons (EN/AR/FR labels). Degrades gracefully if the table is missing (counts show 0, no crash).
+
+### Post-sprint Online Presence (Post-Day 15)
+- **What/why**: adds live online/offline status for users, completing the last gap in the **Standard User Management** major module ("add friends and see their online status").
+- **`PresenceService`** (`src/app/core/services/presence.service.ts`): one shared Supabase **Realtime Presence** channel (`online-users`) keyed by user id. Channel membership *is* the online set — Supabase auto-drops a user on tab close / disconnect, so there's **no DB table, no migration, no RLS, and no stale-row cleanup**. Exposes `onlineUserIds$: BehaviorSubject<Set<string>>` and `isOnline(id)`. Presence-sync updates are re-entered into Angular's zone via `NgZone.run` so dots update live.
+- **App-wide init**: `App.ngOnInit` (`app.ts`) calls `presenceService.init()` once. The service joins for the current session and re-joins/leaves on `supabase.auth.onAuthStateChange`. This is deliberately **not** tied to `top-nav` (which is per-page, not a global layout — it's absent on profile/shelf/book pages), so presence stays connected across all routes and survives logout/login.
+- **UI** (profile page): green dot on each friend's avatar in the friends grid (`presence-dot--avatar`), a green dot on the viewed user's profile avatar, and an Online/Offline text label under their name. Dots use logical `inset-inline-end` so they flip in RTL. `.friend-avatar` switched from `overflow: hidden` to `overflow: visible` (image re-clipped via `border-radius: 50%`) so the dot isn't clipped.
+- **i18n**: `onlineLabel` / `offlineLabel` added to `PROFILE_COPY` (EN/AR/FR).
+
+### Post-sprint HTTPS (Post-Day 15)
+- **TLS termination at nginx**: the frontend nginx now serves the whole app (SPA + `/api/` proxy) over **HTTPS on 443**, satisfying the mandatory "HTTPS everywhere" requirement. The backend stays unexposed on the internal Docker network, so the only public surface is the TLS-terminated proxy.
+- **Self-signed cert baked at build time** (`Dockerfile` frontend stage): `apk add openssl` + `openssl req -x509` generates `/etc/nginx/certs/selfsigned.{crt,key}` (CN=localhost, SAN localhost + 127.0.0.1, 825 days). Single-command `docker compose up` still works; browsers show a trust warning until a real cert is mounted.
+- **nginx.conf**: split into two server blocks — `:80` 301-redirects everything to HTTPS (except a plain-HTTP `/healthz` used by the Docker healthcheck so it needs no cert), and `:443 ssl http2` serves the app with TLSv1.2/1.3, HSTS (`max-age=31536000; includeSubDomains`), and the existing CSP/security headers. Because nginx drops inherited `add_header`s in any location that sets its own, the security headers + HSTS + CSP are **repeated in `location = /index.html`** so they reach the document response and every SPA route (try_files rewrites to it).
+- **docker-compose.yml**: frontend now publishes `80:80` and `443:443` (was `4200:80`); healthcheck hits `http://localhost/healthz`.
+- **App URL is now `https://localhost`** (was `http://localhost:4200`). `.env.example` `FRONTEND_URL` updated to `https://localhost`. No mixed-content risk — there are no hardcoded `http://` URLs in `src/`; the SPA calls `/api/` same-origin and Supabase over https/wss.
+- **CSP correction**: the existing CSP had never actually been enforced (nginx dropped it on the document via the `add_header` inheritance behavior above), so it had drifted out of sync with `index.html`. Once enforced it blocked the top-nav icons + the PT Serif font. Widened `script-src` to allow `cdn.jsdelivr.net` (iconify-icon component), `style-src` → `fonts.googleapis.com`, `font-src` → `fonts.gstatic.com`, and `connect-src` → all three iconify API hosts (`api.iconify.design`, `api.simplesvg.com`, `api.unisvg.com`). **If you add any new external CDN/script/font, update the CSP in BOTH places in `nginx.conf` (server block + `location = /index.html`).**
+
 ---
 
 ## Production deployment checklist
@@ -377,12 +418,11 @@ All tables have RLS enabled. Key rules:
 Before deploying to a production server:
 
 1. **Set `FRONTEND_URL`** in `.env` / `backend/.env` to the actual production domain (e.g. `https://readtrack.example.com`) so CORS works correctly.
-2. **Change `ports: "4200:80"` to `"80:80"`** (or `"443:443"`) in `docker-compose.yml` for production.
-3. **Set up TLS** — put a reverse proxy (Caddy, Traefik, or nginx on the host) in front of port 80 to handle HTTPS.
-4. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
-5. **Run the Day 12 migration** if not already done (see Known Issues #7).
-6. **Build and start**: `docker compose up --build -d`
-7. **Verify health**: `curl http://localhost/api/health` should return `{"status":"ok"}`.
+2. **TLS is built in** — nginx serves HTTPS on port 443 and 301-redirects HTTP→HTTPS. The image bakes a **self-signed** cert (`/etc/nginx/certs/`), so browsers show a trust warning on first visit. For production, mount a CA-issued cert/key over `/etc/nginx/certs/selfsigned.crt` and `selfsigned.key` (e.g. via a volume), or terminate TLS at an upstream proxy (Caddy/Traefik) and point it at port 80.
+3. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
+4. **Run the Day 12 migration** if not already done (see Known Issues #7).
+5. **Build and start**: `docker compose up --build -d`
+6. **Verify health**: `curl -k https://localhost/api/health` should return `{"status":"ok"}` (`-k` skips the self-signed cert check).
 
 ---
 
@@ -418,7 +458,12 @@ Before deploying to a production server:
      ADD COLUMN IF NOT EXISTS review_text  TEXT;
    ```
 
-8. **PostgREST join limitation** — `user_books.user_id` has no FK to `public.users`, so any
+8. **`review_likes` migration** — `supabase/migrations/20260602000000_review_likes.sql` must be
+   run in the Supabase SQL Editor for review like/dislike to persist. **Applied and verified live**
+   (table + RLS + `UNIQUE(user_book_id, user_id)` confirmed). Until applied, reviews still render
+   but reactions show 0 and don't save (no crash).
+
+9. **PostgREST join limitation** — `user_books.user_id` has no FK to `public.users`, so any
    feature needing user profiles from user_books must use the two-query pattern:
    fetch user_ids first → separate `.in('id', userIds)` on `users` table. See
    `StatsService.getTopReaders()` and `BookService.getCommunityReviews()` for reference.
