@@ -89,6 +89,9 @@ interface Book {
 
     .hero-content {
       flex: 1;
+      // Without min-width:0 a flex item won't shrink below its content size,
+      // so a long title/word pushes past the container instead of wrapping.
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -130,6 +133,8 @@ interface Book {
       color: var(--foreground);
       letter-spacing: -0.6px;
       margin: 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .hero-author {
@@ -144,6 +149,7 @@ interface Book {
       font-weight: 500;
       color: var(--muted-foreground);
       margin: 0;
+      overflow-wrap: break-word;
     }
 
     .hero-actions {
@@ -249,6 +255,19 @@ interface Book {
       .hero-section {
         padding: 24px 20px;
         gap: 24px;
+      }
+
+      .hero-content {
+        max-width: 100%;
+      }
+
+      .hero-labels {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .eyebrow {
+        white-space: normal;
       }
 
       .text-h1 {

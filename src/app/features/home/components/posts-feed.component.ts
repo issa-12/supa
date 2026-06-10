@@ -529,7 +529,7 @@ interface BookSearchResult {
       span { color: #fff; font-size: 14px; font-weight: 700; }
     }
 
-    .post-meta { display: flex; flex-direction: column; gap: 2px; }
+    .post-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
     .post-author {
       font-size: 14px;
