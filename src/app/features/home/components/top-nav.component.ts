@@ -197,7 +197,8 @@ interface NavSearchBook {
       padding: 16px 40px;
       background: var(--background);
       border-bottom: 1px solid var(--border);
-      position: relative;
+      position: sticky;
+      top: 0;
       z-index: 50;
     }
 
@@ -537,9 +538,29 @@ interface NavSearchBook {
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
-      .top-nav { padding: 12px 20px; gap: 16px; }
-      .search-wrap { max-width: 220px; margin: 0 12px; }
-      .brand-text { font-size: 24px; }
+      .top-nav {
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        gap: 10px;
+      }
+      /* logo mark only — the word-mark eats too much width on phones */
+      .brand-text { display: none; }
+      .nav-actions { gap: 10px; }
+      /* search drops onto its own full-width row so the action icons fit */
+      .search-wrap {
+        order: 3;
+        flex-basis: 100%;
+        max-width: 100%;
+        margin: 0;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .top-nav { padding: 10px 12px; }
+      .nav-actions { gap: 6px; }
+      .nav-icon-btn,
+      .nav-avatar,
+      .brand-icon { width: 38px; height: 38px; }
     }
   `],
 })

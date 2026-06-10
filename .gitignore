@@ -45,6 +45,11 @@ testem.log
 /typings
 __screenshots__/
 
+# Local TLS certs/keys (never commit private keys) — keep the dir, ignore certs
+/certs/*
+!/certs/.gitkeep
+!/certs/README.md
+
 # System files
 .DS_Store
 Thumbs.db

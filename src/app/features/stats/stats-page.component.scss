@@ -319,9 +319,11 @@
 
 .reader-name {
   flex: 1;
+  min-width: 0;
   font-size: 15px;
   font-weight: 600;
   color: var(--foreground);
+  overflow-wrap: break-word;
 }
 
 .reader-books {

@@ -9,6 +9,11 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  max-width: 100%;
+  // App-wide guard against accidental sideways scroll on small screens.
+  // `clip` (not `hidden`) so it doesn't create a scroll container and
+  // therefore doesn't break the sticky top nav on body-scrolling pages.
+  overflow-x: clip;
 }
 
 body {
