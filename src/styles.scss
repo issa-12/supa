@@ -23,6 +23,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Safety net: an image can never render wider than its container. Prevents a
+   high-resolution cover from blowing up to its natural pixel size if its
+   container ever ends up width:auto. */
+img {
+  max-width: 100%;
+}
+
 /* ─── Design tokens — flat solid palette ───────────────────────────────────── */
 :root {
   /* Brand palette */

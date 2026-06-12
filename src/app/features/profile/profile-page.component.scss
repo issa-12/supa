@@ -713,13 +713,15 @@
 
 .book-cover-container {
   position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .book-cover {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   object-fit: cover;
   display: block;
   border-radius: 8px 12px 12px 8px;
@@ -1087,6 +1089,14 @@
 @media (max-width: 480px) {
   .header-content {
     padding: 0 12px;
+  }
+
+  // Force two even columns so a section with one/two books can't blow the
+  // cover up to full width (matches the shelf grid). minmax(0, …) keeps a
+  // column from growing to the cover's natural image width.
+  .books-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
   .profile-content {

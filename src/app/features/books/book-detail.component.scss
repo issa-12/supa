@@ -110,6 +110,8 @@
 
 // ── Cover ───────────────────────────────────────────────────────
 .cover-wrap {
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border-radius: 12px;
   overflow: hidden;
    position: sticky;
@@ -118,7 +120,7 @@
 
 .cover-img {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   object-fit: cover;
   display: block;
   border-radius: 10px 16px 16px 10px;
@@ -126,7 +128,7 @@
 
 .cover-placeholder {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
