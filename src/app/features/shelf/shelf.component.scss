@@ -269,6 +269,8 @@
 
 .cover-wrap {
   position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border-radius: 8px;
   overflow: hidden;
    transition: transform 0.25s;
@@ -280,7 +282,7 @@
 
 .cover-img {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   object-fit: cover;
   display: block;
   border-radius: 6px 10px 10px 6px;
@@ -288,7 +290,7 @@
 
 .cover-placeholder {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -598,5 +600,5 @@
 }
 
 @media (max-width: 480px) {
-  .books-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
