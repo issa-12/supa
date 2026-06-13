@@ -4,7 +4,7 @@
   <div class="scroll-area">
     <div class="page-shell">
       <!-- Hero Section -->
-      <app-hero-section *ngIf="heroBook" [book]="heroBook" (addToReading)="onAddToReading($event)"></app-hero-section>
+      <app-hero-section *ngIf="heroBook" [book]="heroBook" [genre]="favoriteGenre" (addToReading)="onAddToReading($event)"></app-hero-section>
 
       <!-- Continue Reading skeleton -->
       <div *ngIf="isLoadingContinue" class="home-section-skeleton">

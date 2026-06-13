@@ -12,6 +12,7 @@ interface Book {
   coverUrl: string | null;
   description?: string | null;
   rating?: number;
+  genre?: string | null;
 }
 
 @Component({
@@ -28,7 +29,7 @@ interface Book {
             <iconify-icon icon="lucide:sparkles" style="font-size: 14px; margin-right: 6px"></iconify-icon>
             {{ copy.heroPill }}
           </div>
-          <span class="eyebrow">{{ copy.heroEyebrow }}</span>
+          <span class="eyebrow">{{ eyebrowText }}</span>
         </div>
 
         <div class="hero-title-group">
@@ -295,10 +296,18 @@ export class HeroSectionComponent {
   private readonly translationService = inject(TranslationService);
 
   @Input() book!: Book;
+  @Input() genre: string | null = null;
   @Output() addToReading = new EventEmitter<Book>();
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return HOME_COPY[this.lang]; }
+
+  // "Because you like <genre>" using the hero book's own genre when available,
+  // falling back to the user's top genre, then a generic label.
+  protected get eyebrowText(): string {
+    const g = this.book?.genre || this.genre;
+    return g ? `${this.copy.heroEyebrowPrefix} ${g}` : this.copy.heroEyebrow;
+  }
 
   coverBroken = false;
   addingToReading = false;

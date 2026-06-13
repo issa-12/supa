@@ -204,17 +204,20 @@ h1 {
 }
 
 .code-input {
-  background: var(--surface);
-  border: 0;
+  background: var(--auth-background);
+  border: 1px solid var(--auth-border);
   border-radius: 8px;
-   color: var(--auth-foreground);
+  color: var(--auth-foreground);
   font: 600 24px/1.2 inherit;
   height: 58px;
   text-align: center;
   width: 52px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-     outline: 0;
+    outline: 0;
+    border-color: var(--auth-primary);
+    box-shadow: 0 0 0 3px rgba(230, 118, 46, 0.18);
   }
 }
 
