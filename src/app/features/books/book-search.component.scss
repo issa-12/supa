@@ -257,6 +257,8 @@
 
 // ── Cover ──────────────────────────────────────────────────────
 .cover-wrap {
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border-radius: 8px;
   overflow: hidden;
    transition: transform 0.25s ease;
@@ -268,7 +270,7 @@
 
 .cover-img {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   object-fit: cover;
   display: block;
   border-radius: 6px 10px 10px 6px;
@@ -276,7 +278,7 @@
 
 .cover-placeholder {
   width: 100%;
-  aspect-ratio: 2/3;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -426,7 +428,9 @@
   .search-content { padding: 20px 16px 48px; }
 
   .books-grid {
-    grid-template-columns: repeat(2, 1fr);
+    // minmax(0, …), not plain 1fr — a 1fr track's `auto` minimum equals the
+    // cover's natural image width and blows the columns up.
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 }

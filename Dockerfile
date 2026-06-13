@@ -14,17 +14,15 @@ RUN npm run build
 # ── Stage 2: nginx serves the Angular SPA over HTTPS ──────────
 FROM nginx:1.27-alpine AS frontend
 
-# Self-signed TLS cert so the app serves HTTPS out of the box with a
-# single `docker compose up`. For a real deployment, mount a CA-issued
-# cert/key over /etc/nginx/certs (see production checklist in CLAUDE.md).
-RUN apk add --no-cache openssl \
- && mkdir -p /etc/nginx/certs \
- && openssl req -x509 -nodes -newkey rsa:2048 \
-      -keyout /etc/nginx/certs/selfsigned.key \
-      -out  /etc/nginx/certs/selfsigned.crt \
-      -days 825 \
-      -subj "/C=US/ST=Local/L=Local/O=ReadTrack/CN=localhost" \
-      -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+# openssl is used by the cert entrypoint to generate a self-signed fallback
+# when no trusted cert is mounted.
+RUN apk add --no-cache openssl
+
+# At startup, use a cert/key mounted at /certs (e.g. a locally-trusted mkcert
+# pair → no browser warning, service worker / PWA works) if present; otherwise
+# generate a self-signed fallback so `docker compose up` always works.
+COPY docker/ensure-certs.sh /docker-entrypoint.d/40-ensure-certs.sh
+RUN chmod +x /docker-entrypoint.d/40-ensure-certs.sh
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build-frontend /app/dist/books-media-platform/browser /usr/share/nginx/html

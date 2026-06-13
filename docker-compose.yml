@@ -15,6 +15,11 @@ services:
     restart: unless-stopped
     networks:
       - readtrack-net
+    volumes:
+      # Drop a locally-trusted cert here as certs/selfsigned.{crt,key} (e.g. via
+      # mkcert) for a warning-free HTTPS + working PWA. If empty, the container
+      # generates a self-signed fallback at startup.
+      - ./certs:/certs:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/healthz > /dev/null 2>&1 || exit 1"]
       interval: 30s

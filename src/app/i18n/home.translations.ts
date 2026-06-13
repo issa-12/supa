@@ -4,6 +4,7 @@ export interface HomeCopy {
   // Hero section
   heroPill: string;
   heroEyebrow: string;
+  heroEyebrowPrefix: string;
   heroFallbackDescription: string;
   heroViewBook: string;
   heroAddToReading: string;
@@ -64,7 +65,8 @@ export interface HomeCopy {
 export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
   en: {
     heroPill: 'Recommended for you',
-    heroEyebrow: 'Because you like Mystery',
+    heroEyebrow: 'Recommended for you',
+    heroEyebrowPrefix: 'Because you like',
     heroFallbackDescription: 'A compelling read waiting to be discovered. Add it to your shelf to start your journey.',
     heroViewBook: 'View Book',
     heroAddToReading: 'Add to Reading',
@@ -116,7 +118,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
   },
   ar: {
     heroPill: 'موصى به لك',
-    heroEyebrow: 'لأنك تحب الغموض والإثارة',
+    heroEyebrow: 'موصى به لك',
+    heroEyebrowPrefix: 'لأنك تحب',
     heroFallbackDescription: 'قراءة رائعة تنتظر اكتشافك. أضفها إلى رفك لبدء رحلتك.',
     heroViewBook: 'عرض الكتاب',
     heroAddToReading: 'أضف إلى القراءة الحالية',
@@ -168,7 +171,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
   },
   fr: {
     heroPill: 'Recommandé pour vous',
-    heroEyebrow: 'Parce que vous aimez les mystères',
+    heroEyebrow: 'Recommandé pour vous',
+    heroEyebrowPrefix: 'Parce que vous aimez',
     heroFallbackDescription: 'Une lecture captivante qui n\'attend que d\'être découverte. Ajoutez-la à votre bibliothèque pour commencer votre voyage.',
     heroViewBook: 'Afficher le livre',
     heroAddToReading: 'Ajouter à la lecture en cours',

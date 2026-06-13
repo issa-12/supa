@@ -211,6 +211,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       color: var(--foreground);
       text-decoration: none;
       display: block;
+      overflow-wrap: break-word;
       margin-bottom: 2px;
 
       &:hover { color: var(--primary); }

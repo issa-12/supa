@@ -11,6 +11,7 @@ export interface Book {
   description: string | null;
   publishDate: string | null;
   coverUrl: string | null;
+  genre?: string | null;
 }
 
 export interface GoogleBook {
@@ -201,6 +202,7 @@ export class BookService {
             description: string | null;
             coverUrl: string | null;
             reason: string;
+            genre?: string | null;
           }>;
         };
 
@@ -212,6 +214,7 @@ export class BookService {
           description: b.description,
           publishDate: null,
           coverUrl: b.coverUrl,
+          genre: b.genre ?? null,
         }));
       })()
     ).pipe(catchError((err) => { console.error('[BookService] getRecommendedBooks failed:', err); return of([]); }));

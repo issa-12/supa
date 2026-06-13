@@ -12,6 +12,7 @@ interface Book {
   coverUrl: string | null;
   description?: string | null;
   rating?: number;
+  genre?: string | null;
 }
 
 @Component({
@@ -28,7 +29,7 @@ interface Book {
             <iconify-icon icon="lucide:sparkles" style="font-size: 14px; margin-right: 6px"></iconify-icon>
             {{ copy.heroPill }}
           </div>
-          <span class="eyebrow">{{ copy.heroEyebrow }}</span>
+          <span class="eyebrow">{{ eyebrowText }}</span>
         </div>
 
         <div class="hero-title-group">
@@ -89,6 +90,9 @@ interface Book {
 
     .hero-content {
       flex: 1;
+      // Without min-width:0 a flex item won't shrink below its content size,
+      // so a long title/word pushes past the container instead of wrapping.
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -130,6 +134,8 @@ interface Book {
       color: var(--foreground);
       letter-spacing: -0.6px;
       margin: 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .hero-author {
@@ -144,6 +150,7 @@ interface Book {
       font-weight: 500;
       color: var(--muted-foreground);
       margin: 0;
+      overflow-wrap: break-word;
     }
 
     .hero-actions {
@@ -251,6 +258,19 @@ interface Book {
         gap: 24px;
       }
 
+      .hero-content {
+        max-width: 100%;
+      }
+
+      .hero-labels {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .eyebrow {
+        white-space: normal;
+      }
+
       .text-h1 {
         font-size: 32px;
       }
@@ -276,10 +296,18 @@ export class HeroSectionComponent {
   private readonly translationService = inject(TranslationService);
 
   @Input() book!: Book;
+  @Input() genre: string | null = null;
   @Output() addToReading = new EventEmitter<Book>();
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return HOME_COPY[this.lang]; }
+
+  // "Because you like <genre>" using the hero book's own genre when available,
+  // falling back to the user's top genre, then a generic label.
+  protected get eyebrowText(): string {
+    const g = this.book?.genre || this.genre;
+    return g ? `${this.copy.heroEyebrowPrefix} ${g}` : this.copy.heroEyebrow;
+  }
 
   coverBroken = false;
   addingToReading = false;

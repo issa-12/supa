@@ -225,9 +225,14 @@ const LABEL_KEY_BY_TYPE: Record<string, keyof NotificationsCopy> = {
     }
 
     @media (max-width: 480px) {
+      /* Fixed sheet so the home page's .app-viewport (overflow:hidden) can't
+         clip the dropdown, and it never runs off-screen. Sits below the nav. */
       .panel {
-        width: calc(100vw - 32px);
-        inset-inline-end: -16px;
+        position: fixed;
+        top: 124px;
+        inset-inline: 8px;
+        width: auto;
+        max-height: calc(100vh - 140px);
       }
     }
   `],

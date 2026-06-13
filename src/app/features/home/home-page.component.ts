@@ -22,6 +22,7 @@ interface Book {
   coverUrl: string | null;
   description?: string | null;
   rating?: number;
+  genre?: string | null;
 }
 
 interface ContinueReadingBook extends Book {
@@ -73,6 +74,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   currentUserAvatar: string | null = null;
 
   heroBook: Book | null = null;
+  favoriteGenre: string | null = null;
   continueReadingBooks: ContinueReadingBook[] = [];
   recommendedBooks: Book[] = [];
   trendingBooks: Book[] = [];
@@ -111,6 +113,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
           this.currentUserId = basicUser.id;
           this.isLoading = false;
+
+          this.userService
+            .getUserGenres(basicUser.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (genres) => { this.favoriteGenre = genres[0]?.name ?? null; },
+              error: () => { /* non-critical — hero falls back to a generic label */ },
+            });
 
           this.loadContinueReadingBooks();
           this.loadRecommendedBooks();
@@ -192,6 +202,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
       coverUrl: book.coverUrl,
       description: book.description ?? null,
       rating: book.rating,
+      genre: book.genre ?? null,
     };
   }
 

@@ -42,7 +42,12 @@ export class PresenceService {
     this.stopHeartbeat();
     this.currentUserId = userId;
     await this.touch(userId);
-    this.heartbeatTimer = setInterval(() => void this.touch(userId), 120_000);
+    // Run the recurring timer outside Angular: it only does a background DB
+    // write, needs no change detection, and an in-zone setInterval would keep
+    // the app perpetually "unstable".
+    this.zone.runOutsideAngular(() => {
+      this.heartbeatTimer = setInterval(() => void this.touch(userId), 120_000);
+    });
   }
 
   private async touch(userId: string): Promise<void> {

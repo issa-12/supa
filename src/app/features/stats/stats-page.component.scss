@@ -103,7 +103,9 @@
   gap: 28px;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    // minmax(0, 1fr), not 1fr — a 1fr track grows to its widest content (the
+    // 12-bar pace chart / long rows), pushing the card past the viewport.
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
   }
 }
@@ -117,6 +119,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 
   @media (max-width: 480px) { padding: 20px 16px; }
 }
@@ -319,9 +322,11 @@
 
 .reader-name {
   flex: 1;
+  min-width: 0;
   font-size: 15px;
   font-weight: 600;
   color: var(--foreground);
+  overflow-wrap: break-word;
 }
 
 .reader-books {
@@ -342,6 +347,7 @@
 
 .bar-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

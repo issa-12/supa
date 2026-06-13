@@ -24,6 +24,9 @@
 .scroll-area {
   flex: 1;
   overflow-y: auto;
+  // Without this, setting overflow-y makes overflow-x compute to `auto`, which
+  // let the page scroll sideways whenever a section was a touch too wide.
+  overflow-x: hidden;
   position: relative;
   z-index: 1;
   padding-bottom: 120px;
@@ -199,7 +202,12 @@
   }
 
   .home-bottom-grid {
-    grid-template-columns: 1fr;
+    // minmax(0, 1fr) — NOT plain `1fr`. A `1fr` track has min-width:auto, so the
+    // column expands to its content's width (the full carousel row / a long post)
+    // and overflows the clipped scroll area: the carousel then can't scroll and
+    // posts get cut off. min-width:0 keeps the column at viewport width so the
+    // carousel overflows ITSELF (scrolls) and posts wrap.
+    grid-template-columns: minmax(0, 1fr);
     gap: 40px;
   }
 }

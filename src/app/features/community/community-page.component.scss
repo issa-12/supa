@@ -53,7 +53,9 @@
   align-items: start;
 
   @media (max-width: 900px) {
-    grid-template-columns: 1fr;
+    // minmax(0, 1fr), not 1fr — a plain 1fr track grows to its content width,
+    // pushing the feed past the viewport so posts get clipped/jumbled.
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
     padding: 20px 16px 60px;
   }
@@ -172,6 +174,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 // ── Compose card ─────────────────────────────────────────────────
@@ -584,7 +587,7 @@
   span { color: #fff; font-size: 14px; font-weight: 700; }
 }
 
-.post-meta { display: flex; flex-direction: column; gap: 2px; }
+.post-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 .post-author {
   font-size: 14px;
