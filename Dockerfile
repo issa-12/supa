@@ -3,10 +3,13 @@
 # ── Stage 1: Build Angular SPA ────────────────────────────────
 FROM node:20.19.2-bookworm-slim AS build-frontend
 
+# Ensure devDependencies (incl. @angular/cli → `ng`) install.
+ENV NODE_ENV=development
+
 WORKDIR /app
 
 COPY package*.json ./
-RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm ci --include=dev
+RUN npm ci --include=dev --no-audit --no-fund && test -x node_modules/.bin/ng
 
 COPY . .
 RUN npm run build
@@ -32,10 +35,13 @@ EXPOSE 80 443
 # ── Stage 3: Build NestJS backend ─────────────────────────────
 FROM node:20.19.2-bookworm-slim AS build-backend
 
+# Ensure devDependencies (incl. @nestjs/cli → `nest`) install. Pruned after build.
+ENV NODE_ENV=development
+
 WORKDIR /app
 
 COPY backend/package*.json ./
-RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm ci --include=dev
+RUN npm ci --include=dev --no-audit --no-fund && test -x node_modules/.bin/nest
 
 COPY backend/ .
 RUN npm run build

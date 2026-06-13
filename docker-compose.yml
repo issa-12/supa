@@ -3,15 +3,15 @@ services:
     build:
       context: .
       target: frontend
-      secrets:
-        - npmrc
     container_name: readtrack-frontend
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "80:80"
-      - "443:443"
+      # High host ports so binding doesn't need root on Linux. App is at
+      # https://localhost:8443 (http://localhost:8080 redirects there).
+      - "8080:80"
+      - "8443:443"
     restart: unless-stopped
     networks:
       - readtrack-net
@@ -31,8 +31,6 @@ services:
     build:
       context: .
       target: backend
-      secrets:
-        - npmrc
     container_name: readtrack-backend
     env_file:
       - .env
@@ -52,7 +50,3 @@ services:
 networks:
   readtrack-net:
     driver: bridge
-
-secrets:
-  npmrc:
-    file: ${USERPROFILE}/.npmrc
