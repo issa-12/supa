@@ -260,7 +260,7 @@
 
 .genre-fill {
   height: 100%;
-  background: var(--background);
+  background: var(--primary);
   border-radius: var(--radius-full);
   transition: width 0.6s ease;
   min-width: 4px;
@@ -383,7 +383,7 @@
   transition: height 0.5s ease;
 
   &.active {
-    background: var(--background);
+    background: var(--primary);
   }
 }
 

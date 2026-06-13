@@ -465,8 +465,11 @@ Before deploying to a production server:
 1. **Home page hero section** — hidden when `books` table is empty (correct behavior,
    `*ngIf="heroBook"`). It will show once users add books to the catalog via search.
 
-2. **LockManager warnings in console** — Supabase JS v2 cosmetic issue with concurrent
-   auth requests. Not a real error, safe to ignore.
+2. **LockManager warnings in console** — Supabase JS v2 used the browser Navigator
+   LockManager for auth-token access, which logged "Acquiring an exclusive Navigator
+   LockManager lock … immediately failed" on concurrent `getUser`/`getSession` calls.
+   **Fixed**: `supabase.service.ts` passes `auth.lock: inMemoryAuthLock` (a promise-chain
+   in-memory lock) to `createClient`, so the Navigator LockManager is never used.
 
 3. **`reading_statuses` IDs** — seeded in this order: 1=read, 2=want_to_read,
    3=currently_reading. The app resolves these dynamically by name, not by hardcoded int.
