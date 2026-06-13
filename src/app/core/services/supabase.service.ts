@@ -9,6 +9,19 @@ import type {
   User,
 } from '@supabase/supabase-js';
 
+// Supabase serializes auth-token access with the browser's Navigator LockManager
+// by default. When concurrent getUser/getSession calls race on load it logs
+// "Acquiring an exclusive Navigator LockManager lock … immediately failed".
+// This in-memory lock serializes those calls through a promise chain instead —
+// no navigator.locks call, so no console noise (single client per tab, which is
+// what we have, makes this sufficient).
+let authLockChain: Promise<unknown> = Promise.resolve();
+function inMemoryAuthLock<R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> {
+  const run = authLockChain.then(() => fn(), () => fn());
+  authLockChain = run.then(() => undefined, () => undefined);
+  return run;
+}
+
 export interface AppUserProfile {
   id: string;
   email: string;
@@ -223,6 +236,7 @@ export class SupabaseService {
           autoRefreshToken: true,
           detectSessionInUrl: true,
           persistSession: true,
+          lock: inMemoryAuthLock,
         },
       }));
 
