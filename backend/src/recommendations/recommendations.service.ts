@@ -10,6 +10,7 @@ export interface RecommendationBook {
   description: string | null;
   coverUrl: string | null;
   reason: string;
+  genre: string | null;
 }
 
 interface ClaudeSuggestion {
@@ -17,6 +18,7 @@ interface ClaudeSuggestion {
   author: string;
   description: string;
   reason: string;
+  genre: string;
 }
 
 @Injectable()
@@ -69,6 +71,7 @@ export class RecommendationsService {
             description: s.description,
             coverUrl: null,
             reason: s.reason,
+            genre: s.genre,
           };
         }),
       ),
@@ -154,12 +157,12 @@ export class RecommendationsService {
 
   private mockSuggestions(): ClaudeSuggestion[] {
     return [
-      { title: 'The Name of the Wind', author: 'Patrick Rothfuss', description: 'A heroic fantasy told in first-person by Kvothe, a legendary wizard and musician recounting his life story.', reason: 'A beautifully written epic fantasy with deep world-building and a compelling narrator.' },
-      { title: 'Project Hail Mary', author: 'Andy Weir', description: 'A lone astronaut wakes up with no memory on a desperate mission to save Earth from an extinction-level threat.', reason: 'A fast-paced science-driven thriller packed with wit and clever problem-solving.' },
-      { title: 'The Hitchhiker\'s Guide to the Galaxy', author: 'Douglas Adams', description: 'An ordinary man is swept into a mad journey through space after Earth is demolished to make way for a bypass.', reason: 'A brilliantly funny sci-fi classic beloved by fans of clever, absurdist humor.' },
-      { title: 'Dune', author: 'Frank Herbert', description: 'A sweeping sci-fi epic set on a desert planet where politics, religion, and ecology collide in a battle for power.', reason: 'A foundational sci-fi masterpiece with rich lore and political depth.' },
-      { title: 'The Alchemist', author: 'Paulo Coelho', description: 'A young shepherd travels from Spain to Egypt following his dreams, learning lessons about destiny and fulfillment along the way.', reason: 'An inspiring philosophical fable about following your Personal Legend.' },
-      { title: 'Atomic Habits', author: 'James Clear', description: 'A practical guide to building good habits and breaking bad ones using small, incremental changes that compound over time.', reason: 'Actionable, evidence-backed strategies that work for any lifestyle or goal.' },
+      { title: 'The Name of the Wind', author: 'Patrick Rothfuss', description: 'A heroic fantasy told in first-person by Kvothe, a legendary wizard and musician recounting his life story.', reason: 'A beautifully written epic fantasy with deep world-building and a compelling narrator.', genre: 'Fantasy' },
+      { title: 'Project Hail Mary', author: 'Andy Weir', description: 'A lone astronaut wakes up with no memory on a desperate mission to save Earth from an extinction-level threat.', reason: 'A fast-paced science-driven thriller packed with wit and clever problem-solving.', genre: 'Science Fiction' },
+      { title: 'The Hitchhiker\'s Guide to the Galaxy', author: 'Douglas Adams', description: 'An ordinary man is swept into a mad journey through space after Earth is demolished to make way for a bypass.', reason: 'A brilliantly funny sci-fi classic beloved by fans of clever, absurdist humor.', genre: 'Science Fiction' },
+      { title: 'Dune', author: 'Frank Herbert', description: 'A sweeping sci-fi epic set on a desert planet where politics, religion, and ecology collide in a battle for power.', reason: 'A foundational sci-fi masterpiece with rich lore and political depth.', genre: 'Science Fiction' },
+      { title: 'The Alchemist', author: 'Paulo Coelho', description: 'A young shepherd travels from Spain to Egypt following his dreams, learning lessons about destiny and fulfillment along the way.', reason: 'An inspiring philosophical fable about following your Personal Legend.', genre: 'Fiction' },
+      { title: 'Atomic Habits', author: 'James Clear', description: 'A practical guide to building good habits and breaking bad ones using small, incremental changes that compound over time.', reason: 'Actionable, evidence-backed strategies that work for any lifestyle or goal.', genre: 'Self-Help' },
     ];
   }
 
@@ -187,12 +190,13 @@ export class RecommendationsService {
 
     const systemPrompt = `You are an expert book recommendation engine. Given a user's reading preferences, recommend books they would genuinely enjoy.
 
-Return ONLY a valid JSON array with no markdown, no code fences, and no extra text. Each item must have exactly these four fields:
+Return ONLY a valid JSON array with no markdown, no code fences, and no extra text. Each item must have exactly these five fields:
 {
   "title": "exact book title",
   "author": "full author name",
   "description": "2-3 sentence synopsis of the book",
-  "reason": "1 sentence explaining why this specific user would enjoy it"
+  "reason": "1 sentence explaining why this specific user would enjoy it",
+  "genre": "the single primary genre as 1-2 words, e.g. Fantasy, Mystery, Science Fiction, Romance, Thriller, Historical Fiction, Non-Fiction"
 }
 
 Rules:
@@ -249,6 +253,7 @@ Do NOT recommend: ${excludeTitles || 'none'}`;
         description: suggestion.description,
         coverUrl: null,
         reason: suggestion.reason,
+        genre: suggestion.genre,
       };
     }
 
@@ -266,6 +271,7 @@ Do NOT recommend: ${excludeTitles || 'none'}`;
         description: suggestion.description,
         coverUrl: null,
         reason: suggestion.reason,
+        genre: suggestion.genre,
       };
     }
 
@@ -310,6 +316,7 @@ Do NOT recommend: ${excludeTitles || 'none'}`;
       description: suggestion.description,
       coverUrl,
       reason: suggestion.reason,
+      genre: suggestion.genre,
     };
   }
 

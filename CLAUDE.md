@@ -397,11 +397,15 @@ All tables have RLS enabled. Key rules:
   - `book-detail` has optimistic Helpful/Not-helpful buttons (EN/AR/FR labels). Degrades gracefully if the table is missing (counts show 0, no crash).
 
 ### Post-sprint Online Presence (Post-Day 15)
-- **What/why**: adds live online/offline status for users, completing the last gap in the **Standard User Management** major module ("add friends and see their online status").
-- **`PresenceService`** (`src/app/core/services/presence.service.ts`): one shared Supabase **Realtime Presence** channel (`online-users`) keyed by user id. Channel membership *is* the online set — Supabase auto-drops a user on tab close / disconnect, so there's **no DB table, no migration, no RLS, and no stale-row cleanup**. Exposes `onlineUserIds$: BehaviorSubject<Set<string>>` and `isOnline(id)`. Presence-sync updates are re-entered into Angular's zone via `NgZone.run` so dots update live.
-- **App-wide init**: `App.ngOnInit` (`app.ts`) calls `presenceService.init()` once. The service joins for the current session and re-joins/leaves on `supabase.auth.onAuthStateChange`. This is deliberately **not** tied to `top-nav` (which is per-page, not a global layout — it's absent on profile/shelf/book pages), so presence stays connected across all routes and survives logout/login.
-- **UI** (profile page): green dot on each friend's avatar in the friends grid (`presence-dot--avatar`), a green dot on the viewed user's profile avatar, and an Online/Offline text label under their name. Dots use logical `inset-inline-end` so they flip in RTL. `.friend-avatar` switched from `overflow: hidden` to `overflow: visible` (image re-clipped via `border-radius: 50%`) so the dot isn't clipped.
+- **What/why**: adds online/offline status for users, completing the last gap in the **Standard User Management** major module ("add friends and see their online status").
+- **Heartbeat approach** (`src/app/core/services/presence.service.ts`): a `last_seen_at TIMESTAMPTZ` column on `public.users` (migration `20260606000000_user_last_seen.sql`). `PresenceService.startHeartbeat()` writes `last_seen_at = now()` immediately on login and then every **2 minutes** via `setInterval`; a user is considered **online if seen within the last 5 minutes**. The interval runs inside `NgZone.runOutsideAngular` (it's a background DB write — no change detection, and it must not keep the app perpetually "unstable", which would break the PWA service-worker registration).
+- **App-wide init**: `App.ngOnInit` (`app.ts`) calls `presenceService.init()` once; it starts/stops the heartbeat on `supabase.auth.onAuthStateChange` (deferred via `setTimeout` to avoid the auth LockManager deadlock). `loadPresenceForUser(id)` checks a given user's `last_seen_at` on demand and updates `onlineUserIds$: BehaviorSubject<Set<string>>` (via `NgZone.run` so dots update); the profile page calls it for each friend / the viewed user on load.
+- **UI** (profile page): green dot on each friend's avatar in the friends grid (`presence-dot--avatar`), a green dot on the viewed user's profile avatar, and an Online/Offline text label under their name. Dots use logical `inset-inline-end` so they flip in RTL.
 - **i18n**: `onlineLabel` / `offlineLabel` added to `PROFILE_COPY` (EN/AR/FR).
+- **Note**: a user shows online for up to ~5 min after closing the tab (the heartbeat just stops; `last_seen_at` isn't cleared). Presence is checked on profile load, not live-polled. **Requires the `user_last_seen` migration to be applied.**
+
+### Post-sprint Avatar Sync (Post-Day 15)
+- **`UserService.currentUserAvatar$`** (`BehaviorSubject<string|null>`): the top-nav subscribes to it for the nav avatar; the profile page calls `setCurrentUserAvatar(url)` after an avatar upload so the nav updates immediately without a reload. The top-nav avatar fallback uses a `ui-avatars.com` URL built from the user's initial (`avatarFallback` getter).
 
 ### Post-sprint HTTPS (Post-Day 15)
 - **TLS termination at nginx**: the frontend nginx now serves the whole app (SPA + `/api/` proxy) over **HTTPS on 443**, satisfying the mandatory "HTTPS everywhere" requirement. The backend stays unexposed on the internal Docker network, so the only public surface is the TLS-terminated proxy.
@@ -422,6 +426,22 @@ All tables have RLS enabled. Key rules:
 - **nginx**: `ngsw-worker.js` / `ngsw.json` / `safety-worker.js` / `worker-basic.min.js` are served **no-cache** (fixed un-hashed names — caching them immutable would freeze updates); this block is placed **before** the generic `.js` immutable-cache rule (first matching regex wins). `manifest.webmanifest` is no-cache with `application/manifest+json` MIME.
 - **Offline**: `ngsw.json` prefetches the app shell (index.html, JS, CSS, manifest) so the app loads offline after first visit; `/api/` and Supabase calls are runtime (not cached) and degrade when offline (the existing offline banner covers UX).
 - **Install/test**: `docker compose up --build` → `https://localhost` → Chrome shows an install icon in the address bar; reload offline to confirm the shell loads.
+
+### Post-sprint Timestamp UTC fix (Post-Day 15)
+- **`timeAgo()`** (`src/app/core/util/time-ago.ts`): Postgres `timestamp without time zone` columns come back from PostgREST with **no zone designator**, so `new Date()` parsed them in the browser's local zone — a freshly-created row read as "3h ago" for a UTC+3 user. `normalizeTimestamp()` now appends `Z` (treats as UTC) when no zone is present; values that already carry a zone (timestamptz) are untouched. Fixes relative times app-wide (notifications, posts, comments, profile).
+
+### Post-sprint Mobile / Responsive pass (Post-Day 15)
+- **Root cause pattern**: a CSS `1fr` grid track is `minmax(auto, 1fr)`, and the `auto` minimum equals the **content's min-width** (e.g. a cover's natural image width, a carousel's full row), so the column grew past the viewport → sideways scroll, clipped content, "1.5 cards per row", giant covers. Fixed by using **`minmax(0, 1fr)`** (or `repeat(2, minmax(0,1fr))` on phones) on every collapsing grid: home (`home-bottom-grid`), community (`community-layout`), stats (`stats-grid`), and the book grids (shelf/profile/book-search ≤480). Plus `min-width: 0` on flex text containers (hero content, post-meta, reader-name, profile-header-info, community-main, stat-card, pace bars) so long text wraps instead of overflowing, and `overflow-wrap: break-word` on user text (bios, posts, comments, reviews, titles).
+- **Global guard** (`styles.scss`): `html, body { overflow-x: clip; max-width: 100% }` — `clip` (not `hidden`) so it doesn't create a scroll container that would break the sticky navs. Plus `img { max-width: 100% }`.
+- **Top nav** (`top-nav.component.ts`): `position: sticky`; on phones the search wraps to its own full-width row, the word-mark hides, and icons shrink, so the action bar fits at 375px.
+- **Book covers** — robust pattern: the **wrapper** (`.cover-wrap` / `.book-cover-container`) owns a fixed `aspect-ratio: 2 / 3` box at `width: 100%`, and the image just fills it (`width/height: 100%; object-fit: cover`). Previously each *image* carried the aspect-ratio, so a high-res cover or a stretched cell could blow it up. Applied to shelf, profile, book-search, and book-detail.
+- **Hero** (`hero-section.component.ts`): `min-width: 0` + `overflow-wrap` so the title/labels wrap; eyebrow + labels stack on mobile.
+- **Notifications panel**: on phones it's a `position: fixed` sheet (escapes `.app-viewport { overflow: hidden }` clipping) below the nav, with its list scrolling inside.
+
+### Post-sprint Dynamic Hero Genre (Post-Day 15)
+- The home hero eyebrow ("Because you like …") was a hardcoded "Mystery". Now it uses the **hero book's own genre**, falling back to the user's top onboarding genre, then a generic label.
+- **Backend** (`recommendations.service.ts`): Claude returns a `genre` per recommended book (added to the prompt, `ClaudeSuggestion`/`RecommendationBook` interfaces, mock fallback, and all return paths). **Existing cached `ai_recommendations` rows predate the field** — they fall back to the favorite genre until the 24h cache refreshes (or the row is deleted).
+- **Frontend**: `genre` flows through `BookService.getRecommendedBooks` → `mapBook` → `HeroSectionComponent`; `heroEyebrowPrefix` added to `HOME_COPY` (EN/AR/FR), genre name itself comes from the data.
 
 ---
 
