@@ -67,6 +67,12 @@ export class ProfilePageComponent implements OnInit {
   editBio = '';
   savingProfile = false;
 
+  allGenres: UserGenre[] = [];
+  selectedGenreIds = new Set<number>();
+  loadingGenres = false;
+  deletingAccount = false;
+  deleteAccountError: string | null = null;
+
   uploadingAvatar = false;
   avatarError: string | null = null;
 
@@ -467,11 +473,67 @@ export class ProfilePageComponent implements OnInit {
     this.editName = this.profile.name;
     this.editUsername = this.profile.username ?? '';
     this.editBio = this.profile.bio ?? '';
+    this.selectedGenreIds = new Set(this.genres.map((g) => g.id));
     this.editingProfile = true;
+    this.loadAllGenres();
+  }
+
+  private async loadAllGenres(): Promise<void> {
+    if (this.allGenres.length > 0 || this.loadingGenres) return;
+    this.loadingGenres = true;
+    try {
+      this.allGenres = await firstValueFrom(this.userService.getAllGenres());
+    } catch {
+      // leave allGenres empty — the user keeps their current genres
+    } finally {
+      this.loadingGenres = false;
+    }
+  }
+
+  toggleEditGenre(genreId: number): void {
+    if (this.selectedGenreIds.has(genreId)) {
+      this.selectedGenreIds.delete(genreId);
+    } else {
+      this.selectedGenreIds.add(genreId);
+    }
+  }
+
+  isGenreSelected(genreId: number): boolean {
+    return this.selectedGenreIds.has(genreId);
   }
 
   cancelEditProfile(): void {
     this.editingProfile = false;
+  }
+
+  async deleteAccount(): Promise<void> {
+    if (this.deletingAccount) return;
+    if (!confirm(this.copy.deleteAccountConfirm)) return;
+    this.deletingAccount = true;
+    this.deleteAccountError = null;
+    try {
+      const session = await this.supabaseService.getCurrentSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      // Account + all data are gone server-side. Clear the local session if we
+      // can, but navigate away regardless — a signOut failure must not strand
+      // the user on a "delete failed" error when their account is already gone.
+      try {
+        const supabase = await this.supabaseService.getClient();
+        await supabase.auth.signOut();
+      } catch {
+        // ignore — the server-side account is already deleted
+      }
+      this.router.navigate(['/']);
+    } catch {
+      this.deleteAccountError = this.copy.deleteAccountError;
+      this.deletingAccount = false;
+    }
   }
 
   async saveProfile(): Promise<void> {
@@ -486,6 +548,19 @@ export class ProfilePageComponent implements OnInit {
         }),
       );
       this.profile = updated;
+
+      await firstValueFrom(
+        this.userService.setUserGenres(this.currentUserId, Array.from(this.selectedGenreIds)),
+      );
+      // Recompute the displayed tags from whichever source has the names. If
+      // the full genre list failed to load, allGenres is empty — fall back to
+      // the currently shown genres (the selection can only be a subset of them)
+      // so we never wipe valid tags the DB still has.
+      const source = this.allGenres.length ? this.allGenres : this.genres;
+      this.genres = source
+        .filter((g) => this.selectedGenreIds.has(g.id))
+        .map((g) => ({ id: g.id, name: g.name }));
+
       this.editingProfile = false;
     } catch {
       // silently ignore — user can retry

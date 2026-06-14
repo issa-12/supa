@@ -167,6 +167,48 @@ export class UserService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
+  getAllGenres(): Observable<UserGenre[]> {
+    return from(
+      this.supabaseService.getClient().then((supabase) =>
+        supabase
+          .from('genres')
+          .select('genre_id, genre_name')
+          .order('genre_name')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return (data || []).map((item) => ({
+              id: item.genre_id,
+              name: item.genre_name,
+            }));
+          })
+      )
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  // Idempotent: upsert the desired pairs (ignoring duplicates) then delete any
+  // pair not in the selection. Safe to retry, unlike delete-then-insert which
+  // could leave a user with zero genres on partial failure.
+  setUserGenres(userId: string, genreIds: number[]): Observable<void> {
+    return from(
+      this.supabaseService.getClient().then(async (supabase) => {
+        const rows = genreIds.map((genre_id) => ({ user_id: userId, genre_id }));
+        if (rows.length > 0) {
+          const { error: upsertErr } = await supabase
+            .from('user_genres')
+            .upsert(rows, { onConflict: 'user_id,genre_id', ignoreDuplicates: true });
+          if (upsertErr) throw upsertErr;
+        }
+
+        let deleteQuery = supabase.from('user_genres').delete().eq('user_id', userId);
+        if (genreIds.length > 0) {
+          deleteQuery = deleteQuery.not('genre_id', 'in', `(${genreIds.join(',')})`);
+        }
+        const { error: deleteErr } = await deleteQuery;
+        if (deleteErr) throw deleteErr;
+      })
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
   updateUserProfile(
     userId: string,
     updates: Partial<UserProfile>

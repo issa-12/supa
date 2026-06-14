@@ -655,6 +655,48 @@
               <textarea class="edit-textarea" [(ngModel)]="editBio" [placeholder]="copy.bioPlaceholder" rows="4" maxlength="300"></textarea>
               <span class="edit-char-count">{{ editBio.length }}/300</span>
             </label>
+
+            <!-- Favorite genres -->
+            <div class="edit-field">
+              <span class="edit-label">{{ copy.favoriteGenres }}</span>
+              <p class="edit-genres-hint">{{ copy.favoriteGenresHint }}</p>
+              @if (loadingGenres) {
+                <div class="edit-genres-loading">
+                  @for (i of [1,2,3,4,5,6]; track i) { <span class="skeleton edit-genre-skel"></span> }
+                </div>
+              } @else {
+                <div class="edit-genre-grid">
+                  @for (genre of allGenres; track genre.id) {
+                    <button
+                      type="button"
+                      class="edit-genre-chip"
+                      [class.edit-genre-chip--selected]="isGenreSelected(genre.id)"
+                      [attr.aria-pressed]="isGenreSelected(genre.id)"
+                      (click)="toggleEditGenre(genre.id)"
+                    >
+                      @if (isGenreSelected(genre.id)) {
+                        <svg class="edit-genre-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <path d="M20 6 9 17l-5-5"/>
+                        </svg>
+                      }
+                      {{ genre.name }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Danger zone -->
+            <div class="danger-zone">
+              <span class="danger-zone-title">{{ copy.dangerZone }}</span>
+              <p class="danger-zone-text">{{ copy.deleteAccountWarning }}</p>
+              @if (deleteAccountError) {
+                <p class="danger-zone-error">{{ deleteAccountError }}</p>
+              }
+              <button class="btn btn-delete-account" [disabled]="deletingAccount" (click)="deleteAccount()">
+                {{ deletingAccount ? copy.deletingAccount : copy.deleteAccount }}
+              </button>
+            </div>
           </div>
           <div class="edit-panel-footer">
             <button class="btn btn-outline" (click)="cancelEditProfile()">{{ copy.cancelEdit }}</button>

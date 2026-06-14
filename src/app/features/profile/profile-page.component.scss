@@ -658,6 +658,69 @@
   text-align: right;
 }
 
+// Favorite-genre picker (edit panel)
+.edit-genres-hint {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.edit-genre-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.edit-genre-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  &--selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+}
+
+.edit-genre-check {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.edit-genres-loading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.edit-genre-skel {
+  width: 84px;
+  height: 34px;
+  border-radius: 999px;
+}
+
 .edit-panel-footer {
   display: flex;
   justify-content: flex-end;
@@ -665,6 +728,60 @@
   padding: 20px 24px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+// Danger zone (delete account)
+.danger-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid var(--destructive, #d64545);
+  border-radius: 12px;
+  background: rgba(214, 69, 69, 0.05);
+}
+
+.danger-zone-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--destructive, #d64545);
+}
+
+.danger-zone-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.danger-zone-error {
+  font-size: 13px;
+  color: var(--destructive, #d64545);
+  margin: 0;
+}
+
+.btn-delete-account {
+  align-self: flex-start;
+  background: var(--destructive, #d64545);
+  color: #fff;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 // Books Sections

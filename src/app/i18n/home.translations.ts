@@ -9,6 +9,8 @@ export interface HomeCopy {
   heroViewBook: string;
   heroAddToReading: string;
   heroAdding: string;
+  heroAdded: string;
+  heroAddError: string;
 
   // Continue Reading
   continueReadingTitle: string;
@@ -71,6 +73,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     heroViewBook: 'View Book',
     heroAddToReading: 'Add to Reading',
     heroAdding: 'Adding…',
+    heroAdded: 'Added to Reading',
+    heroAddError: 'Could not add this book. Please try again.',
 
     continueReadingTitle: 'Continue Reading',
     continueReadingNoProgress: 'No progress tracked yet',
@@ -124,6 +128,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     heroViewBook: 'عرض الكتاب',
     heroAddToReading: 'أضف إلى القراءة الحالية',
     heroAdding: 'جاري الإضافة…',
+    heroAdded: 'تمت الإضافة إلى القراءة',
+    heroAddError: 'تعذّر إضافة هذا الكتاب. حاول مرة أخرى.',
 
     continueReadingTitle: 'متابعة القراءة',
     continueReadingNoProgress: 'لم يتم تتبع أي تقدم بعد',
@@ -177,6 +183,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     heroViewBook: 'Afficher le livre',
     heroAddToReading: 'Ajouter à la lecture en cours',
     heroAdding: 'Ajout en cours…',
+    heroAdded: 'Ajouté à la lecture',
+    heroAddError: 'Impossible d’ajouter ce livre. Veuillez réessayer.',
 
     continueReadingTitle: 'Continuer la lecture',
     continueReadingNoProgress: 'Aucune progression enregistrée pour l\'instant',

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -26,7 +27,7 @@ export class FriendsController {
     const token = extractToken(auth);
     const requesterId = await this.friendsService.verifyUser(token);
     if (!body.toUserId?.trim()) {
-      return { statusCode: HttpStatus.BAD_REQUEST, message: 'toUserId is required.' };
+      throw new BadRequestException('toUserId is required.');
     }
     return this.friendsService.sendRequest(requesterId, body.toUserId.trim());
   }

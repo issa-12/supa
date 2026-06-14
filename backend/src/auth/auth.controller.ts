@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
@@ -75,6 +78,21 @@ export class AuthController {
     await this.authService.resendVerification(email);
     return { email, message: 'Verification code sent.' };
   }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(@Headers('authorization') auth: string) {
+    const token = extractToken(auth);
+    await this.authService.deleteAccount(token);
+    return { message: 'Account deleted.' };
+  }
+}
+
+function extractToken(auth: string): string {
+  if (!auth?.startsWith('Bearer ')) {
+    throw new UnauthorizedException('Missing auth token.');
+  }
+  return auth.slice(7);
 }
 
 function normalizeEmail(email: string | undefined): string {
