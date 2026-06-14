@@ -7,6 +7,7 @@ export interface ProfileCopy {
   profileTitle: string;
   goHome: string;
   goHomeBtn: string;
+  profileUnavailable: string;
   joinedSince: string;
   readingSincePrefix: string;
   editProfile: string;
@@ -90,6 +91,8 @@ export interface ProfileCopy {
   saveChanges: string;
   saving: string;
   savingMsg: string;
+  usernameTaken: string;
+  saveProfileError: string;
   privacyPolicy: string;
   termsOfService: string;
   copyright: string;
@@ -135,6 +138,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     profileTitle: 'Profile',
     goHome: 'Go home',
     goHomeBtn: 'Go home',
+    profileUnavailable: 'This profile is not available.',
     joinedSince: 'Reading since {{ date }}',
     readingSincePrefix: 'Reading since ',
     editProfile: 'Edit Profile',
@@ -218,6 +222,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     saveChanges: 'Save Changes',
     saving: 'Saving…',
     savingMsg: 'Saving…',
+    usernameTaken: 'That username is already taken. Please choose another.',
+    saveProfileError: 'Could not save your changes. Please try again.',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
     copyright: '© 2026 ReadTrack. All rights reserved.',
@@ -261,6 +267,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     profileTitle: 'الملف الشخصي',
     goHome: 'الرجوع للرئيسية',
     goHomeBtn: 'الرجوع للرئيسية',
+    profileUnavailable: 'هذا الملف الشخصي غير متاح.',
     joinedSince: 'القراءة منذ {{ date }}',
     readingSincePrefix: 'القراءة منذ ',
     editProfile: 'تعديل الملف الشخصي',
@@ -344,6 +351,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     saveChanges: 'حفظ التغييرات',
     saving: 'جاري الحفظ…',
     savingMsg: 'جاري الحفظ…',
+    usernameTaken: 'اسم المستخدم هذا مستخدم بالفعل. يرجى اختيار اسم آخر.',
+    saveProfileError: 'تعذّر حفظ التغييرات. حاول مرة أخرى.',
     privacyPolicy: 'سياسة الخصوصية',
     termsOfService: 'شروط الخدمة',
     copyright: '© 2026 ReadTrack. جميع الحقوق محفوظة.',
@@ -387,6 +396,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     profileTitle: 'Profil',
     goHome: 'Aller à l\'accueil',
     goHomeBtn: 'Aller à l\'accueil',
+    profileUnavailable: 'Ce profil n\'est pas disponible.',
     joinedSince: 'Lecteur depuis {{ date }}',
     readingSincePrefix: 'Lecteur depuis ',
     editProfile: 'Modifier le profil',
@@ -470,6 +480,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     saveChanges: 'Enregistrer les modifications',
     saving: 'Enregistrement en cours…',
     savingMsg: 'Enregistrement en cours…',
+    usernameTaken: 'Ce nom d utilisateur est deja pris. Veuillez en choisir un autre.',
+    saveProfileError: 'Impossible d enregistrer les modifications. Veuillez reessayer.',
     privacyPolicy: 'Politique de confidentialité',
     termsOfService: 'Conditions d\'utilisation',
     copyright: '© 2026 ReadTrack. Tous droits réservés.',

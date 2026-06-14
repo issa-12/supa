@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import type {
   AuthResponse,
   AuthTokenResponse,
@@ -20,6 +21,19 @@ function inMemoryAuthLock<R>(_name: string, _acquireTimeout: number, fn: () => P
   const run = authLockChain.then(() => fn(), () => fn());
   authLockChain = run.then(() => undefined, () => undefined);
   return run;
+}
+
+// Carries the backend's stable error `code` (e.g. EMAIL_EXISTS, WEAK_PASSWORD)
+// so the UI can map it to a localized message instead of showing a raw string.
+export class AuthApiError extends Error {
+  constructor(
+    readonly code: string | null,
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'AuthApiError';
+  }
 }
 
 export interface AppUserProfile {
@@ -141,6 +155,13 @@ export class SupabaseService {
     });
 
     if (error) {
+      // The function returns a non-2xx status when no account exists for the
+      // email (it can't issue an OTP for an unknown user). Surfacing that would
+      // both confuse the user ("Edge function returned a non-2xx status code")
+      // and leak which emails are registered (account enumeration). Swallow the
+      // HTTP error so the caller shows the same neutral "if an account exists…"
+      // message; only re-throw genuine transport failures (function down).
+      if (error instanceof FunctionsHttpError) return;
       throw error;
     }
   }
@@ -257,13 +278,17 @@ export class SupabaseService {
         signal: controller.signal,
       });
 
-      const payload = await response.json().catch(() => ({ message: 'Authentication request failed.' })) as T & { message?: string };
+      const payload = await response.json().catch(() => ({ message: 'Authentication request failed.' })) as T & { message?: string; code?: string };
 
       if (response.ok) {
         return payload;
       }
 
-      throw new Error((payload as { message?: string }).message ?? 'Authentication request failed.');
+      throw new AuthApiError(
+        payload.code ?? null,
+        payload.message ?? 'Authentication request failed.',
+        response.status,
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Error('The auth server did not respond. Check the server console and try again.');
