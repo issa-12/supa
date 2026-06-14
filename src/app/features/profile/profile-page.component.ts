@@ -66,6 +66,7 @@ export class ProfilePageComponent implements OnInit {
   editUsername = '';
   editBio = '';
   savingProfile = false;
+  editProfileError: string | null = null;
 
   allGenres: UserGenre[] = [];
   selectedGenreIds = new Set<number>();
@@ -84,6 +85,7 @@ export class ProfilePageComponent implements OnInit {
   friendActionError: string | null = null;
   friendCount = 0;
   blockedByMe = false;
+  blockedByThem = false;
 
   showReportModal = false;
   reportReason: ReportReason = 'spam';
@@ -139,6 +141,20 @@ export class ProfilePageComponent implements OnInit {
         return;
       }
 
+      // For another user's profile, resolve the block relationship first. If
+      // they've blocked us, show an "unavailable" state and don't load any of
+      // their data at all.
+      if (!this.isOwnProfile && this.currentUserId) {
+        const status = await this.friendshipService.getFriendshipStatus(targetId);
+        this.friendshipStatus = status.status;
+        this.friendshipId = status.friendshipId;
+        this.blockedByMe = status.blockedByMe ?? false;
+        if (status.status === 'blocked' && !this.blockedByMe) {
+          this.blockedByThem = true;
+          return;
+        }
+      }
+
       const [profile, stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
         await Promise.all([
           firstValueFrom(this.userService.getUserProfileById(targetId)),
@@ -172,13 +188,7 @@ export class ProfilePageComponent implements OnInit {
         this.friendCount = count.count;
         friends.forEach(f => void this.presenceService.loadPresenceForUser(f.userId));
       } else if (this.currentUserId) {
-        const [status, count] = await Promise.all([
-          this.friendshipService.getFriendshipStatus(targetId),
-          this.friendshipService.getFriendCount(targetId),
-        ]);
-        this.friendshipStatus = status.status;
-        this.friendshipId = status.friendshipId;
-        this.blockedByMe = status.blockedByMe ?? false;
+        const count = await this.friendshipService.getFriendCount(targetId);
         this.friendCount = count.count;
         void this.presenceService.loadPresenceForUser(targetId);
       }
@@ -474,6 +484,7 @@ export class ProfilePageComponent implements OnInit {
     this.editUsername = this.profile.username ?? '';
     this.editBio = this.profile.bio ?? '';
     this.selectedGenreIds = new Set(this.genres.map((g) => g.id));
+    this.editProfileError = null;
     this.editingProfile = true;
     this.loadAllGenres();
   }
@@ -539,6 +550,7 @@ export class ProfilePageComponent implements OnInit {
   async saveProfile(): Promise<void> {
     if (!this.currentUserId || this.savingProfile) return;
     this.savingProfile = true;
+    this.editProfileError = null;
     try {
       const updated = await firstValueFrom(
         this.userService.updateUserProfile(this.currentUserId, {
@@ -562,11 +574,20 @@ export class ProfilePageComponent implements OnInit {
         .map((g) => ({ id: g.id, name: g.name }));
 
       this.editingProfile = false;
-    } catch {
-      // silently ignore — user can retry
+    } catch (error) {
+      // The only unique-constrained field we update is username, so a 23505
+      // means the chosen username is taken. Anything else is a generic failure.
+      this.editProfileError = this.isUsernameTakenError(error)
+        ? this.copy.usernameTaken
+        : this.copy.saveProfileError;
     } finally {
       this.savingProfile = false;
     }
+  }
+
+  private isUsernameTakenError(error: unknown): boolean {
+    const e = error as { code?: string; message?: string } | null;
+    return e?.code === '23505' || (e?.message ?? '').includes('users_username_key');
   }
 
   startEditGoal(): void {

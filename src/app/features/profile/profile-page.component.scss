@@ -721,6 +721,15 @@
   border-radius: 999px;
 }
 
+.edit-panel-error {
+  margin: 0 24px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--destructive, #d64545);
+  background: rgba(214, 69, 69, 0.08);
+  border-radius: 8px;
+}
+
 .edit-panel-footer {
   display: flex;
   justify-content: flex-end;

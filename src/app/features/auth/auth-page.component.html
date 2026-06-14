@@ -123,6 +123,9 @@
               </svg>
             </button>
           </div>
+          @if (isSignup) {
+            <p class="field__hint">{{ text.passwordHint }}</p>
+          }
         </div>
 
         <button class="button button--primary" type="submit" [disabled]="isSubmitting">

@@ -61,6 +61,14 @@
     </div>
   }
 
+  <!-- Blocked by the viewed user -->
+  @else if (blockedByThem) {
+    <div class="page-state">
+      <p class="error-text">{{ copy.profileUnavailable }}</p>
+      <a routerLink="/home" class="btn btn-outline">{{ copy.goHomeBtn }}</a>
+    </div>
+  }
+
   <!-- Content -->
   @else if (profile) {
     <div class="profile-content">
@@ -698,6 +706,9 @@
               </button>
             </div>
           </div>
+          @if (editProfileError) {
+            <p class="edit-panel-error">{{ editProfileError }}</p>
+          }
           <div class="edit-panel-footer">
             <button class="btn btn-outline" (click)="cancelEditProfile()">{{ copy.cancelEdit }}</button>
             <button class="btn btn-primary" [disabled]="savingProfile || !editName.trim()" (click)="saveProfile()">

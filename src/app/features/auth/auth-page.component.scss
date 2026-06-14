@@ -220,6 +220,13 @@ input:focus-visible {
   justify-content: space-between;
 }
 
+.field__hint {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--auth-muted-foreground);
+}
+
 .text-link,
 .switch-auth a,
 .resend-copy a {

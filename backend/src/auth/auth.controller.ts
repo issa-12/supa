@@ -37,10 +37,26 @@ export class AuthController {
     const name = body.name?.trim() ?? '';
     const password = body.password ?? '';
 
-    if (!name || !email || password.length < 6) {
-      throw new BadRequestException(
-        'Name, valid email, and a 6 character password are required.',
-      );
+    if (!email) {
+      throw new BadRequestException({
+        code: 'INVALID_EMAIL',
+        message: 'Please enter a valid email address.',
+      });
+    }
+
+    if (!name) {
+      throw new BadRequestException({
+        code: 'MISSING_FIELDS',
+        message: 'A name is required.',
+      });
+    }
+
+    if (!isStrongPassword(password)) {
+      throw new BadRequestException({
+        code: 'WEAK_PASSWORD',
+        message:
+          'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number.',
+      });
     }
 
     await this.authService.requestSignup(email, password, name);
@@ -103,4 +119,15 @@ function normalizeEmail(email: string | undefined): string {
 function normalizeCode(code: string | undefined): string {
   const normalized = code?.trim() ?? '';
   return /^\d{8}$/.test(normalized) ? normalized : '';
+}
+
+// Mirrors the frontend password policy (auth-page.component.ts): at least 8
+// characters, with an uppercase letter, a lowercase letter, and a number.
+function isStrongPassword(password: string): boolean {
+  return (
+    password.length >= 8 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password)
+  );
 }
