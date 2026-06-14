@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { BookService } from '../../../core/services/book.service';
 
 interface Book {
   id: string;
@@ -45,11 +46,25 @@ interface Book {
           <button class="btn btn-primary" (click)="onViewBook()" [disabled]="!book.googleBooksId">
             {{ copy.heroViewBook }}
           </button>
-          <button class="btn btn-outline" (click)="onAddToReading()" [disabled]="addingToReading">
-            <iconify-icon icon="lucide:bookmark-plus" style="font-size: 18px"></iconify-icon>
-            {{ addingToReading ? copy.heroAdding : copy.heroAddToReading }}
+          <button
+            class="btn btn-outline"
+            [class.btn-added]="addedToReading"
+            (click)="onAddToReading()"
+            [disabled]="addingToReading || addedToReading"
+          >
+            @if (addedToReading) {
+              <iconify-icon icon="lucide:check" style="font-size: 18px"></iconify-icon>
+              {{ copy.heroAdded }}
+            } @else {
+              <iconify-icon icon="lucide:bookmark-plus" style="font-size: 18px"></iconify-icon>
+              {{ addingToReading ? copy.heroAdding : copy.heroAddToReading }}
+            }
           </button>
         </div>
+
+        @if (addError) {
+          <p class="hero-add-error">{{ copy.heroAddError }}</p>
+        }
       </div>
 
       <div class="hero-cover-wrapper">
@@ -200,6 +215,22 @@ interface Book {
       &:active {
         transform: scale(0.98);
       }
+
+      &:disabled {
+        cursor: default;
+      }
+    }
+
+    .btn-added {
+      border-color: var(--primary);
+      color: var(--primary);
+      opacity: 1;
+    }
+
+    .hero-add-error {
+      font-size: 13px;
+      color: var(--destructive, #d64545);
+      margin: 4px 0 0;
     }
 
     .hero-cover-wrapper {
@@ -294,9 +325,11 @@ interface Book {
 export class HeroSectionComponent {
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
+  private readonly bookService = inject(BookService);
 
   @Input() book!: Book;
   @Input() genre: string | null = null;
+  @Input() currentUserId: string | null = null;
   @Output() addToReading = new EventEmitter<Book>();
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -311,6 +344,8 @@ export class HeroSectionComponent {
 
   coverBroken = false;
   addingToReading = false;
+  addedToReading = false;
+  addError = false;
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
@@ -322,9 +357,20 @@ export class HeroSectionComponent {
     }
   }
 
-  onAddToReading(): void {
+  async onAddToReading(): Promise<void> {
+    if (this.addingToReading || this.addedToReading) return;
+    if (!this.currentUserId) return;
+
     this.addingToReading = true;
-    this.addToReading.emit(this.book);
-    setTimeout(() => { this.addingToReading = false; }, 1500);
+    this.addError = false;
+    try {
+      await this.bookService.addToCurrentlyReading(this.currentUserId, this.book);
+      this.addedToReading = true;
+      this.addToReading.emit(this.book);
+    } catch {
+      this.addError = true;
+    } finally {
+      this.addingToReading = false;
+    }
   }
 }

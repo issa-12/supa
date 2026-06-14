@@ -24,6 +24,12 @@ export interface ProfileCopy {
   friendsTitle: string;
   onlineLabel: string;
   offlineLabel: string;
+  dangerZone: string;
+  deleteAccount: string;
+  deleteAccountWarning: string;
+  deleteAccountConfirm: string;
+  deleteAccountError: string;
+  deletingAccount: string;
   report: string;
   reportBtn: string;
   booksReadThisYear: string;
@@ -78,6 +84,8 @@ export interface ProfileCopy {
   usernamePlaceholder: string;
   bio: string;
   bioPlaceholder: string;
+  favoriteGenres: string;
+  favoriteGenresHint: string;
   cancelEdit: string;
   saveChanges: string;
   saving: string;
@@ -144,6 +152,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friendsTitle: 'Friends',
     onlineLabel: 'Online',
     offlineLabel: 'Offline',
+    dangerZone: 'Danger zone',
+    deleteAccount: 'Delete account',
+    deleteAccountWarning: 'Permanently delete your account and all your data. This cannot be undone.',
+    deleteAccountConfirm: 'This permanently deletes your account and all your data (books, posts, friends). This cannot be undone. Continue?',
+    deleteAccountError: 'Could not delete your account. Please try again.',
+    deletingAccount: 'Deleting…',
     report: 'Report',
     reportBtn: 'Report',
     booksReadThisYear: 'Books Read This Year',
@@ -198,6 +212,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     usernamePlaceholder: 'username',
     bio: 'Bio',
     bioPlaceholder: 'Tell readers about yourself…',
+    favoriteGenres: 'Favorite genres',
+    favoriteGenresHint: 'Pick the genres you love — they shape your recommendations.',
     cancelEdit: 'Cancel',
     saveChanges: 'Save Changes',
     saving: 'Saving…',
@@ -262,6 +278,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friendsTitle: 'الأصدقاء',
     onlineLabel: 'متصل',
     offlineLabel: 'غير متصل',
+    dangerZone: 'منطقة الخطر',
+    deleteAccount: 'حذف الحساب',
+    deleteAccountWarning: 'حذف حسابك وجميع بياناتك نهائيًا. لا يمكن التراجع عن هذا الإجراء.',
+    deleteAccountConfirm: 'سيؤدي هذا إلى حذف حسابك وجميع بياناتك نهائيًا (الكتب والمنشورات والأصدقاء). لا يمكن التراجع. هل تريد المتابعة؟',
+    deleteAccountError: 'تعذر حذف حسابك. حاول مرة أخرى.',
+    deletingAccount: 'جارٍ الحذف…',
     report: 'الإبلاغ عن',
     reportBtn: 'الإبلاغ عن',
     booksReadThisYear: 'الكتب المقروءة هذا العام',
@@ -316,6 +338,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     usernamePlaceholder: 'اسم المستخدم',
     bio: 'السيرة الذاتية',
     bioPlaceholder: 'أخبر القراء عن نفسك…',
+    favoriteGenres: 'الأنواع المفضلة',
+    favoriteGenresHint: 'اختر الأنواع التي تحبها — فهي تشكّل توصياتك.',
     cancelEdit: 'إلغاء',
     saveChanges: 'حفظ التغييرات',
     saving: 'جاري الحفظ…',
@@ -380,6 +404,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friendsTitle: 'Amis',
     onlineLabel: 'En ligne',
     offlineLabel: 'Hors ligne',
+    dangerZone: 'Zone de danger',
+    deleteAccount: 'Supprimer le compte',
+    deleteAccountWarning: 'Supprimez définitivement votre compte et toutes vos données. Cette action est irréversible.',
+    deleteAccountConfirm: 'Cela supprime définitivement votre compte et toutes vos données (livres, publications, amis). Action irréversible. Continuer ?',
+    deleteAccountError: 'Impossible de supprimer votre compte. Réessayez.',
+    deletingAccount: 'Suppression…',
     report: 'Signaler',
     reportBtn: 'Signaler',
     booksReadThisYear: 'Livres lus cette année',
@@ -434,6 +464,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     usernamePlaceholder: 'nom_utilisateur',
     bio: 'Biographie',
     bioPlaceholder: 'Parlez-nous de vous…',
+    favoriteGenres: 'Genres favoris',
+    favoriteGenresHint: 'Choisissez les genres que vous aimez — ils façonnent vos recommandations.',
     cancelEdit: 'Annuler',
     saveChanges: 'Enregistrer les modifications',
     saving: 'Enregistrement en cours…',

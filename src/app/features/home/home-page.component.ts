@@ -220,6 +220,12 @@ export class HomePageComponent implements OnInit, OnDestroy {
       .subscribe({ error: (err) => console.error('Failed to add book:', err) });
   }
 
+  // The hero card adds the book to "currently reading" itself; just refresh
+  // the Continue Reading row so the newly added book shows up immediately.
+  onHeroAdded(): void {
+    this.loadContinueReadingBooks();
+  }
+
   onContinueReading(book: ContinueReadingBook): void {
     if (book.googleBooksId) {
       void this.router.navigate(['/books', book.googleBooksId]);

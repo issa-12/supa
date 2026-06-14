@@ -223,7 +223,8 @@ Do NOT recommend: ${excludeTitles || 'none'}`;
       messages: [{ role: 'user', content: userMessage }],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const block = response.content?.[0];
+    const text = block && block.type === 'text' ? block.text : '';
     const cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
     return JSON.parse(cleaned) as ClaudeSuggestion[];
   }

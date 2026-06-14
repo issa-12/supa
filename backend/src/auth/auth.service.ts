@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  UnauthorizedException,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -51,6 +52,20 @@ export class AuthService {
     if (isAppEmailVerified(authUserData.user)) return;
 
     await this.issueVerificationCode(email);
+  }
+
+  async deleteAccount(token: string): Promise<void> {
+    const admin = this.supabase.getAdmin();
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data.user) {
+      throw new UnauthorizedException('Invalid or expired session.');
+    }
+    // FKs to auth.users cascade (see user_delete_cascade migration), so this
+    // also removes the user's books, posts, comments, friendships, etc.
+    const { error: deleteError } = await admin.auth.admin.deleteUser(data.user.id);
+    if (deleteError) {
+      throw new InternalServerErrorException(deleteError.message);
+    }
   }
 
   // ── Private helpers ────────────────────────────────────────────

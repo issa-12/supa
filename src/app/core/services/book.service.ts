@@ -306,7 +306,11 @@ export class BookService {
   async searchBooks(query: string, startIndex = 0): Promise<{ books: GoogleBook[]; totalItems: number }> {
     const params = new URLSearchParams({ q: query, maxResults: '20', startIndex: String(startIndex) });
     const res = await fetch(`/api/books/search?${params}`);
-    const payload = await res.json() as { books?: GoogleBook[]; totalItems?: number; message?: string };
+    const payload = (await res.json().catch(() => ({}))) as {
+      books?: GoogleBook[];
+      totalItems?: number;
+      message?: string;
+    };
 
     if (!res.ok) {
       throw new Error(payload.message ?? 'Search failed.');
@@ -377,6 +381,83 @@ export class BookService {
       added_at: new Date().toISOString(),
     });
     if (insertErr) throw insertErr;
+  }
+
+  // Adds a book to the user's "currently reading" shelf, resilient to the
+  // book not yet existing in the catalog. AI-recommended / hero books carry
+  // dbBookId = null (mapped to id 0), so the plain addBookToReadingList path
+  // would silently bail on its `bookId <= 0` guard — here we upsert by
+  // googleBooksId in that case.
+  async addToCurrentlyReading(
+    userId: string,
+    book: {
+      id?: string | number | null;
+      googleBooksId?: string | null;
+      title: string;
+      author: string;
+      coverUrl?: string | null;
+      description?: string | null;
+    },
+  ): Promise<void> {
+    const supabase = await this.supabaseService.getClient();
+
+    const { data: statusRow } = await supabase
+      .from('reading_statuses')
+      .select('status_id')
+      .eq('status_name', 'currently_reading')
+      .maybeSingle();
+    const statusId = statusRow?.['status_id'] as number | undefined;
+    if (!statusId) throw new Error("Status 'currently_reading' not found");
+
+    const numericId =
+      typeof book.id === 'string' ? parseInt(book.id, 10) : (book.id ?? 0);
+
+    if (Number.isFinite(numericId) && numericId > 0) {
+      const { data: existingUserBook } = await supabase
+        .from('user_books')
+        .select('user_book_id')
+        .eq('user_id', userId)
+        .eq('book_id', numericId)
+        .maybeSingle();
+
+      if (existingUserBook) {
+        const { error } = await supabase
+          .from('user_books')
+          .update({ status_id: statusId, updated_at: new Date().toISOString() })
+          .eq('user_book_id', existingUserBook['user_book_id']);
+        if (error) throw error;
+        return;
+      }
+
+      const { error } = await supabase.from('user_books').insert({
+        user_id: userId,
+        book_id: numericId,
+        status_id: statusId,
+        added_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      return;
+    }
+
+    if (book.googleBooksId) {
+      await this.addGoogleBookToShelf(
+        {
+          googleId: book.googleBooksId,
+          title: book.title,
+          author: book.author,
+          description: book.description ?? null,
+          publishedDate: null,
+          coverUrl: book.coverUrl ?? null,
+          pageCount: null,
+          categories: [],
+        },
+        userId,
+        statusId,
+      );
+      return;
+    }
+
+    throw new Error('This book cannot be added to your shelf.');
   }
 
   getReadingStatuses(): Observable<ReadingStatus[]> {
