@@ -91,6 +91,9 @@ export class CommunityController {
       if (err.statusCode === 422) {
         return res.status(422).json({ message: err.message });
       }
+      if (err?.code === '23503') {
+        return res.status(400).json({ message: 'That book could not be found.' });
+      }
       console.error('[Community] createPost error:', err);
       return res.status(500).json({ message: 'Failed to create post.' });
     }

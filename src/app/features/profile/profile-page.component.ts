@@ -66,6 +66,13 @@ export class ProfilePageComponent implements OnInit {
   editUsername = '';
   editBio = '';
   savingProfile = false;
+  editProfileError: string | null = null;
+
+  allGenres: UserGenre[] = [];
+  selectedGenreIds = new Set<number>();
+  loadingGenres = false;
+  deletingAccount = false;
+  deleteAccountError: string | null = null;
 
   uploadingAvatar = false;
   avatarError: string | null = null;
@@ -78,6 +85,7 @@ export class ProfilePageComponent implements OnInit {
   friendActionError: string | null = null;
   friendCount = 0;
   blockedByMe = false;
+  blockedByThem = false;
 
   showReportModal = false;
   reportReason: ReportReason = 'spam';
@@ -133,6 +141,20 @@ export class ProfilePageComponent implements OnInit {
         return;
       }
 
+      // For another user's profile, resolve the block relationship first. If
+      // they've blocked us, show an "unavailable" state and don't load any of
+      // their data at all.
+      if (!this.isOwnProfile && this.currentUserId) {
+        const status = await this.friendshipService.getFriendshipStatus(targetId);
+        this.friendshipStatus = status.status;
+        this.friendshipId = status.friendshipId;
+        this.blockedByMe = status.blockedByMe ?? false;
+        if (status.status === 'blocked' && !this.blockedByMe) {
+          this.blockedByThem = true;
+          return;
+        }
+      }
+
       const [profile, stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
         await Promise.all([
           firstValueFrom(this.userService.getUserProfileById(targetId)),
@@ -166,13 +188,7 @@ export class ProfilePageComponent implements OnInit {
         this.friendCount = count.count;
         friends.forEach(f => void this.presenceService.loadPresenceForUser(f.userId));
       } else if (this.currentUserId) {
-        const [status, count] = await Promise.all([
-          this.friendshipService.getFriendshipStatus(targetId),
-          this.friendshipService.getFriendCount(targetId),
-        ]);
-        this.friendshipStatus = status.status;
-        this.friendshipId = status.friendshipId;
-        this.blockedByMe = status.blockedByMe ?? false;
+        const count = await this.friendshipService.getFriendCount(targetId);
         this.friendCount = count.count;
         void this.presenceService.loadPresenceForUser(targetId);
       }
@@ -467,16 +483,74 @@ export class ProfilePageComponent implements OnInit {
     this.editName = this.profile.name;
     this.editUsername = this.profile.username ?? '';
     this.editBio = this.profile.bio ?? '';
+    this.selectedGenreIds = new Set(this.genres.map((g) => g.id));
+    this.editProfileError = null;
     this.editingProfile = true;
+    this.loadAllGenres();
+  }
+
+  private async loadAllGenres(): Promise<void> {
+    if (this.allGenres.length > 0 || this.loadingGenres) return;
+    this.loadingGenres = true;
+    try {
+      this.allGenres = await firstValueFrom(this.userService.getAllGenres());
+    } catch {
+      // leave allGenres empty — the user keeps their current genres
+    } finally {
+      this.loadingGenres = false;
+    }
+  }
+
+  toggleEditGenre(genreId: number): void {
+    if (this.selectedGenreIds.has(genreId)) {
+      this.selectedGenreIds.delete(genreId);
+    } else {
+      this.selectedGenreIds.add(genreId);
+    }
+  }
+
+  isGenreSelected(genreId: number): boolean {
+    return this.selectedGenreIds.has(genreId);
   }
 
   cancelEditProfile(): void {
     this.editingProfile = false;
   }
 
+  async deleteAccount(): Promise<void> {
+    if (this.deletingAccount) return;
+    if (!confirm(this.copy.deleteAccountConfirm)) return;
+    this.deletingAccount = true;
+    this.deleteAccountError = null;
+    try {
+      const session = await this.supabaseService.getCurrentSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      // Account + all data are gone server-side. Clear the local session if we
+      // can, but navigate away regardless — a signOut failure must not strand
+      // the user on a "delete failed" error when their account is already gone.
+      try {
+        const supabase = await this.supabaseService.getClient();
+        await supabase.auth.signOut();
+      } catch {
+        // ignore — the server-side account is already deleted
+      }
+      this.router.navigate(['/']);
+    } catch {
+      this.deleteAccountError = this.copy.deleteAccountError;
+      this.deletingAccount = false;
+    }
+  }
+
   async saveProfile(): Promise<void> {
     if (!this.currentUserId || this.savingProfile) return;
     this.savingProfile = true;
+    this.editProfileError = null;
     try {
       const updated = await firstValueFrom(
         this.userService.updateUserProfile(this.currentUserId, {
@@ -486,12 +560,34 @@ export class ProfilePageComponent implements OnInit {
         }),
       );
       this.profile = updated;
+
+      await firstValueFrom(
+        this.userService.setUserGenres(this.currentUserId, Array.from(this.selectedGenreIds)),
+      );
+      // Recompute the displayed tags from whichever source has the names. If
+      // the full genre list failed to load, allGenres is empty — fall back to
+      // the currently shown genres (the selection can only be a subset of them)
+      // so we never wipe valid tags the DB still has.
+      const source = this.allGenres.length ? this.allGenres : this.genres;
+      this.genres = source
+        .filter((g) => this.selectedGenreIds.has(g.id))
+        .map((g) => ({ id: g.id, name: g.name }));
+
       this.editingProfile = false;
-    } catch {
-      // silently ignore — user can retry
+    } catch (error) {
+      // The only unique-constrained field we update is username, so a 23505
+      // means the chosen username is taken. Anything else is a generic failure.
+      this.editProfileError = this.isUsernameTakenError(error)
+        ? this.copy.usernameTaken
+        : this.copy.saveProfileError;
     } finally {
       this.savingProfile = false;
     }
+  }
+
+  private isUsernameTakenError(error: unknown): boolean {
+    const e = error as { code?: string; message?: string } | null;
+    return e?.code === '23505' || (e?.message ?? '').includes('users_username_key');
   }
 
   startEditGoal(): void {

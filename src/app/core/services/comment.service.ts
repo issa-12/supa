@@ -43,8 +43,16 @@ export class CommentService {
     if (error) throw error;
     if (!rows?.length) return [];
 
-    const authorIds = [...new Set(rows.map((r) => r['user_id'] as string))];
-    const commentIds = rows.map((r) => r['comment_id'] as number);
+    // Hide comments from users in a block relationship with the viewer (either
+    // direction), matching the community feed's block filtering.
+    const blocked = await this.getBlockedUserIds(currentUserId);
+    const visibleRows = blocked.size
+      ? rows.filter((r) => !blocked.has(r['user_id'] as string))
+      : rows;
+    if (!visibleRows.length) return [];
+
+    const authorIds = [...new Set(visibleRows.map((r) => r['user_id'] as string))];
+    const commentIds = visibleRows.map((r) => r['comment_id'] as number);
 
     const [authorsRes, likesRes, myLikesRes] = await Promise.all([
       supabase.from('users').select('id, name, profile_picture_url').in('id', authorIds),
@@ -62,7 +70,7 @@ export class CommentService {
 
     const likedCommentIds = new Set((myLikesRes.data ?? []).map((l) => l['comment_id'] as number));
 
-    const flat: Comment[] = rows.map((r) => {
+    const flat: Comment[] = visibleRows.map((r) => {
       const author = authorMap.get(r['user_id'] as string);
       return {
         id: r['comment_id'] as number,
@@ -81,6 +89,27 @@ export class CommentService {
     });
 
     return this.buildTree(flat);
+  }
+
+  // Ids of users in a block relationship with the viewer (either direction).
+  // Friendship RLS lets the client read only its own rows, so this is scoped.
+  private async getBlockedUserIds(currentUserId: string): Promise<Set<string>> {
+    const blocked = new Set<string>();
+    if (!currentUserId) return blocked;
+    const supabase = await this.supabaseService.getClient();
+    const { data } = await supabase
+      .from('friendship')
+      .select('user_id1, user_id2, friendship_status(status_name)')
+      .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`);
+
+    (data ?? []).forEach((r) => {
+      const statusName = ((r['friendship_status'] as unknown) as { status_name?: string } | null)?.status_name;
+      if (statusName === 'blocked') {
+        const other = r['user_id1'] === currentUserId ? r['user_id2'] : r['user_id1'];
+        if (other) blocked.add(other as string);
+      }
+    });
+    return blocked;
   }
 
   private buildTree(flat: Comment[]): Comment[] {

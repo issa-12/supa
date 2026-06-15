@@ -93,9 +93,34 @@ export class CommunityService {
     );
   }
 
+  // Returns the ids of users in a block relationship with this user (either
+  // direction). Their posts are hidden from this user's community feed, and
+  // this user's posts are hidden from theirs.
+  private async getBlockedUserIds(userId: string): Promise<string[]> {
+    const sb = this.supabase.getAdmin();
+    const { data: statusRow } = await sb
+      .from('friendship_status')
+      .select('status_id')
+      .eq('status_name', 'blocked')
+      .maybeSingle();
+    const blockedStatusId = statusRow?.['status_id'];
+    if (!blockedStatusId) return [];
+
+    const { data } = await sb
+      .from('friendship')
+      .select('user_id1, user_id2')
+      .eq('status_id', blockedStatusId)
+      .or(`user_id1.eq.${userId},user_id2.eq.${userId}`);
+
+    return (data ?? []).map((r) =>
+      r['user_id1'] === userId ? (r['user_id2'] as string) : (r['user_id1'] as string),
+    );
+  }
+
   async getAllPosts(userId: string, tag?: string, page = 0, limit = 20) {
     const sb = this.supabase.getAdmin();
     const offset = page * limit;
+    const blocked = await this.getBlockedUserIds(userId);
 
     let query = sb
       .from('posts')
@@ -110,6 +135,10 @@ export class CommunityService {
       query = (query as any).contains('tags', [tag]);
     }
 
+    if (blocked.length) {
+      query = query.not('user_id', 'in', `(${blocked.join(',')})`);
+    }
+
     const { data: posts, error } = await query;
     if (error) throw error;
     return this.enrichPosts((posts as PostRow[]) ?? [], userId);
@@ -118,6 +147,7 @@ export class CommunityService {
   async getTrendingPosts(userId: string, limit = 20) {
     const sb = this.supabase.getAdmin();
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const blocked = new Set(await this.getBlockedUserIds(userId));
 
     const { data: posts, error } = await sb
       .from('posts')
@@ -128,7 +158,8 @@ export class CommunityService {
       .limit(100);
 
     if (error) throw error;
-    const enriched = await this.enrichPosts((posts as PostRow[]) ?? [], userId);
+    const visible = ((posts as PostRow[]) ?? []).filter((p) => !blocked.has(p.user_id));
+    const enriched = await this.enrichPosts(visible, userId);
     return enriched.sort((a, b) => b.likeCount - a.likeCount).slice(0, limit);
   }
 
@@ -175,10 +206,14 @@ Rules:
 - rejected: hate speech, explicit content, harassment, completely unrelated spam`,
         messages: [{ role: 'user', content: `<<<USER_POST>>>\n${content}\n<<<END_USER_POST>>>` }],
       });
-      const block = response.content[0];
-      if (block.type !== 'text') return { status: 'approved', sentiment: 'neutral' };
-      const text = block.text.trim();
-      const parsed = JSON.parse(text) as ModerationResult;
+      const block = response.content?.[0];
+      if (!block || block.type !== 'text') return { status: 'approved', sentiment: 'neutral' };
+      // The model often wraps the JSON in ```json … ``` fences despite being
+      // told not to; strip them before parsing (same as RecommendationsService).
+      // Without this, JSON.parse throws and moderation silently approves
+      // everything as neutral.
+      const cleaned = block.text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned) as ModerationResult;
       const status: ModerationResult['status'] =
         parsed.status === 'rejected' || parsed.status === 'flagged' ? parsed.status : 'approved';
       const sentiment: ModerationResult['sentiment'] =

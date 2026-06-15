@@ -1,7 +1,14 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { SupabaseService } from '../../core/services/supabase.service';
+import { AuthApiError, SupabaseService } from '../../core/services/supabase.service';
 import {
   AUTH_COPY_BY_LANGUAGE,
   AuthCopy,
@@ -11,6 +18,30 @@ import {
 } from '../../i18n';
 
 type AuthMode = 'login' | 'signup';
+
+// Matches the backend's email check (auth.controller.ts normalizeEmail). Angular's
+// built-in Validators.email accepts addresses with no domain dot (e.g. "a@b"),
+// which the backend then rejects — so we validate the stricter shape up front.
+const STRICT_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function strictEmailValidator(control: AbstractControl): ValidationErrors | null {
+  const value = (control.value ?? '').trim();
+  if (!value) return null; // emptiness is handled by Validators.required
+  return STRICT_EMAIL_PATTERN.test(value) ? null : { email: true };
+}
+
+// Signup password policy: at least 8 chars, with an uppercase letter, a
+// lowercase letter, and a number. Mirrored on the backend (auth.controller.ts).
+function passwordPolicyValidator(control: AbstractControl): ValidationErrors | null {
+  const value: string = control.value ?? '';
+  if (!value) return null; // emptiness is handled by Validators.required
+  const strong =
+    value.length >= 8 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /[0-9]/.test(value);
+  return strong ? null : { passwordPolicy: true };
+}
 
 @Component({
   selector: 'app-auth-page',
@@ -89,7 +120,18 @@ export class AuthPageComponent {
     this.authForm.markAllAsTouched();
 
     if (this.authForm.invalid) {
-      this.errorMessage = this.text.requiredFields;
+      const emailControl = this.authForm.controls.email;
+      const passwordControl = this.authForm.controls.password;
+      // Give a precise message for a present-but-invalid email or a password
+      // that fails the policy; otherwise fall back to "complete the required
+      // fields" (i.e. something is actually empty).
+      if (emailControl.value?.trim() && emailControl.errors?.['email']) {
+        this.errorMessage = this.text.emailInvalid;
+      } else if (passwordControl.value && passwordControl.errors?.['passwordPolicy']) {
+        this.errorMessage = this.text.passwordPolicy;
+      } else {
+        this.errorMessage = this.text.requiredFields;
+      }
       return;
     }
 
@@ -103,7 +145,7 @@ export class AuthPageComponent {
 
       await this.submitLogin();
     } catch (error) {
-      this.errorMessage = this.readErrorMessage(error, this.text.genericError);
+      this.errorMessage = this.resolveAuthErrorMessage(error);
     } finally {
       this.isSubmitting = false;
     }
@@ -169,8 +211,8 @@ export class AuthPageComponent {
   private createAuthForm() {
     return this.formBuilder.nonNullable.group({
       name: [''],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      email: ['', [Validators.required, strictEmailValidator]],
+      password: ['', [Validators.required]],
     });
   }
 
@@ -181,6 +223,11 @@ export class AuthPageComponent {
 
     this.authForm.controls.name.addValidators([Validators.required]);
     this.authForm.controls.name.updateValueAndValidity();
+
+    // The password policy applies to new accounts only — at login we just
+    // require a non-empty password and let the server verify it.
+    this.authForm.controls.password.addValidators([passwordPolicyValidator]);
+    this.authForm.controls.password.updateValueAndValidity();
   }
 
   private resolveAuthMode(): AuthMode {
@@ -210,7 +257,7 @@ export class AuthPageComponent {
     });
 
     if (response.error) {
-      this.errorMessage = response.error.message;
+      this.errorMessage = this.mapLoginError(response.error);
       return;
     }
 
@@ -233,5 +280,39 @@ export class AuthPageComponent {
 
   private readErrorMessage(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
+  }
+
+  // Signup / API errors: map the backend's stable code to a localized message.
+  private resolveAuthErrorMessage(error: unknown): string {
+    if (error instanceof AuthApiError) {
+      switch (error.code) {
+        case 'EMAIL_EXISTS':
+          return this.text.emailExists;
+        case 'WEAK_PASSWORD':
+          return this.text.passwordPolicy;
+        case 'INVALID_EMAIL':
+          return this.text.emailInvalid;
+        case 'MISSING_FIELDS':
+          return this.text.requiredFields;
+        default:
+          return error.message || this.text.genericError;
+      }
+    }
+    return error instanceof Error ? error.message : this.text.genericError;
+  }
+
+  // Login errors: Supabase returns raw English strings; translate the known ones.
+  private mapLoginError(error: { name?: string; message?: string }): string {
+    if (error.name === 'EmailNotVerifiedError') {
+      return this.text.emailNotVerified;
+    }
+    const message = (error.message ?? '').toLowerCase();
+    if (message.includes('invalid login credentials') || message.includes('invalid credentials')) {
+      return this.text.invalidCredentials;
+    }
+    if (message.includes('email not confirmed') || message.includes('not confirmed')) {
+      return this.text.emailNotVerified;
+    }
+    return error.message || this.text.genericError;
   }
 }

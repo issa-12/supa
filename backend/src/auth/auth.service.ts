@@ -3,8 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
-  HttpException,
-  HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -53,6 +52,20 @@ export class AuthService {
     await this.issueVerificationCode(email);
   }
 
+  async deleteAccount(token: string): Promise<void> {
+    const admin = this.supabase.getAdmin();
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data.user) {
+      throw new UnauthorizedException('Invalid or expired session.');
+    }
+    // FKs to auth.users cascade (see user_delete_cascade migration), so this
+    // also removes the user's books, posts, comments, friendships, etc.
+    const { error: deleteError } = await admin.auth.admin.deleteUser(data.user.id);
+    if (deleteError) {
+      throw new InternalServerErrorException(deleteError.message);
+    }
+  }
+
   // ── Private helpers ────────────────────────────────────────────
 
   private async createOrUpdatePendingUser(
@@ -72,9 +85,14 @@ export class AuthService {
 
     const existing = await this.findPublicUserByEmail(admin, email);
     if (!existing?.id) {
-      throw created.error
-        ? new HttpException(created.error.message, HttpStatus.CONFLICT)
-        : new ConflictException('Could not create account.');
+      // createUser failed and there's no public profile to revive — the email
+      // is almost certainly already registered in auth.users.
+      throw new ConflictException({
+        code: 'EMAIL_EXISTS',
+        message:
+          created.error?.message ??
+          'An account with this email already exists. Log in or reset your password.',
+      });
     }
 
     const { data: existingAuth, error: existingErr } = await admin.auth.admin.getUserById(existing.id);
@@ -83,9 +101,21 @@ export class AuthService {
     }
 
     if (isAppEmailVerified(existingAuth.user)) {
-      throw new ConflictException(
-        'An account with this email already exists. Log in or reset your password.',
-      );
+      throw new ConflictException({
+        code: 'EMAIL_EXISTS',
+        message: 'An account with this email already exists. Log in or reset your password.',
+      });
+    }
+
+    // An account created via an OAuth provider (e.g. Google) is a real account
+    // even without app_email_verified. Don't silently resume it as a pending
+    // email/password signup — tell the user it already exists.
+    if (hasOAuthIdentity(existingAuth.user)) {
+      throw new ConflictException({
+        code: 'EMAIL_EXISTS',
+        message:
+          'An account with this email already exists. Try logging in with Google.',
+      });
     }
 
     const updated = await admin.auth.admin.updateUserById(existing.id, {
@@ -208,6 +238,21 @@ export class AuthService {
 
 function isAppEmailVerified(user: User): boolean {
   return user.user_metadata?.['app_email_verified'] === true;
+}
+
+// True when the account was created through an OAuth provider (e.g. Google)
+// rather than email/password — i.e. it has an identity whose provider isn't
+// "email". Such an account is real and should not be resumed as a pending signup.
+function hasOAuthIdentity(user: User): boolean {
+  const provider = user.app_metadata?.['provider'];
+  if (typeof provider === 'string' && provider !== 'email') return true;
+
+  const providers = user.app_metadata?.['providers'];
+  if (Array.isArray(providers) && providers.some((p) => p !== 'email')) return true;
+
+  return (user.identities ?? []).some(
+    (identity) => identity.provider && identity.provider !== 'email',
+  );
 }
 
 function nameFromEmail(email: string): string {
