@@ -111,30 +111,6 @@ export class ActivityService {
     return posts.map((p) => this.mapPost(p, authorMap, bookMap, likeCountMap, likedPostIds, commentCountMap));
   }
 
-  createPost(userId: string, bookId: number, content: string): Observable<ActivityPost> {
-    return from(
-      this.supabaseService.getClient().then(async (supabase) => {
-        const { data, error } = await supabase
-          .from('posts')
-          .insert({ user_id: userId, book_id: bookId, content, tags: [], is_deleted: false })
-          .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
-          .single();
-
-        if (error) throw error;
-        if (!data) throw new Error('Failed to create post');
-
-        const [authorRes, bookRes] = await Promise.all([
-          supabase.from('users').select('id, name, profile_picture_url').eq('id', userId).single(),
-          supabase.from('books').select('book_id, title, cover_image_url').eq('book_id', bookId).single(),
-        ]);
-
-        const authorMap = new Map(authorRes.data ? [[authorRes.data['id'] as string, authorRes.data]] : []);
-        const bookMap = new Map(bookRes.data ? [[bookRes.data['book_id'] as number, bookRes.data]] : []);
-        return this.mapPost(data, authorMap, bookMap, new Map(), new Set(), new Map());
-      }),
-    ).pipe(catchError((err) => throwError(() => err)));
-  }
-
   deletePost(postId: number): Observable<void> {
     return from(
       this.supabaseService.getClient().then((supabase) =>

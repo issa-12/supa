@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface PostRow {
   post_id: number;
@@ -22,7 +23,10 @@ interface ModerationResult {
 export class CommunityService {
   private readonly anthropic: Anthropic | null;
 
-  constructor(private readonly supabase: SupabaseService) {
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly notifications: NotificationsService,
+  ) {
     const key = process.env['ANTHROPIC_API_KEY'];
     this.anthropic = key ? new Anthropic({ apiKey: key }) : null;
   }
@@ -126,7 +130,8 @@ export class CommunityService {
       .from('posts')
       .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
       .neq('is_deleted', true)
-      .or('moderation_status.is.null,moderation_status.neq.rejected')
+      // Hide rejected AND flagged (keeps legacy null-status posts visible).
+      .or('moderation_status.is.null,and(moderation_status.neq.rejected,moderation_status.neq.flagged)')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -153,7 +158,7 @@ export class CommunityService {
       .from('posts')
       .select('post_id, book_id, content, created_at, user_id, tags, sentiment')
       .neq('is_deleted', true)
-      .or('moderation_status.is.null,moderation_status.neq.rejected')
+      .or('moderation_status.is.null,and(moderation_status.neq.rejected,moderation_status.neq.flagged)')
       .gte('created_at', since)
       .limit(100);
 
@@ -229,7 +234,9 @@ Rules:
   async createPost(userId: string, bookId: number, content: string, tags: string[]) {
     const { status, reason, sentiment } = await this.moderateAndAnalyze(content);
 
-    if (status === 'rejected') {
+    // Block both 'rejected' (hate speech / harassment / explicit) and 'flagged'
+    // (profanity / mildly inappropriate). Only clean 'approved' posts publish.
+    if (status === 'rejected' || status === 'flagged') {
       const err = new Error(reason ?? 'Post contains inappropriate content and could not be published.');
       (err as any).statusCode = 422;
       throw err;
@@ -253,5 +260,91 @@ Rules:
     if (error) throw error;
     const enriched = await this.enrichPosts([data as PostRow], userId);
     return { ...enriched[0], moderationStatus: status };
+  }
+
+  // Create a comment with the same moderation policy as posts: 'flagged' and
+  // 'rejected' are blocked (422), only 'approved' is stored. Depth is computed
+  // from the parent server-side (not trusted from the client) and capped at 3.
+  async createComment(
+    userId: string,
+    postId: number,
+    content: string,
+    parentCommentId: number | null,
+  ) {
+    const trimmed = content.trim();
+    const { status, reason } = await this.moderateAndAnalyze(trimmed);
+    if (status === 'rejected' || status === 'flagged') {
+      const err = new Error(reason ?? 'Comment contains inappropriate content and could not be posted.');
+      (err as any).statusCode = 422;
+      throw err;
+    }
+
+    const sb = this.supabase.getAdmin();
+
+    let depth = 0;
+    let parentOwnerId: string | null = null;
+    if (parentCommentId != null) {
+      const { data: parent } = await sb
+        .from('comments')
+        .select('depth, user_id')
+        .eq('comment_id', parentCommentId)
+        .maybeSingle();
+      if (!parent) {
+        const err = new Error('Parent comment not found.');
+        (err as any).statusCode = 400;
+        throw err;
+      }
+      depth = ((parent['depth'] as number) ?? 0) + 1;
+      if (depth > 3) {
+        const err = new Error('Maximum reply depth reached.');
+        (err as any).statusCode = 400;
+        throw err;
+      }
+      parentOwnerId = parent['user_id'] as string;
+    }
+
+    const { data, error } = await sb
+      .from('comments')
+      .insert({ post_id: postId, user_id: userId, content: trimmed, parent_comment_id: parentCommentId, depth, is_deleted: false })
+      .select('comment_id, post_id, user_id, content, created_at, depth, parent_comment_id')
+      .single();
+
+    if (error) throw error;
+
+    // Notify the parent commenter (reply) or the post owner (top-level).
+    if (parentCommentId != null && parentOwnerId) {
+      this.notifications
+        .createNotification(parentOwnerId, userId, 'comment_replied', parentCommentId, 'comment')
+        .catch(() => undefined);
+    } else {
+      const { data: post } = await sb.from('posts').select('user_id').eq('post_id', postId).maybeSingle();
+      const ownerId = post?.['user_id'] as string | undefined;
+      if (ownerId) {
+        this.notifications
+          .createNotification(ownerId, userId, 'post_commented', postId, 'post')
+          .catch(() => undefined);
+      }
+    }
+
+    const { data: author } = await sb
+      .from('users')
+      .select('id, name, profile_picture_url')
+      .eq('id', userId)
+      .maybeSingle();
+
+    return {
+      id: data['comment_id'] as number,
+      postId: data['post_id'] as number,
+      userId: data['user_id'] as string,
+      userName: (author?.['name'] as string) ?? 'Reader',
+      userAvatar: (author?.['profile_picture_url'] as string) ?? null,
+      content: data['content'] as string,
+      createdAt: data['created_at'] as string,
+      depth: (data['depth'] as number) ?? 0,
+      parentCommentId: (data['parent_comment_id'] as number) ?? null,
+      likeCount: 0,
+      isLikedByMe: false,
+      replies: [] as unknown[],
+    };
   }
 }

@@ -98,4 +98,42 @@ export class CommunityController {
       return res.status(500).json({ message: 'Failed to create post.' });
     }
   }
+
+  @Post('comments')
+  async createComment(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    const userId = await this.getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { postId, content, parentCommentId } = body;
+    const postIdNum = Number(postId);
+    const trimmedContent = typeof content === 'string' ? content.trim() : '';
+
+    if (!Number.isInteger(postIdNum) || postIdNum <= 0 || !trimmedContent) {
+      return res.status(400).json({ message: 'postId and content are required.' });
+    }
+    if (trimmedContent.length > 2000) {
+      return res.status(400).json({ message: 'Comment cannot exceed 2000 characters.' });
+    }
+
+    const parentId =
+      parentCommentId != null && Number.isInteger(Number(parentCommentId))
+        ? Number(parentCommentId)
+        : null;
+
+    try {
+      const comment = await this.communityService.createComment(
+        userId,
+        postIdNum,
+        trimmedContent,
+        parentId,
+      );
+      return res.status(201).json(comment);
+    } catch (err: any) {
+      if (err.statusCode === 422) return res.status(422).json({ message: err.message });
+      if (err.statusCode === 400) return res.status(400).json({ message: err.message });
+      if (err?.code === '23503') return res.status(400).json({ message: 'That post could not be found.' });
+      console.error('[Community] createComment error:', err);
+      return res.status(500).json({ message: 'Failed to post comment.' });
+    }
+  }
 }
