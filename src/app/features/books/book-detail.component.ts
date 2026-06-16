@@ -84,7 +84,7 @@ export class BookDetailComponent implements OnInit {
   showRecommendPicker = false;
   friends: FriendUser[] = [];
   recommendingToId: string | null = null;
-  recommendFeedback: { userId: string; success: boolean } | null = null;
+  recommendFeedback: { userId: string; success: boolean; alreadyHad?: boolean } | null = null;
 
   note = '';
   noteSaving = false;
@@ -266,7 +266,7 @@ export class BookDetailComponent implements OnInit {
     if (!this.book || !this.userId || this.recommendingToId) return;
     this.recommendingToId = friend.userId;
     try {
-      await this.recommendationService.recommendBook(
+      const { added } = await this.recommendationService.recommendBook(
         this.book.googleId,
         this.book.title,
         this.book.author,
@@ -274,7 +274,7 @@ export class BookDetailComponent implements OnInit {
         this.userId,
         friend.userId,
       );
-      this.recommendFeedback = { userId: friend.userId, success: true };
+      this.recommendFeedback = { userId: friend.userId, success: true, alreadyHad: !added };
     } catch {
       this.recommendFeedback = { userId: friend.userId, success: false };
     } finally {

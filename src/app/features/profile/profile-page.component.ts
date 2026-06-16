@@ -193,7 +193,7 @@ export class ProfilePageComponent implements OnInit {
         this.friends = friends;
         this.incomingRequests = requests;
         this.friendCount = count.count;
-        friends.forEach(f => void this.presenceService.loadPresenceForUser(f.userId));
+        void this.presenceService.loadPresenceForUsers(friends.map(f => f.userId));
       } else if (this.currentUserId) {
         const count = await this.friendshipService.getFriendCount(targetId);
         this.friendCount = count.count;

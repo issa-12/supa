@@ -602,3 +602,47 @@
 @media (max-width: 480px) {
   .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
+
+// ── Friend recommendations (pending inbox) ─────────────────────
+.rec-by {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 2px 0 8px;
+  overflow-wrap: break-word;
+}
+
+.rec-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.rec-accept,
+.rec-decline {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+
+  &:disabled { opacity: 0.55; cursor: default; }
+}
+
+.rec-accept {
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid var(--primary);
+
+  &:hover:not(:disabled) { opacity: 0.9; }
+}
+
+.rec-decline {
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+
+  &:hover:not(:disabled) { background: var(--border); }
+}

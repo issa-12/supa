@@ -24,6 +24,25 @@ export interface ActivityPost {
 export class ActivityService {
   private readonly supabaseService = inject(SupabaseService);
 
+  // friendship_status is a static seed table; resolve the 'accepted' id once
+  // instead of an extra round-trip on every feed load.
+  private acceptedStatusIdPromise?: Promise<number | undefined>;
+
+  private resolveAcceptedStatusId(): Promise<number | undefined> {
+    this.acceptedStatusIdPromise ??= this.supabaseService.getClient().then(async (supabase) => {
+      const { data } = await supabase
+        .from('friendship_status')
+        .select('status_id')
+        .eq('status_name', 'accepted')
+        .single();
+      return data?.['status_id'] as number | undefined;
+    }).catch(() => {
+      this.acceptedStatusIdPromise = undefined;
+      return undefined;
+    });
+    return this.acceptedStatusIdPromise;
+  }
+
   getFriendActivity(userId: string, limit = 20): Observable<ActivityPost[]> {
     return from(this.loadFeed(userId, limit)).pipe(
       catchError((err) => throwError(() => err)),
@@ -33,13 +52,7 @@ export class ActivityService {
   private async loadFeed(userId: string, limit: number): Promise<ActivityPost[]> {
     const supabase = await this.supabaseService.getClient();
 
-    const { data: statusRow } = await supabase
-      .from('friendship_status')
-      .select('status_id')
-      .eq('status_name', 'accepted')
-      .single();
-
-    const acceptedId = statusRow?.['status_id'] as number | undefined;
+    const acceptedId = await this.resolveAcceptedStatusId();
 
     let friendIds: string[] = [];
     if (acceptedId) {

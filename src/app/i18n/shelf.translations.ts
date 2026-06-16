@@ -38,6 +38,11 @@ export interface ShelfCopy {
   wantToReadLabel: string;
   alreadyReadLabel: string;
   failedToLoadShelfMsg: string;
+  friendRecommendationsLabel: string;
+  recommendationsFilter: string;
+  recommendedByPrefix: string;
+  acceptBtn: string;
+  declineBtn: string;
 }
 
 export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
@@ -79,6 +84,11 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     wantToReadLabel: 'Want to Read',
     alreadyReadLabel: 'Already Read',
     failedToLoadShelfMsg: 'Failed to load shelf',
+    friendRecommendationsLabel: 'Friends Recommendations',
+    recommendationsFilter: 'Recommendations',
+    recommendedByPrefix: 'Recommended by',
+    acceptBtn: 'Accept',
+    declineBtn: 'Decline',
   },
   ar: {
     title: 'مكتبتي',
@@ -118,6 +128,11 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     wantToReadLabel: 'أريد أن أقرأ',
     alreadyReadLabel: 'تمت قراءته بالفعل',
     failedToLoadShelfMsg: 'فشل تحميل الرف',
+    friendRecommendationsLabel: 'توصيات الأصدقاء',
+    recommendationsFilter: 'التوصيات',
+    recommendedByPrefix: 'أوصى به',
+    acceptBtn: 'قبول',
+    declineBtn: 'رفض',
   },
   fr: {
     title: 'Ma Bibliothèque',
@@ -157,5 +172,10 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     wantToReadLabel: 'À lire',
     alreadyReadLabel: 'Déjà lu',
     failedToLoadShelfMsg: 'Impossible de charger la bibliothèque',
+    friendRecommendationsLabel: 'Recommandations d\'amis',
+    recommendationsFilter: 'Recommandations',
+    recommendedByPrefix: 'Recommandé par',
+    acceptBtn: 'Accepter',
+    declineBtn: 'Refuser',
   },
 };

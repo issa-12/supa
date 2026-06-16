@@ -156,7 +156,7 @@
                       <span class="recommend-name">{{ friend.name }}</span>
                       @if (recommendFeedback?.userId === friend.userId) {
                         <span class="recommend-status" [class.recommend-status--ok]="recommendFeedback!.success">
-                          {{ recommendFeedback!.success ? copy.recommendSent : copy.recommendFailed }}
+                          {{ recommendFeedback!.success ? (recommendFeedback!.alreadyHad ? copy.recommendAlreadyHas : copy.recommendSent) : copy.recommendFailed }}
                         </span>
                       } @else if (recommendingToId === friend.userId) {
                         <span class="recommend-status">…</span>

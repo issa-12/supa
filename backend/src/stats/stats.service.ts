@@ -88,13 +88,16 @@ export class StatsService {
     const { data, error } = await this.supabase
       .getAdmin()
       .from('user_books')
-      .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id)')
+      .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id), reading_statuses(status_name)')
       .gte('updated_at', since);
 
     if (error) throw new InternalServerErrorException(error.message);
 
     const counts = new Map<number, { book: Record<string, unknown>; count: number }>();
     for (const row of data ?? []) {
+      // Skip pending friend recommendations — they're auto-added, not chosen.
+      const status = row['reading_statuses'] as unknown as { status_name?: string } | null;
+      if (status?.status_name === 'recommended_by_friend') continue;
       const book = row['books'] as unknown as Record<string, unknown> | null;
       if (!book) continue;
       const id = book['book_id'] as number;
