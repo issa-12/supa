@@ -177,7 +177,7 @@ export class CommunityPageComponent implements OnInit {
   onBookQueryChange(): void {
     if (this.bookSearchTimer) clearTimeout(this.bookSearchTimer);
     const q = this.bookQuery.trim();
-    if (!q) { this.bookResults = []; return; }
+    if (q.length < 2) { this.bookResults = []; return; }
     this.bookSearchTimer = setTimeout(() => this.searchBooks(q), 400);
   }
 

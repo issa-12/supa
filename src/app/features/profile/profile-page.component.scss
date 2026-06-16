@@ -431,6 +431,15 @@
   position: relative;
 }
 
+.book-cover-container--clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+  }
+}
+
 .reading-badge {
   position: absolute;
   bottom: 6px;

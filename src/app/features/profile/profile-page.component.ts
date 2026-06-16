@@ -24,6 +24,7 @@ interface ProfileBook {
   author: string;
   coverUrl: string | null;
   rating: number;
+  googleBooksId: string | null;
 }
 
 @Component({
@@ -125,6 +126,12 @@ export class ProfilePageComponent implements OnInit {
     return !!userId && this.onlineIds.has(userId);
   }
 
+  // Online/offline status is only visible between accepted friends — not for
+  // strangers or pending/blocked relationships.
+  get canSeeViewedUserPresence(): boolean {
+    return !this.isOwnProfile && this.friendshipStatus === 'accepted';
+  }
+
   async ngOnInit(): Promise<void> {
     try {
       const supabase = await this.supabaseService.getClient();
@@ -190,7 +197,10 @@ export class ProfilePageComponent implements OnInit {
       } else if (this.currentUserId) {
         const count = await this.friendshipService.getFriendCount(targetId);
         this.friendCount = count.count;
-        void this.presenceService.loadPresenceForUser(targetId);
+        // Only friends can see each other's online status.
+        if (this.friendshipStatus === 'accepted') {
+          void this.presenceService.loadPresenceForUser(targetId);
+        }
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Failed to load profile.';
@@ -627,6 +637,13 @@ export class ProfilePageComponent implements OnInit {
         author: ub.book!.author,
         coverUrl: ub.book!.coverUrl,
         rating: ub.rating ?? 0,
+        googleBooksId: ub.book!.googleBooksId,
       }));
+  }
+
+  openBook(book: ProfileBook): void {
+    if (book.googleBooksId) {
+      this.router.navigate(['/books', book.googleBooksId]);
+    }
   }
 }

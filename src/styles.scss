@@ -1,3 +1,30 @@
+/* ─── Self-hosted fonts ────────────────────────────────────────────────────── */
+/* PT Serif is served from our own origin (public/fonts/ptserif) instead of
+   Google Fonts. This avoids the intermittent ERR_QUIC_PROTOCOL_ERROR fetching
+   from fonts.gstatic.com over HTTP/3, removes an external dependency, and lets
+   the font work offline (PWA). */
+@font-face {
+  font-family: 'PT Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ptserif/pt-serif-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'PT Serif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ptserif/pt-serif-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'PT Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ptserif/pt-serif-italic.woff2') format('woff2');
+}
+
 /* ─── Global reset ─────────────────────────────────────────────────────────── */
 *,
 *::before,

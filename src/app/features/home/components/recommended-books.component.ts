@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, Input, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
@@ -28,30 +28,14 @@ interface Book {
       </div>
 
       <div class="horizontal-scroll">
-        <div
-          *ngFor="let book of books"
-          class="book-card-clean"
-          (mouseenter)="hoveredBookId = book.id"
-          (mouseleave)="hoveredBookId = null"
-          [class.zoomed]="hoveredBookId === book.id"
+        <div *ngFor="let book of books" class="book-card-clean"
           (click)="onCardClick(book)"
-          [style.cursor]="book.googleBooksId ? 'pointer' : 'default'"
-        >
-          <div class="book-cover-wrapper">
-            <img *ngIf="book.coverUrl" class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" loading="lazy" (error)="book.coverUrl = null" />
-            <div *ngIf="!book.coverUrl" class="book-cover-clean book-cover--empty"></div>
-            <button class="quick-add-btn" (click)="$event.stopPropagation(); onCardClick(book)" aria-label="View book details">
-              <iconify-icon icon="lucide:eye" style="font-size: 16px"></iconify-icon>
-            </button>
-          </div>
-
+          [style.cursor]="book.googleBooksId ? 'pointer' : 'default'">
+          <img *ngIf="book.coverUrl" class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" loading="lazy" (error)="book.coverUrl = null" />
+          <div *ngIf="!book.coverUrl" class="book-cover-clean book-cover--empty"></div>
           <div class="book-info-minimal">
             <div class="book-title-min">{{ book.title }}</div>
             <div class="book-author-min">{{ book.author }}</div>
-            <div class="book-rating-inline" *ngIf="book.rating">
-              <iconify-icon icon="lucide:star" class="star-icon" style="font-size: 14px"></iconify-icon>
-              {{ book.rating }}
-            </div>
           </div>
         </div>
       </div>
@@ -131,27 +115,12 @@ interface Book {
       flex-direction: column;
       gap: 14px;
       flex-shrink: 0;
-      position: relative;
       cursor: pointer;
       transition: transform 0.2s ease;
-    }
 
-    .book-card-clean.zoomed {
-      transform: scale(1.02);
-    }
-
-    .book-card-clean.zoomed .book-cover-clean {
-      transform: scale(1.04);
-       }
-
-    .book-card-clean.zoomed .quick-add-btn {
-      opacity: 1;
-    }
-
-    .book-cover-wrapper {
-      position: relative;
-      overflow: hidden;
-      border-radius: 6px 10px 10px 6px;
+      &:hover {
+        transform: translateY(-4px);
+      }
     }
 
     .book-cover-clean {
@@ -159,36 +128,10 @@ interface Book {
       height: 225px;
       border-radius: 6px 10px 10px 6px;
       object-fit: cover;
-       &.book-cover--empty {
-        background: var(--border);
-      }
       display: block;
-      transition: transform 0.3s ease;
-    }
 
-    .quick-add-btn {
-      position: absolute;
-      top: 12px;
-      right: -12px;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: var(--primary-foreground);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-       opacity: 0;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        transform: scale(1.1);
-         }
-
-      &:active {
-        transform: scale(0.95);
+      &.book-cover--empty {
+        background: var(--border);
       }
     }
 
@@ -217,19 +160,6 @@ interface Book {
       text-overflow: ellipsis;
     }
 
-    .book-rating-inline {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted-foreground);
-    }
-
-    .star-icon {
-      color: var(--warning);
-    }
-
     @media (max-width: 768px) {
       .horizontal-scroll {
         gap: 16px;
@@ -255,12 +185,9 @@ export class RecommendedBooksComponent {
   private readonly translationService = inject(TranslationService);
 
   @Input() books: Book[] = [];
-  @Output() addBook = new EventEmitter<Book>();
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return HOME_COPY[this.lang]; }
-
-  hoveredBookId: string | null = null;
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
@@ -270,9 +197,5 @@ export class RecommendedBooksComponent {
     if (book.googleBooksId) {
       this.router.navigate(['/books', book.googleBooksId]);
     }
-  }
-
-  onAddBook(book: Book): void {
-    this.addBook.emit(book);
   }
 }
