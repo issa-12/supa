@@ -96,6 +96,10 @@ interface BookSearchResult {
                 }
               </div>
 
+              @if (postError) {
+                <p class="compose-error">{{ postError }}</p>
+              }
+
               <div class="compose-actions">
                 <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelBtn }}</button>
                 <button
@@ -407,6 +411,15 @@ interface BookSearchResult {
       &:hover { color: var(--foreground); background: var(--border); }
     }
 
+    .compose-error {
+      color: var(--destructive);
+      background: rgba(220, 38, 38, 0.07);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin: 0 0 10px;
+    }
+
     .compose-actions {
       display: flex;
       justify-content: flex-end;
@@ -663,6 +676,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   bookResults: BookSearchResult[] = [];
   selectedBook: BookSearchResult | null = null;
   submitting = false;
+  postError: string | null = null;
 
   private bookSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -729,6 +743,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     this.bookQuery = '';
     this.bookResults = [];
     this.selectedBook = null;
+    this.postError = null;
   }
 
   onBookQueryChange(): void {
@@ -765,17 +780,22 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   async submitPost(): Promise<void> {
     if (!this.canPost || !this.currentUserId || !this.selectedBook) return;
     this.submitting = true;
+    this.postError = null;
     try {
       const bookId = await this.ensureBookInDb(this.selectedBook);
-      this.activityService.createPost(this.currentUserId, bookId, this.postContent.trim()).subscribe({
-        next: (post) => {
-          this.posts = [post, ...this.posts];
-          this.closeCompose();
-          this.submitting = false;
-        },
-        error: () => { this.submitting = false; },
-      });
-    } catch {
+      // Route through the moderated backend endpoint (same as the community
+      // page) so home-feed posts are checked too. Rejects profanity/abuse.
+      const post = await this.activityService.createCommunityPost(
+        this.currentUserId,
+        bookId,
+        this.postContent.trim(),
+        [],
+      );
+      this.posts = [post, ...this.posts];
+      this.closeCompose();
+    } catch (err) {
+      this.postError = err instanceof Error ? err.message : 'Could not post.';
+    } finally {
       this.submitting = false;
     }
   }

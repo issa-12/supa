@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
-import { NotificationsService } from './notifications.service';
 
 export interface Comment {
   id: number;
@@ -22,7 +21,6 @@ export interface Comment {
 @Injectable({ providedIn: 'root' })
 export class CommentService {
   private readonly supabaseService = inject(SupabaseService);
-  private readonly notificationsService = inject(NotificationsService);
 
   getComments(postId: number, currentUserId: string): Observable<Comment[]> {
     return from(this.loadComments(postId, currentUserId)).pipe(
@@ -126,83 +124,36 @@ export class CommentService {
     return roots;
   }
 
+  // Comment creation goes through the moderated backend endpoint (same policy
+  // as posts: profanity/abuse blocked with 422). The backend computes the
+  // authoritative depth from the parent and fires the comment notification.
+  // The depth arg here is only a fast client-side guard for a nicer message.
   addComment(
     postId: number,
-    userId: string,
+    _userId: string,
     content: string,
     parentCommentId: number | null = null,
     depth = 0,
   ): Observable<Comment> {
-    // The DB has a CHECK (depth >= 0 AND depth <= 3); validate up front
-    // so we return a user-friendly error instead of a Postgres 500.
     if (depth < 0 || depth > 3) {
       return from(Promise.reject(new Error('Maximum reply depth reached.')));
     }
     return from(
-      this.supabaseService.getClient().then(async (supabase) => {
-        const { data, error } = await supabase
-          .from('comments')
-          .insert({ post_id: postId, user_id: userId, content, parent_comment_id: parentCommentId, depth, is_deleted: false })
-          .select('comment_id, post_id, user_id, content, created_at, depth, parent_comment_id')
-          .single();
+      (async () => {
+        const session = await this.supabaseService.getCurrentSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('Not authenticated');
 
-        if (error) throw error;
-        if (!data) throw new Error('Failed to create comment');
-
-        // Fire notification to post owner (top-level comment) or to the
-        // parent commenter (reply). Fire-and-forget; never blocks UI.
-        void this.fireCommentNotification(supabase, postId, userId, parentCommentId);
-
-        const { data: author } = await supabase
-          .from('users').select('id, name, profile_picture_url').eq('id', userId).single();
-
-        return {
-          id: data['comment_id'] as number,
-          postId: data['post_id'] as number,
-          userId: data['user_id'] as string,
-          userName: (author?.['name'] as string) ?? 'Reader',
-          userAvatar: (author?.['profile_picture_url'] as string) ?? null,
-          content: data['content'] as string,
-          createdAt: data['created_at'] as string,
-          depth: (data['depth'] as number) ?? 0,
-          parentCommentId: (data['parent_comment_id'] as number) ?? null,
-          likeCount: 0,
-          isLikedByMe: false,
-          replies: [],
-        } as Comment;
-      }),
+        const res = await fetch('/api/community/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ postId, content, parentCommentId }),
+        });
+        const body = (await res.json().catch(() => ({}))) as Comment & { message?: string };
+        if (!res.ok) throw new Error(body.message ?? 'Failed to post comment.');
+        return body as Comment;
+      })(),
     ).pipe(catchError((err) => throwError(() => err)));
-  }
-
-  private async fireCommentNotification(
-    supabase: Awaited<ReturnType<SupabaseService['getClient']>>,
-    postId: number,
-    actorId: string,
-    parentCommentId: number | null,
-  ): Promise<void> {
-    try {
-      if (parentCommentId) {
-        const { data: parent } = await supabase
-          .from('comments').select('user_id').eq('comment_id', parentCommentId).maybeSingle();
-        const recipient = parent?.['user_id'] as string | undefined;
-        if (recipient) {
-          await this.notificationsService.fireNotification(
-            recipient, actorId, 'comment_replied', parentCommentId, 'comment',
-          );
-        }
-        return;
-      }
-      const { data: post } = await supabase
-        .from('posts').select('user_id').eq('post_id', postId).maybeSingle();
-      const recipient = post?.['user_id'] as string | undefined;
-      if (recipient) {
-        await this.notificationsService.fireNotification(
-          recipient, actorId, 'post_commented', postId, 'post',
-        );
-      }
-    } catch {
-      // never block comment creation
-    }
   }
 
   deleteComment(commentId: number): Observable<void> {
