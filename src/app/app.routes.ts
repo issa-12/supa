@@ -4,8 +4,6 @@ import { genreOnboardingGuard } from './core/guards/genre-onboarding.guard';
 import { AuthCallbackComponent } from './features/auth-callback/auth-callback.component';
 import { AuthPageComponent } from './features/auth/auth-page.component';
 import { EmailVerificationComponent } from './features/email-verification/email-verification.component';
-import { HomePageComponent } from './features/home/home-page.component';
-import { ProfilePageComponent } from './features/profile/profile-page.component';
 
 export const routes: Routes = [
   // ── Public auth routes ────────────────────────────────────────
@@ -48,18 +46,27 @@ export const routes: Routes = [
   // ── Protected app routes (auth + onboarding required) ─────────
   {
     path: 'home',
-    component: HomePageComponent,
     canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/home/home-page.component').then(
+        (m) => m.HomePageComponent,
+      ),
   },
   {
     path: 'profile',
-    component: ProfilePageComponent,
     canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/profile/profile-page.component').then(
+        (m) => m.ProfilePageComponent,
+      ),
   },
   {
     path: 'profile/:id',
-    component: ProfilePageComponent,
     canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/profile/profile-page.component').then(
+        (m) => m.ProfilePageComponent,
+      ),
   },
 
   // ── Book features (auth + onboarding required) ────────────────

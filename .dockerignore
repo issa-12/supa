@@ -1,21 +1,29 @@
-.angular
+# Build artifacts / caches — match at any depth (root AND backend/).
+# Plain `node_modules` only matches the root; nested copies like
+# backend/node_modules leak into the build context (100+ MB) and slow
+# the build / add memory pressure. Use **/ to catch every level.
+**/node_modules
+**/dist
+**/.angular
+**/coverage
+**/out-tsc
+**/tmp
+
 .codex
 .git
 .history
 .vscode
-coverage
-dist
-node_modules
-tmp
-out-tsc
 
-.env
-.env.*
-!.env.example
+# Secrets — exclude at any depth (root .env AND backend/.env), but keep
+# the committed example so it can be referenced.
+**/.env
+**/.env.*
+!**/.env.example
 .npmrc
 
-npm-debug.log
-yarn-error.log
+**/npm-debug.log
+**/yarn-error.log
+
 Dockerfile
 docker-compose*.yml
 README.md

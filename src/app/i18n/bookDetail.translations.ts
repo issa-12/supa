@@ -15,6 +15,7 @@ export interface BookDetailCopy {
   noFriends: string;
   recommendSent: string;
   recommendFailed: string;
+  recommendAlreadyHas: string;
   changeStatus: string;
   removeFromShelf: string;
   addToShelf: string;
@@ -58,6 +59,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     noFriends: 'No friends yet.',
     recommendSent: 'Sent!',
     recommendFailed: 'Failed',
+    recommendAlreadyHas: 'Already on their shelf',
     changeStatus: 'Change status',
     removeFromShelf: 'Remove from shelf',
     addToShelf: 'Add to Shelf',
@@ -99,6 +101,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     noFriends: 'لا توجد أصدقاء حتى الآن.',
     recommendSent: 'تم الإرسال!',
     recommendFailed: 'فشل',
+    recommendAlreadyHas: 'موجود بالفعل على رفّه',
     changeStatus: 'تغيير الحالة',
     removeFromShelf: 'إزالة من الرف',
     addToShelf: 'إضافة إلى الرف',
@@ -140,6 +143,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     noFriends: 'Aucun ami pour le moment.',
     recommendSent: 'Envoyé !',
     recommendFailed: 'Échec',
+    recommendAlreadyHas: 'Déjà dans sa bibliothèque',
     changeStatus: 'Modifier le statut',
     removeFromShelf: 'Supprimer de la bibliothèque',
     addToShelf: 'Ajouter à la bibliothèque',

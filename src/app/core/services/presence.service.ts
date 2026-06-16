@@ -95,6 +95,42 @@ export class PresenceService {
     } catch { /* non-critical */ }
   }
 
+  // Batched variant of loadPresenceForUser: resolves the online status of
+  // many users in a single query instead of one round-trip per id. Used by
+  // the profile page to check a whole friends list at once.
+  async loadPresenceForUsers(userIds: string[]): Promise<void> {
+    const ids = [...new Set(userIds.filter(Boolean))];
+    if (!ids.length) return;
+    try {
+      const supabase = await this.supabaseService.getClient();
+      const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('users')
+        .select('id')
+        .in('id', ids)
+        .not('last_seen_at', 'is', null)
+        .gte('last_seen_at', cutoff);
+
+      const onlineNow = new Set((data ?? []).map((r) => r['id'] as string));
+      const current = this.onlineUserIds$.value;
+      const next = new Set(current);
+      let changed = false;
+
+      for (const id of ids) {
+        const isOnline = onlineNow.has(id);
+        if (isOnline && !next.has(id)) {
+          next.add(id);
+          changed = true;
+        } else if (!isOnline && next.has(id)) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+
+      if (changed) this.zone.run(() => this.onlineUserIds$.next(next));
+    } catch { /* non-critical */ }
+  }
+
   isOnline(userId: string | null | undefined): boolean {
     return !!userId && this.onlineUserIds$.value.has(userId);
   }

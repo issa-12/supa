@@ -1,24 +1,39 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { NotificationsService } from './notifications.service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable({ providedIn: 'root' })
 export class RecommendationService {
   private readonly supabaseService = inject(SupabaseService);
-  private readonly notificationsService = inject(NotificationsService);
 
+  // Ensures the book exists in the catalog (client can insert — books RLS
+  // allows it), then asks the backend to add it to the recipient's shelf and
+  // notify them. The cross-user shelf write must go through the backend admin
+  // client (user_books RLS forbids writing another user's row).
+  // Returns `added: false` when the recipient already has the book.
   async recommendBook(
     googleBookId: string,
     bookTitle: string,
     bookAuthor: string,
     bookCover: string | null,
-    fromUserId: string,
+    _fromUserId: string,
     toUserId: string,
-  ): Promise<void> {
+  ): Promise<{ added: boolean }> {
     const supabase = await this.supabaseService.getClient();
     const bookId = await this.ensureBookInDb(supabase, googleBookId, bookTitle, bookAuthor, bookCover);
-    await this.notificationsService.fireNotification(toUserId, fromUserId, 'book_recommended', bookId, 'book');
+
+    const session = await this.supabaseService.getCurrentSession();
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch('/api/recommendations/friend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ toUserId, bookId }),
+    });
+    const payload = (await res.json().catch(() => ({}))) as { added?: boolean; message?: string };
+    if (!res.ok) throw new Error(payload.message ?? 'Failed to recommend book.');
+    return { added: payload.added ?? true };
   }
 
   private async ensureBookInDb(

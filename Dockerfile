@@ -6,6 +6,14 @@ FROM node:20.19.2-bookworm-slim AS build-frontend
 # Ensure devDependencies (incl. @angular/cli → `ng`) install.
 ENV NODE_ENV=development
 
+# npm fetch resilience: tolerate the flaky/reset-prone network seen in the
+# WSL2 Docker build (more retries, longer backoff/timeout) so a transient
+# ECONNRESET doesn't abort the whole `npm ci`.
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -37,6 +45,12 @@ FROM node:20.19.2-bookworm-slim AS build-backend
 
 # Ensure devDependencies (incl. @nestjs/cli → `nest`) install. Pruned after build.
 ENV NODE_ENV=development
+
+# npm fetch resilience (see build-frontend stage).
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
 
 WORKDIR /app
 

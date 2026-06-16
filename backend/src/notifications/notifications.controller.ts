@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -45,6 +46,16 @@ export class NotificationsController {
     const token = extractToken(auth);
     const userId = await this.notificationsService.verifyUser(token);
     return this.notificationsService.markAsRead(+id, userId);
+  }
+
+  @Delete(':id')
+  async deleteNotification(
+    @Headers('authorization') auth: string,
+    @Param('id') id: string,
+  ) {
+    const token = extractToken(auth);
+    const userId = await this.notificationsService.verifyUser(token);
+    return this.notificationsService.deleteNotification(+id, userId);
   }
 }
 
