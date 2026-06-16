@@ -85,7 +85,7 @@
               <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
             }
 
-            @if (!isOwnProfile && isOnline(viewedUserId)) {
+            @if (canSeeViewedUserPresence && isOnline(viewedUserId)) {
               <span class="presence-dot presence-dot--profile" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
             }
 
@@ -119,7 +119,7 @@
               <p class="profile-username">&#64;{{ profile.username }}</p>
             }
             <p class="profile-joined">{{ copy.readingSincePrefix }} {{ profile.joinDate }}</p>
-            @if (!isOwnProfile) {
+            @if (canSeeViewedUserPresence) {
               <p class="profile-presence" [class.is-online]="isOnline(viewedUserId)">
                 <span class="presence-dot"></span>
                 {{ isOnline(viewedUserId) ? copy.onlineLabel : copy.offlineLabel }}
@@ -285,7 +285,12 @@
           <div class="books-grid">
             @for (book of currentlyReadingBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -495,7 +500,12 @@
           <div class="books-grid">
             @for (book of mostLikedBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -541,7 +551,12 @@
           <div class="books-grid">
             @for (book of inBetweenBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -587,7 +602,12 @@
           <div class="books-grid">
             @for (book of leastLikedBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
