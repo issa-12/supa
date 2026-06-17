@@ -47,6 +47,16 @@ function allowedEmailDomainValidator(control: AbstractControl): ValidationErrors
   return ALLOWED_EMAIL_DOMAINS.includes(domain) ? null : { emailDomain: true };
 }
 
+// Supabase/GoTrue (bcrypt) rejects passwords longer than 72 characters.
+// Enforce it client-side so the user gets a clear message instead of a raw
+// backend error. Mirrored on the backend (auth.controller.ts).
+const MAX_PASSWORD_LENGTH = 72;
+
+function passwordMaxLengthValidator(control: AbstractControl): ValidationErrors | null {
+  const value: string = control.value ?? '';
+  return value.length > MAX_PASSWORD_LENGTH ? { passwordMaxLength: true } : null;
+}
+
 // Signup password policy: at least 8 chars, with an uppercase letter, a
 // lowercase letter, and a number. Mirrored on the backend (auth.controller.ts).
 function passwordPolicyValidator(control: AbstractControl): ValidationErrors | null {
@@ -146,6 +156,8 @@ export class AuthPageComponent {
         this.errorMessage = this.text.emailInvalid;
       } else if (emailControl.value?.trim() && emailControl.errors?.['emailDomain']) {
         this.errorMessage = this.text.emailDomainNotAllowed;
+      } else if (passwordControl.value && passwordControl.errors?.['passwordMaxLength']) {
+        this.errorMessage = this.text.passwordTooLong;
       } else if (passwordControl.value && passwordControl.errors?.['passwordPolicy']) {
         this.errorMessage = this.text.passwordPolicy;
       } else {
@@ -231,7 +243,7 @@ export class AuthPageComponent {
     return this.formBuilder.nonNullable.group({
       name: [''],
       email: ['', [Validators.required, strictEmailValidator]],
-      password: ['', [Validators.required]],
+      password: ['', [Validators.required, passwordMaxLengthValidator]],
     });
   }
 
@@ -313,6 +325,8 @@ export class AuthPageComponent {
           return this.text.emailExists;
         case 'WEAK_PASSWORD':
           return this.text.passwordPolicy;
+        case 'PASSWORD_TOO_LONG':
+          return this.text.passwordTooLong;
         case 'INVALID_EMAIL':
           return this.text.emailInvalid;
         case 'EMAIL_DOMAIN_NOT_ALLOWED':
