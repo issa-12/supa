@@ -56,13 +56,20 @@
 }
 
 .shelf-link {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--foreground);
   text-decoration: none;
-  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.2s, background 0.2s;
 
-  &:hover { text-decoration: underline; }
+  &:hover { color: var(--primary); }
 }
 
 // ── Page states ─────────────────────────────────────────────────
