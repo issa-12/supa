@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, ElementRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
@@ -26,7 +26,7 @@ interface BookSearchResult {
 
       <!-- Compose Card -->
       @if (currentUserId) {
-        <div class="compose-card" [class.compose-card--expanded]="composeOpen">
+        <div #composeCard class="compose-card" [class.compose-card--expanded]="composeOpen">
 
           @if (!composeOpen) {
             <button class="compose-trigger" (click)="openCompose()">
@@ -42,11 +42,11 @@ interface BookSearchResult {
           } @else {
             <div class="compose-form">
               <textarea
+                #composeTextarea
                 class="compose-textarea"
                 [(ngModel)]="postContent"
                 [placeholder]="copy.composeTextareaPlaceholder"
                 rows="3"
-                autofocus
               ></textarea>
 
               <!-- Book picker -->
@@ -672,6 +672,9 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   loading = false;
   openCommentPostIds = new Set<number>();
 
+  @ViewChild('composeCard') private composeCard?: ElementRef<HTMLElement>;
+  @ViewChild('composeTextarea') private composeTextarea?: ElementRef<HTMLTextAreaElement>;
+
   composeOpen = false;
   postContent = '';
   bookQuery = '';
@@ -737,7 +740,17 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     });
   }
 
-  openCompose(): void { this.composeOpen = true; }
+  openCompose(): void {
+    this.composeOpen = true;
+    // The compose form sits at the top of the feed; if the user triggered it
+    // from the home FAB while scrolled down, bring it into view and focus the
+    // textarea so they can start typing immediately. setTimeout lets the form
+    // render first (it's behind @if (composeOpen)).
+    setTimeout(() => {
+      this.composeCard?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      this.composeTextarea?.nativeElement.focus({ preventScroll: true });
+    });
+  }
 
   closeCompose(): void {
     this.composeOpen = false;
