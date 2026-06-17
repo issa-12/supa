@@ -30,6 +30,23 @@ function strictEmailValidator(control: AbstractControl): ValidationErrors | null
   return STRICT_EMAIL_PATTERN.test(value) ? null : { email: true };
 }
 
+// Signup is restricted to these providers. Keep in sync with the backend
+// allowlist in auth.controller.ts (ALLOWED_EMAIL_DOMAINS).
+const ALLOWED_EMAIL_DOMAINS = [
+  'gmail.com',
+  'outlook.com',
+  'hotmail.com',
+  'yahoo.com',
+  'icloud.com',
+];
+
+function allowedEmailDomainValidator(control: AbstractControl): ValidationErrors | null {
+  const value = (control.value ?? '').trim().toLowerCase();
+  if (!value || !value.includes('@')) return null; // format handled elsewhere
+  const domain = value.slice(value.lastIndexOf('@') + 1);
+  return ALLOWED_EMAIL_DOMAINS.includes(domain) ? null : { emailDomain: true };
+}
+
 // Signup password policy: at least 8 chars, with an uppercase letter, a
 // lowercase letter, and a number. Mirrored on the backend (auth.controller.ts).
 function passwordPolicyValidator(control: AbstractControl): ValidationErrors | null {
@@ -127,6 +144,8 @@ export class AuthPageComponent {
       // fields" (i.e. something is actually empty).
       if (emailControl.value?.trim() && emailControl.errors?.['email']) {
         this.errorMessage = this.text.emailInvalid;
+      } else if (emailControl.value?.trim() && emailControl.errors?.['emailDomain']) {
+        this.errorMessage = this.text.emailDomainNotAllowed;
       } else if (passwordControl.value && passwordControl.errors?.['passwordPolicy']) {
         this.errorMessage = this.text.passwordPolicy;
       } else {
@@ -224,6 +243,10 @@ export class AuthPageComponent {
     this.authForm.controls.name.addValidators([Validators.required]);
     this.authForm.controls.name.updateValueAndValidity();
 
+    // Signup-only: restrict the email to the allowed provider domains.
+    this.authForm.controls.email.addValidators([allowedEmailDomainValidator]);
+    this.authForm.controls.email.updateValueAndValidity();
+
     // The password policy applies to new accounts only — at login we just
     // require a non-empty password and let the server verify it.
     this.authForm.controls.password.addValidators([passwordPolicyValidator]);
@@ -292,6 +315,8 @@ export class AuthPageComponent {
           return this.text.passwordPolicy;
         case 'INVALID_EMAIL':
           return this.text.emailInvalid;
+        case 'EMAIL_DOMAIN_NOT_ALLOWED':
+          return this.text.emailDomainNotAllowed;
         case 'MISSING_FIELDS':
           return this.text.requiredFields;
         default:

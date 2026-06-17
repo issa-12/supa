@@ -1,4 +1,5 @@
 export * from './auth.translations';
+export * from './verification.translations';
 export * from './nav.translations';
 export * from './home.translations';
 export * from './notifications.translations';
