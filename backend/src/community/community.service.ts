@@ -121,10 +121,49 @@ export class CommunityService {
     );
   }
 
+  // The viewer's accepted friends.
+  private async getFriendIds(userId: string): Promise<string[]> {
+    const sb = this.supabase.getAdmin();
+    const { data: statusRow } = await sb
+      .from('friendship_status')
+      .select('status_id')
+      .eq('status_name', 'accepted')
+      .maybeSingle();
+    const acceptedId = statusRow?.['status_id'];
+    if (!acceptedId) return [];
+
+    const { data } = await sb
+      .from('friendship')
+      .select('user_id1, user_id2')
+      .eq('status_id', acceptedId)
+      .or(`user_id1.eq.${userId},user_id2.eq.${userId}`);
+
+    return (data ?? []).map((r) =>
+      r['user_id1'] === userId ? (r['user_id2'] as string) : (r['user_id1'] as string),
+    );
+  }
+
+  // Author ids whose posts/comments must be hidden from this viewer: anyone
+  // blocked (either direction) PLUS any private account that isn't an accepted
+  // friend (the viewer always sees their own content).
+  private async getHiddenAuthorIds(userId: string): Promise<string[]> {
+    const sb = this.supabase.getAdmin();
+    const [blocked, friendIds, privateRows] = await Promise.all([
+      this.getBlockedUserIds(userId),
+      this.getFriendIds(userId),
+      sb.from('users').select('id').eq('is_private', true),
+    ]);
+    const friendSet = new Set(friendIds);
+    const hiddenPrivate = (privateRows.data ?? [])
+      .map((r) => r['id'] as string)
+      .filter((id) => id !== userId && !friendSet.has(id));
+    return [...new Set([...blocked, ...hiddenPrivate])];
+  }
+
   async getAllPosts(userId: string, tag?: string, page = 0, limit = 20) {
     const sb = this.supabase.getAdmin();
     const offset = page * limit;
-    const blocked = await this.getBlockedUserIds(userId);
+    const blocked = await this.getHiddenAuthorIds(userId);
 
     let query = sb
       .from('posts')
@@ -152,7 +191,7 @@ export class CommunityService {
   async getTrendingPosts(userId: string, limit = 20) {
     const sb = this.supabase.getAdmin();
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const blocked = new Set(await this.getBlockedUserIds(userId));
+    const blocked = new Set(await this.getHiddenAuthorIds(userId));
 
     const { data: posts, error } = await sb
       .from('posts')

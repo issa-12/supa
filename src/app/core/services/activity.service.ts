@@ -135,9 +135,18 @@ export class ActivityService {
         if (error) throw error;
         if (!posts?.length) return [];
 
-        const postIds = posts.map((p) => p['post_id'] as number);
-        const authorIds = [...new Set(posts.map((p) => p['user_id'] as string))];
-        const bookIds = [...new Set(posts.map((p) => p['book_id'] as number))];
+        // Trending shows posts from everyone, so hide private accounts that
+        // aren't the viewer's friend (matches the community feed + profile gate).
+        const allAuthorIds = [...new Set(posts.map((p) => p['user_id'] as string))];
+        const hiddenPrivate = await this.getHiddenPrivateAuthorIds(currentUserId, allAuthorIds);
+        const vposts = hiddenPrivate.size
+          ? posts.filter((p) => !hiddenPrivate.has(p['user_id'] as string))
+          : posts;
+        if (!vposts.length) return [];
+
+        const postIds = vposts.map((p) => p['post_id'] as number);
+        const authorIds = [...new Set(vposts.map((p) => p['user_id'] as string))];
+        const bookIds = [...new Set(vposts.map((p) => p['book_id'] as number))];
 
         const [authorsRes, booksRes, likesRes, commentCountRes] = await Promise.all([
           supabase.from('users').select('id, name, profile_picture_url').in('id', authorIds),
@@ -163,12 +172,38 @@ export class ActivityService {
           commentCountMap.set(pid, (commentCountMap.get(pid) ?? 0) + 1);
         });
 
-        return posts
+        return vposts
           .map((p) => this.mapPost(p, authorMap, bookMap, likeCountMap, likedPostIds, commentCountMap))
           .sort((a, b) => b.likeCount - a.likeCount)
           .slice(0, limit);
       }),
     ).pipe(catchError((err) => throwError(() => err)));
+  }
+
+  // Author ids to hide from "everyone" views (trending): private accounts that
+  // aren't the viewer's accepted friend (and aren't the viewer). Friendship RLS
+  // scopes the friendship read to the viewer's own rows.
+  private async getHiddenPrivateAuthorIds(viewerId: string, authorIds: string[]): Promise<Set<string>> {
+    const hidden = new Set<string>();
+    if (!authorIds.length) return hidden;
+    const supabase = await this.supabaseService.getClient();
+    const [privateRes, friendRes] = await Promise.all([
+      supabase.from('users').select('id').in('id', authorIds).eq('is_private', true),
+      supabase
+        .from('friendship')
+        .select('user_id1, user_id2, friendship_status(status_name)')
+        .or(`user_id1.eq.${viewerId},user_id2.eq.${viewerId}`),
+    ]);
+    const friendSet = new Set(
+      (friendRes.data ?? [])
+        .filter((r) => ((r['friendship_status'] as unknown) as { status_name?: string } | null)?.status_name === 'accepted')
+        .map((r) => (r['user_id1'] === viewerId ? (r['user_id2'] as string) : (r['user_id1'] as string))),
+    );
+    for (const r of privateRes.data ?? []) {
+      const id = r['id'] as string;
+      if (id !== viewerId && !friendSet.has(id)) hidden.add(id);
+    }
+    return hidden;
   }
 
   getUserPosts(targetUserId: string, currentUserId: string, limit = 10): Observable<ActivityPost[]> {

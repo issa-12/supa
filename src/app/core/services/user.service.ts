@@ -11,6 +11,7 @@ export interface UserProfile {
   avatarUrl: string | null;
   joinDate: string;
   username: string | null;
+  isPrivate: boolean;
 }
 
 export interface ReadingStats {
@@ -50,6 +51,7 @@ export class UserService {
           avatarUrl: null,
           joinDate: new Date().getFullYear().toString(),
           username: null,
+          isPrivate: false,
         };
       }),
       catchError((error) => throwError(() => error))
@@ -240,6 +242,7 @@ export class UserService {
             about_me: updates.bio,
             profile_picture_url: updates.avatarUrl,
             username: updates.username,
+            is_private: updates.isPrivate,
             updated_at: new Date().toISOString(),
           })
           .eq('id', userId)
@@ -288,6 +291,7 @@ export class UserService {
         ? new Date(raw.created_at).getFullYear().toString()
         : new Date().getFullYear().toString(),
       username: raw.username || null,
+      isPrivate: raw.is_private ?? false,
     };
   }
 }

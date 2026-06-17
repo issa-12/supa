@@ -52,13 +52,25 @@ export class CommentService {
     const authorIds = [...new Set(visibleRows.map((r) => r['user_id'] as string))];
     const commentIds = visibleRows.map((r) => r['comment_id'] as number);
 
-    const [authorsRes, likesRes, myLikesRes] = await Promise.all([
-      supabase.from('users').select('id, name, profile_picture_url').in('id', authorIds),
+    const [authorsRes, likesRes, myLikesRes, friendIds] = await Promise.all([
+      supabase.from('users').select('id, name, profile_picture_url, is_private').in('id', authorIds),
       supabase.from('comment_likes').select('comment_id, user_id').in('comment_id', commentIds),
       supabase.from('comment_likes').select('comment_id').in('comment_id', commentIds).eq('user_id', currentUserId),
+      this.getFriendIds(currentUserId),
     ]);
 
     const authorMap = new Map((authorsRes.data ?? []).map((a) => [a['id'] as string, a]));
+
+    // Hide comments from private accounts that aren't the viewer's friend (and
+    // aren't the viewer themselves) — matches the community/profile privacy gate.
+    const friendSet = new Set(friendIds);
+    const privateRows = visibleRows.filter((r) => {
+      const author = authorMap.get(r['user_id'] as string);
+      const uid = r['user_id'] as string;
+      if (author?.['is_private'] && uid !== currentUserId && !friendSet.has(uid)) return false;
+      return true;
+    });
+    if (!privateRows.length) return [];
 
     const likeCountMap = new Map<number, number>();
     (likesRes.data ?? []).forEach((l) => {
@@ -68,7 +80,7 @@ export class CommentService {
 
     const likedCommentIds = new Set((myLikesRes.data ?? []).map((l) => l['comment_id'] as number));
 
-    const flat: Comment[] = visibleRows.map((r) => {
+    const flat: Comment[] = privateRows.map((r) => {
       const author = authorMap.get(r['user_id'] as string);
       return {
         id: r['comment_id'] as number,
@@ -108,6 +120,20 @@ export class CommentService {
       }
     });
     return blocked;
+  }
+
+  // The viewer's accepted friends (scoped by friendship RLS to own rows).
+  private async getFriendIds(currentUserId: string): Promise<string[]> {
+    if (!currentUserId) return [];
+    const supabase = await this.supabaseService.getClient();
+    const { data } = await supabase
+      .from('friendship')
+      .select('user_id1, user_id2, friendship_status(status_name)')
+      .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`);
+
+    return (data ?? [])
+      .filter((r) => ((r['friendship_status'] as unknown) as { status_name?: string } | null)?.status_name === 'accepted')
+      .map((r) => (r['user_id1'] === currentUserId ? (r['user_id2'] as string) : (r['user_id1'] as string)));
   }
 
   private buildTree(flat: Comment[]): Comment[] {

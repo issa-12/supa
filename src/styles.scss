@@ -105,3 +105,72 @@ img {
 ::-webkit-scrollbar-thumb:hover {
   background: #a89886;
 }
+
+/* ── Private account: locked-profile notice + edit-panel toggle ──
+   Global (not component-scoped) so the large profile component stays under
+   its CSS budget; the classes are profile-specific so there's no collision. */
+.private-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.private-notice svg { flex-shrink: 0; }
+.private-notice p { margin: 0; font-size: 14px; line-height: 1.5; }
+
+.privacy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+}
+.privacy-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.privacy-toggle-hint {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+.privacy-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.privacy-toggle-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.18s;
+}
+.privacy-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s;
+}
+.privacy-toggle-input:checked + .privacy-toggle-switch {
+  background: var(--primary);
+}
+.privacy-toggle-input:checked + .privacy-toggle-switch::after {
+  transform: translateX(18px);
+}
+[dir="rtl"] .privacy-toggle-input:checked + .privacy-toggle-switch::after {
+  transform: translateX(-18px);
+}

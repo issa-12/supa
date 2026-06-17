@@ -68,8 +68,13 @@ export class ProfilePageComponent implements OnInit {
   editName = '';
   editUsername = '';
   editBio = '';
+  editIsPrivate = false;
   savingProfile = false;
   editProfileError: string | null = null;
+
+  // True when viewing a private account that isn't an accepted friend (and not
+  // our own) — the detailed profile is locked; only the header + a notice show.
+  isPrivateLocked = false;
 
   allGenres: UserGenre[] = [];
   selectedGenreIds = new Set<number>();
@@ -165,9 +170,25 @@ export class ProfilePageComponent implements OnInit {
         }
       }
 
-      const [profile, stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
+      // Load the profile first — needed for the privacy gate, and always shown.
+      const profile = await firstValueFrom(this.userService.getUserProfileById(targetId));
+      this.profile = profile;
+
+      // Privacy gate: a private account is locked to anyone who isn't an
+      // accepted friend (own profile is never locked). We deliberately do NOT
+      // fetch the shelf/stats/posts in this case, so the private data never
+      // reaches the client.
+      if (!this.isOwnProfile && profile.isPrivate && this.friendshipStatus !== 'accepted') {
+        this.isPrivateLocked = true;
+        if (this.currentUserId) {
+          const count = await this.friendshipService.getFriendCount(targetId).catch(() => ({ count: 0 }));
+          this.friendCount = count.count;
+        }
+        return;
+      }
+
+      const [stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
         await Promise.all([
-          firstValueFrom(this.userService.getUserProfileById(targetId)),
           firstValueFrom(this.userService.getUserReadingStats(targetId)),
           firstValueFrom(this.userService.getUserGenres(targetId)),
           firstValueFrom(this.bookService.getUserBooksByRating(targetId, 5, 5)),
@@ -177,7 +198,6 @@ export class ProfilePageComponent implements OnInit {
           firstValueFrom(this.activityService.getUserPosts(targetId, this.currentUserId ?? targetId, 5)),
         ]);
 
-      this.profile = profile;
       this.readingStats = stats;
       this.goalInput = stats.booksGoal;
       this.genres = genres;
@@ -525,6 +545,7 @@ export class ProfilePageComponent implements OnInit {
     this.editName = this.profile.name;
     this.editUsername = this.profile.username ?? '';
     this.editBio = this.profile.bio ?? '';
+    this.editIsPrivate = this.profile.isPrivate;
     this.selectedGenreIds = new Set(this.genres.map((g) => g.id));
     this.editProfileError = null;
     this.editingProfile = true;
@@ -599,6 +620,7 @@ export class ProfilePageComponent implements OnInit {
           name: this.editName.trim() || this.profile!.name,
           username: this.editUsername.trim() || null,
           bio: this.editBio.trim() || null,
+          isPrivate: this.editIsPrivate,
         }),
       );
       this.profile = updated;
