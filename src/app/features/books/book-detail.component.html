@@ -272,19 +272,34 @@
         <div class="content-section">
           <h3 class="section-title">{{ copy.myReview }}</h3>
           <p class="section-hint">{{ copy.reviewHint }}</p>
-          <textarea
-            [(ngModel)]="reviewText"
-            class="content-textarea"
-            [placeholder]="copy.reviewPlaceholder"
-            rows="4"
-            maxlength="1000"
-          ></textarea>
-          <div class="textarea-footer">
-            <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
-            <button class="btn save-btn" [class.btn-saved]="reviewSaved" [class.btn-outline]="!reviewSaved" (click)="saveReview()" [disabled]="reviewSaving">
-              {{ reviewSaved ? copy.saved : reviewSaving ? copy.saving : copy.saveReview }}
-            </button>
-          </div>
+
+          @if (savedReview && !editingReview) {
+            <!-- Posted state -->
+            <div class="review-card own-review-card">
+              <p class="review-text">{{ savedReview }}</p>
+              <button class="btn btn-outline own-review-edit" (click)="startEditReview()">{{ copy.editReview }}</button>
+            </div>
+          } @else {
+            <!-- Editing / first-time state -->
+            <textarea
+              [(ngModel)]="reviewText"
+              class="content-textarea"
+              [placeholder]="copy.reviewPlaceholder"
+              rows="4"
+              maxlength="1000"
+            ></textarea>
+            <div class="textarea-footer">
+              <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
+              <div class="own-review-actions">
+                @if (savedReview) {
+                  <button class="btn btn-outline save-btn" (click)="cancelEditReview()" [disabled]="reviewSaving">{{ copy.cancelEdit }}</button>
+                }
+                <button class="btn btn-primary save-btn" (click)="saveReview()" [disabled]="reviewSaving || !reviewText.trim()">
+                  {{ reviewSaving ? copy.saving : (savedReview ? copy.updateReview : copy.postReview) }}
+                </button>
+              </div>
+            </div>
+          }
         </div>
       }
 

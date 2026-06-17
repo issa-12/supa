@@ -150,6 +150,16 @@ export class NotificationsService {
     return { success: true };
   }
 
+  async deleteAllNotifications(userId: string): Promise<{ success: boolean }> {
+    const { error } = await this.supabase
+      .getAdmin()
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
+  }
+
   async markAllAsRead(userId: string): Promise<{ success: boolean }> {
     await this.supabase
       .getAdmin()

@@ -7,6 +7,7 @@ import { BookService, UserBook, GoogleBook, CommunityReview } from '../../core/s
 import { FriendshipService, FriendUser } from '../../core/services/friendship.service';
 import { RecommendationService } from '../../core/services/recommendation.service';
 import { LikesService } from '../../core/services/likes.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { TranslationService, BOOK_DETAIL_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -56,6 +57,7 @@ export class BookDetailComponent implements OnInit {
   private readonly friendshipService = inject(FriendshipService);
   private readonly recommendationService = inject(RecommendationService);
   private readonly likesService = inject(LikesService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly translationService = inject(TranslationService);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -90,9 +92,10 @@ export class BookDetailComponent implements OnInit {
   noteSaving = false;
   noteSaved = false;
 
-  reviewText = '';
+  reviewText = '';        // editing buffer (bound to the textarea)
+  savedReview = '';       // the persisted review — shown as a posted card
+  editingReview = false;
   reviewSaving = false;
-  reviewSaved = false;
 
   communityReviews: CommunityReview[] = [];
 
@@ -117,7 +120,8 @@ export class BookDetailComponent implements OnInit {
           this.bookService.getUserBookByGoogleId(this.userId, googleId),
         );
         this.note = this.userBook?.note ?? '';
-        this.reviewText = this.userBook?.reviewText ?? '';
+        this.savedReview = this.userBook?.reviewText ?? '';
+        this.reviewText = this.savedReview;
       }
 
       if (this.book.dbBookId) {
@@ -239,7 +243,7 @@ export class BookDetailComponent implements OnInit {
 
   async removeFromShelf(): Promise<void> {
     if (!this.userBook) return;
-    if (!confirm('Remove this book from your shelf?')) return;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.confirmRemove, danger: true }))) return;
     this.showStatusDropdown = false;
 
     try {
@@ -298,16 +302,27 @@ export class BookDetailComponent implements OnInit {
     }
   }
 
+  startEditReview(): void {
+    this.reviewText = this.savedReview;
+    this.editingReview = true;
+  }
+
+  cancelEditReview(): void {
+    this.reviewText = this.savedReview;
+    this.editingReview = false;
+  }
+
   async saveReview(): Promise<void> {
     if (!this.userBook || this.reviewSaving) return;
     this.reviewSaving = true;
     try {
       this.userBook = await firstValueFrom(
-        this.bookService.saveReview(this.userBook.id, this.reviewText),
+        this.bookService.saveReview(this.userBook.id, this.reviewText.trim()),
       );
-      this.reviewSaved = true;
-      setTimeout(() => { this.reviewSaved = false; }, 2000);
-      this.loadCommunityReviews(this.userBook.bookId);
+      // Switch to the "posted" card view.
+      this.savedReview = this.userBook?.reviewText ?? this.reviewText.trim();
+      this.editingReview = false;
+      this.loadCommunityReviews(this.userBook!.bookId);
     } catch (err) {
       console.error(err);
     } finally {

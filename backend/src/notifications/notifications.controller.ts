@@ -48,6 +48,13 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(+id, userId);
   }
 
+  @Delete()
+  async deleteAll(@Headers('authorization') auth: string) {
+    const token = extractToken(auth);
+    const userId = await this.notificationsService.verifyUser(token);
+    return this.notificationsService.deleteAllNotifications(userId);
+  }
+
   @Delete(':id')
   async deleteNotification(
     @Headers('authorization') auth: string,

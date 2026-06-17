@@ -7,6 +7,7 @@ import {
 } from '../../../core/services/notifications.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { BookService } from '../../../core/services/book.service';
+import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, NOTIFICATIONS_COPY, NotificationsCopy, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -32,9 +33,14 @@ const LABEL_KEY_BY_TYPE: Record<string, keyof NotificationsCopy> = {
     <div class="panel">
       <div class="panel-header">
         <h3 class="panel-title">{{ copy.notificationsPanelTitle }}</h3>
-        @if (hasUnread) {
-          <button class="mark-all-btn" (click)="markAllRead()">{{ copy.markAllReadBtn }}</button>
-        }
+        <div class="panel-actions">
+          @if (hasUnread) {
+            <button class="mark-all-btn" (click)="markAllRead()">{{ copy.markAllReadBtn }}</button>
+          }
+          @if (notifications.length > 0) {
+            <button class="clear-all-btn" (click)="clearAll()">{{ copy.clearAllBtn }}</button>
+          }
+        </div>
       </div>
 
       @if (isLoading) {
@@ -134,6 +140,12 @@ const LABEL_KEY_BY_TYPE: Record<string, keyof NotificationsCopy> = {
       margin: 0;
     }
 
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
     .mark-all-btn {
       font-size: 13px;
       font-weight: 600;
@@ -144,6 +156,18 @@ const LABEL_KEY_BY_TYPE: Record<string, keyof NotificationsCopy> = {
       padding: 4px 0;
 
       &:hover { opacity: 0.7; }
+    }
+
+    .clear-all-btn {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+
+      &:hover { color: var(--destructive); }
     }
 
     .panel-state {
@@ -318,6 +342,7 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
   private readonly notificationsService = inject(NotificationsService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly bookService = inject(BookService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -450,6 +475,11 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   markAllRead(): void {
     void this.notificationsService.markAllAsRead();
+  }
+
+  async clearAll(): Promise<void> {
+    if (!(await this.confirmDialog.confirm({ message: this.copy.clearAllConfirm, danger: true }))) return;
+    void this.notificationsService.deleteAll();
   }
 
   readonly timeAgo = timeAgo;
