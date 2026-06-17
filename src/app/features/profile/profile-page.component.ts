@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -77,6 +77,7 @@ export class ProfilePageComponent implements OnInit {
 
   uploadingAvatar = false;
   avatarError: string | null = null;
+  avatarMenuOpen = false;
 
   friendshipStatus: FriendshipStatusValue = 'none';
   friendshipId: number | null = null;
@@ -458,8 +459,20 @@ export class ProfilePageComponent implements OnInit {
       .toUpperCase();
   }
 
+  toggleAvatarMenu(): void {
+    this.avatarMenuOpen = !this.avatarMenuOpen;
+  }
+
+  // Close the avatar menu on any click outside it (the menu container stops
+  // propagation, so clicks inside don't trigger this).
+  @HostListener('document:click')
+  closeAvatarMenu(): void {
+    this.avatarMenuOpen = false;
+  }
+
   async onAvatarFileChange(event: Event): Promise<void> {
     if (!this.currentUserId || this.uploadingAvatar) return;
+    this.avatarMenuOpen = false;
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -485,6 +498,23 @@ export class ProfilePageComponent implements OnInit {
     } finally {
       this.uploadingAvatar = false;
       input.value = '';
+    }
+  }
+
+  async onRemoveAvatar(): Promise<void> {
+    if (!this.currentUserId || this.uploadingAvatar || !this.profile?.avatarUrl) return;
+    this.avatarMenuOpen = false;
+    if (!confirm(this.copy.removePhotoConfirm)) return;
+    this.uploadingAvatar = true;
+    this.avatarError = null;
+    try {
+      await this.userService.removeAvatar(this.currentUserId);
+      if (this.profile) this.profile = { ...this.profile, avatarUrl: null };
+      this.userService.setCurrentUserAvatar(null);
+    } catch {
+      this.avatarError = this.copy.removePhotoError;
+    } finally {
+      this.uploadingAvatar = false;
     }
   }
 

@@ -12,6 +12,12 @@ export interface ProfileCopy {
   readingSincePrefix: string;
   editProfile: string;
   editProfileBtn: string;
+  removePhotoBtn: string;
+  removePhotoConfirm: string;
+  removePhotoError: string;
+  addPhotoBtn: string;
+  changePhotoBtn: string;
+  editPhotoLabel: string;
   addFriend: string;
   addFriendBtn: string;
   cancelRequest: string;
@@ -143,6 +149,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     readingSincePrefix: 'Reading since ',
     editProfile: 'Edit Profile',
     editProfileBtn: 'Edit Profile',
+    removePhotoBtn: 'Remove photo',
+    removePhotoConfirm: 'Remove your profile photo?',
+    removePhotoError: 'Could not remove photo. Please try again.',
+    addPhotoBtn: 'Add photo',
+    changePhotoBtn: 'Change photo',
+    editPhotoLabel: 'Edit profile photo',
     addFriend: 'Add Friend',
     addFriendBtn: 'Add Friend',
     cancelRequest: 'Cancel Request',
@@ -272,6 +284,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     readingSincePrefix: 'القراءة منذ ',
     editProfile: 'تعديل الملف الشخصي',
     editProfileBtn: 'تعديل الملف الشخصي',
+    removePhotoBtn: 'إزالة الصورة',
+    removePhotoConfirm: 'إزالة صورة ملفك الشخصي؟',
+    removePhotoError: 'تعذّر إزالة الصورة. حاول مرة أخرى.',
+    addPhotoBtn: 'إضافة صورة',
+    changePhotoBtn: 'تغيير الصورة',
+    editPhotoLabel: 'تعديل صورة الملف الشخصي',
     addFriend: 'إضافة صديق',
     addFriendBtn: 'إضافة صديق',
     cancelRequest: 'إلغاء الطلب',
@@ -401,6 +419,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     readingSincePrefix: 'Lecteur depuis ',
     editProfile: 'Modifier le profil',
     editProfileBtn: 'Modifier le profil',
+    removePhotoBtn: 'Supprimer la photo',
+    removePhotoConfirm: 'Supprimer votre photo de profil ?',
+    removePhotoError: 'Impossible de supprimer la photo. Veuillez reessayer.',
+    addPhotoBtn: 'Ajouter une photo',
+    changePhotoBtn: 'Changer la photo',
+    editPhotoLabel: 'Modifier la photo de profil',
     addFriend: 'Ajouter un ami',
     addFriendBtn: 'Ajouter un ami',
     cancelRequest: 'Annuler la demande',

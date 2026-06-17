@@ -31,6 +31,7 @@ export interface AuthCopy {
   hidePassword: string;
   requiredFields: string;
   emailInvalid: string;
+  emailDomainNotAllowed: string;
   passwordPolicy: string;
   passwordHint: string;
   emailExists: string;
@@ -42,6 +43,12 @@ export interface AuthCopy {
   genericError: string;
   resetError: string;
   googleError: string;
+  resetEmailPlaceholder: string;
+  resetSubmit: string;
+  closeLabel: string;
+  authRegionLabel: string;
+  altMethodsLabel: string;
+  brandHomeLabel: string;
 }
 
 export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
@@ -76,6 +83,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     hidePassword: 'Hide password',
     requiredFields: 'Please complete the required fields.',
     emailInvalid: 'Please enter a valid email address (e.g. you@example.com).',
+    emailDomainNotAllowed: 'Sign up requires a gmail.com, outlook.com, hotmail.com, yahoo.com, or icloud.com email address.',
     passwordPolicy: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number.',
     passwordHint: 'At least 8 characters, with an uppercase letter, a lowercase letter, and a number.',
     emailExists: 'An account with this email already exists. Log in or reset your password instead.',
@@ -87,6 +95,12 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     genericError: 'Something went wrong. Please try again.',
     resetError: 'Could not send a password reset email.',
     googleError: 'Could not start Google sign-in.',
+    resetEmailPlaceholder: 'Email',
+    resetSubmit: 'Submit',
+    closeLabel: 'Close',
+    authRegionLabel: 'Authentication',
+    altMethodsLabel: 'Alternative login methods',
+    brandHomeLabel: 'ReadTrack home',
   },
   ar: {
     languageLabel: 'تغيير اللغة',
@@ -119,6 +133,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     hidePassword: 'إخفاء كلمة المرور',
     requiredFields: 'يرجى إكمال الحقول المطلوبة.',
     emailInvalid: 'يرجى إدخال عنوان بريد إلكتروني صالح (مثال: you@example.com).',
+    emailDomainNotAllowed: 'يتطلب التسجيل بريدًا إلكترونيًا من gmail.com أو outlook.com أو hotmail.com أو yahoo.com أو icloud.com.',
     passwordPolicy: 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وتتضمن حرفًا كبيرًا وحرفًا صغيرًا ورقمًا.',
     passwordHint: '8 أحرف على الأقل، مع حرف كبير وحرف صغير ورقم.',
     emailExists: 'يوجد حساب بهذا البريد الإلكتروني بالفعل. سجّل الدخول أو أعد تعيين كلمة المرور.',
@@ -130,6 +145,12 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     genericError: 'حدث خطأ ما. حاول مرة أخرى.',
     resetError: 'تعذر إرسال بريد إعادة تعيين كلمة المرور.',
     googleError: 'تعذر بدء تسجيل الدخول عبر Google.',
+    resetEmailPlaceholder: 'البريد الإلكتروني',
+    resetSubmit: 'إرسال',
+    closeLabel: 'إغلاق',
+    authRegionLabel: 'المصادقة',
+    altMethodsLabel: 'طرق تسجيل دخول بديلة',
+    brandHomeLabel: 'الصفحة الرئيسية لـ ReadTrack',
   },
   fr: {
     languageLabel: 'Changer de langue',
@@ -162,6 +183,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     hidePassword: 'Masquer le mot de passe',
     requiredFields: 'Veuillez remplir les champs obligatoires.',
     emailInvalid: 'Veuillez saisir une adresse e-mail valide (ex. : you@example.com).',
+    emailDomainNotAllowed: 'L inscription requiert une adresse gmail.com, outlook.com, hotmail.com, yahoo.com ou icloud.com.',
     passwordPolicy: 'Le mot de passe doit comporter au moins 8 caracteres, dont une majuscule, une minuscule et un chiffre.',
     passwordHint: 'Au moins 8 caracteres, avec une majuscule, une minuscule et un chiffre.',
     emailExists: 'Un compte existe deja avec cet e-mail. Connectez-vous ou reinitialisez votre mot de passe.',
@@ -173,5 +195,11 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     genericError: 'Une erreur est survenue. Veuillez reessayer.',
     resetError: 'Impossible d envoyer l e-mail de reinitialisation.',
     googleError: 'Impossible de demarrer la connexion Google.',
+    resetEmailPlaceholder: 'E-mail',
+    resetSubmit: 'Envoyer',
+    closeLabel: 'Fermer',
+    authRegionLabel: 'Authentification',
+    altMethodsLabel: 'Autres methodes de connexion',
+    brandHomeLabel: 'Accueil ReadTrack',
   },
 };

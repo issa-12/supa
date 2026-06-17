@@ -44,6 +44,14 @@ export class AuthController {
       });
     }
 
+    if (!isAllowedEmailDomain(email)) {
+      throw new BadRequestException({
+        code: 'EMAIL_DOMAIN_NOT_ALLOWED',
+        message:
+          'Sign up requires a gmail.com, outlook.com, hotmail.com, yahoo.com, or icloud.com email address.',
+      });
+    }
+
     if (!name) {
       throw new BadRequestException({
         code: 'MISSING_FIELDS',
@@ -114,6 +122,21 @@ function extractToken(auth: string): string {
 function normalizeEmail(email: string | undefined): string {
   const normalized = email?.trim().toLowerCase() ?? '';
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : '';
+}
+
+// Signup is restricted to these providers. Keep in sync with the frontend
+// allowlist in auth-page.component.ts (ALLOWED_EMAIL_DOMAINS).
+const ALLOWED_EMAIL_DOMAINS = [
+  'gmail.com',
+  'outlook.com',
+  'hotmail.com',
+  'yahoo.com',
+  'icloud.com',
+];
+
+function isAllowedEmailDomain(email: string): boolean {
+  const domain = email.slice(email.lastIndexOf('@') + 1);
+  return ALLOWED_EMAIL_DOMAINS.includes(domain);
 }
 
 function normalizeCode(code: string | undefined): string {
