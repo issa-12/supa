@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook } from '../../core/services/book.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { TranslationService, SHELF_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -13,6 +14,8 @@ interface ShelfSection {
 }
 
 const STATUS_ORDER: Record<string, number> = {
+  // Friend recommendations are a pending inbox — surface them first.
+  recommended_by_friend: -1,
   currently_reading: 0,
   want_to_read: 1,
   read: 2,
@@ -28,6 +31,7 @@ const STATUS_ORDER: Record<string, number> = {
 export class ShelfComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly bookService = inject(BookService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
 
@@ -97,6 +101,7 @@ export class ShelfComponent implements OnInit {
   // live on language switch) rather than being baked in at build time.
   sectionLabel(statusName: string): string {
     switch (statusName) {
+      case 'recommended_by_friend': return this.copy.friendRecommendationsLabel;
       case 'currently_reading': return this.copy.currentlyReadingLabel;
       case 'want_to_read': return this.copy.wantToReadLabel;
       case 'read': return this.copy.alreadyReadLabel;
@@ -106,6 +111,10 @@ export class ShelfComponent implements OnInit {
 
   get totalBooks(): number {
     return this.sections.reduce((n, s) => n + s.books.length, 0);
+  }
+
+  get hasRecommendations(): boolean {
+    return this.sections.some((s) => s.statusName === 'recommended_by_friend');
   }
 
   get displayedSections(): ShelfSection[] {
@@ -174,7 +183,12 @@ export class ShelfComponent implements OnInit {
   }
 
   async removeBook(book: UserBook): Promise<void> {
-    if (!confirm(`Remove "${book.book?.title ?? 'this book'}" from your shelf?`)) return;
+    const title = book.book?.title ?? 'this book';
+    const ok = await this.confirmDialog.confirm({
+      message: this.copy.confirmRemove.replace('{{ title }}', title),
+      danger: true,
+    });
+    if (!ok) return;
     this.openMenuId = null;
     this.savingId = book.id;
 
@@ -188,6 +202,51 @@ export class ShelfComponent implements OnInit {
       console.error(err);
     } finally {
       this.savingId = null;
+    }
+  }
+
+  // Accept a friend recommendation → moves to "Want to Read", so it leaves the
+  // recommendations inbox and rebuilds into the normal flow.
+  async acceptRecommendation(book: UserBook, event: Event): Promise<void> {
+    event.stopPropagation();
+    this.savingId = book.id;
+    try {
+      await firstValueFrom(this.bookService.acceptFriendRecommendation(book.id));
+      const supabase = await this.supabaseService.getClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const allBooks = await firstValueFrom(this.bookService.getUserShelf(user!.id));
+      this.buildSections(allBooks);
+      this.resetFilterIfNoRecs();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.savingId = null;
+    }
+  }
+
+  // Decline → remove the recommendation from the shelf entirely.
+  async declineRecommendation(book: UserBook, event: Event): Promise<void> {
+    event.stopPropagation();
+    this.savingId = book.id;
+    try {
+      await firstValueFrom(this.bookService.declineFriendRecommendation(book.id));
+      for (const section of this.sections) {
+        section.books = section.books.filter((b) => b.id !== book.id);
+      }
+      this.sections = this.sections.filter((s) => s.books.length > 0);
+      this.resetFilterIfNoRecs();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.savingId = null;
+    }
+  }
+
+  // After acting on the last recommendation the "Recommendations" pill is gone;
+  // fall back to "All" so the view doesn't get stuck on an empty filter.
+  private resetFilterIfNoRecs(): void {
+    if (this.activeFilter === 'recommended_by_friend' && !this.hasRecommendations) {
+      this.activeFilter = 'all';
     }
   }
 

@@ -9,7 +9,11 @@
         </svg>
       </button>
       <h1 class="header-title">{{ copy.title }}</h1>
-      <a routerLink="/shelf" class="shelf-link">{{ copy.myShelf }}</a>
+      <a routerLink="/shelf" class="shelf-link" [attr.aria-label]="copy.myShelf" [title]="copy.myShelf">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>
+        </svg>
+      </a>
     </div>
   </header>
 
@@ -156,7 +160,7 @@
                       <span class="recommend-name">{{ friend.name }}</span>
                       @if (recommendFeedback?.userId === friend.userId) {
                         <span class="recommend-status" [class.recommend-status--ok]="recommendFeedback!.success">
-                          {{ recommendFeedback!.success ? copy.recommendSent : copy.recommendFailed }}
+                          {{ recommendFeedback!.success ? (recommendFeedback!.alreadyHad ? copy.recommendAlreadyHas : copy.recommendSent) : copy.recommendFailed }}
                         </span>
                       } @else if (recommendingToId === friend.userId) {
                         <span class="recommend-status">…</span>
@@ -272,19 +276,34 @@
         <div class="content-section">
           <h3 class="section-title">{{ copy.myReview }}</h3>
           <p class="section-hint">{{ copy.reviewHint }}</p>
-          <textarea
-            [(ngModel)]="reviewText"
-            class="content-textarea"
-            [placeholder]="copy.reviewPlaceholder"
-            rows="4"
-            maxlength="1000"
-          ></textarea>
-          <div class="textarea-footer">
-            <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
-            <button class="btn save-btn" [class.btn-saved]="reviewSaved" [class.btn-outline]="!reviewSaved" (click)="saveReview()" [disabled]="reviewSaving">
-              {{ reviewSaved ? copy.saved : reviewSaving ? copy.saving : copy.saveReview }}
-            </button>
-          </div>
+
+          @if (savedReview && !editingReview) {
+            <!-- Posted state -->
+            <div class="review-card own-review-card">
+              <p class="review-text">{{ savedReview }}</p>
+              <button class="btn btn-outline own-review-edit" (click)="startEditReview()">{{ copy.editReview }}</button>
+            </div>
+          } @else {
+            <!-- Editing / first-time state -->
+            <textarea
+              [(ngModel)]="reviewText"
+              class="content-textarea"
+              [placeholder]="copy.reviewPlaceholder"
+              rows="4"
+              maxlength="1000"
+            ></textarea>
+            <div class="textarea-footer">
+              <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
+              <div class="own-review-actions">
+                @if (savedReview) {
+                  <button class="btn btn-outline save-btn" (click)="cancelEditReview()" [disabled]="reviewSaving">{{ copy.cancelEdit }}</button>
+                }
+                <button class="btn btn-primary save-btn" (click)="saveReview()" [disabled]="reviewSaving || !reviewText.trim()">
+                  {{ reviewSaving ? copy.saving : (savedReview ? copy.updateReview : copy.postReview) }}
+                </button>
+              </div>
+            </div>
+          }
         </div>
       }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { BooksService } from './books.service';
 
 @Controller('books')
@@ -13,8 +13,11 @@ export class BooksController {
   ) {
     const query = q?.trim() ?? '';
 
-    if (!query || query.length < 2) {
-      throw new BadRequestException('Query must be at least 2 characters.');
+    // Search-as-you-type clients fire on every keystroke; a 1-char query is
+    // not an error, just "too short to search yet" — return empty instead of a
+    // 400 so the browser console stays clean.
+    if (query.length < 2) {
+      return { books: [], totalItems: 0 };
     }
 
     const max = Math.min(Number(maxResults) || 20, 40);

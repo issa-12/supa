@@ -62,16 +62,42 @@ export class StatsService {
     const days = period === 'week' ? 7 : 30;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
+    // Server-side aggregation (see 20260616000001_stats_rpc.sql).
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .rpc('stats_top_books', { since });
+
+    if (error) {
+      console.warn('[Stats] stats_top_books RPC failed, falling back to JS:', error.message);
+      return this.getTopBooksFallback(since);
+    }
+
+    return (data ?? []).map((row: Record<string, unknown>, i: number) => ({
+      rank: i + 1,
+      title: row['title'] as string,
+      author: row['author_name'] as string,
+      coverUrl: (row['cover_image_url'] as string) ?? null,
+      googleBooksId: (row['google_books_id'] as string) ?? null,
+      addCount: Number(row['add_count']),
+    }));
+  }
+
+  // Pre-RPC implementation, retained as a fallback if the migration that
+  // creates stats_top_books has not been applied in a given environment.
+  private async getTopBooksFallback(since: string): Promise<TopBook[]> {
     const { data, error } = await this.supabase
       .getAdmin()
       .from('user_books')
-      .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id)')
+      .select('book_id, books(book_id, title, author_name, cover_image_url, google_books_id), reading_statuses(status_name)')
       .gte('updated_at', since);
 
     if (error) throw new InternalServerErrorException(error.message);
 
     const counts = new Map<number, { book: Record<string, unknown>; count: number }>();
     for (const row of data ?? []) {
+      // Skip pending friend recommendations — they're auto-added, not chosen.
+      const status = row['reading_statuses'] as unknown as { status_name?: string } | null;
+      if (status?.status_name === 'recommended_by_friend') continue;
       const book = row['books'] as unknown as Record<string, unknown> | null;
       if (!book) continue;
       const id = book['book_id'] as number;
@@ -93,6 +119,27 @@ export class StatsService {
   }
 
   async getTrendingGenres(): Promise<TrendingGenre[]> {
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .rpc('stats_trending_genres');
+
+    if (error) {
+      console.warn('[Stats] stats_trending_genres RPC failed, falling back to JS:', error.message);
+      return this.getTrendingGenresFallback();
+    }
+
+    return (data ?? []).map((row: Record<string, unknown>) => {
+      const count = Number(row['cnt']);
+      const total = Number(row['total']);
+      return {
+        name: row['genre_name'] as string,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      };
+    });
+  }
+
+  private async getTrendingGenresFallback(): Promise<TrendingGenre[]> {
     const { data, error } = await this.supabase
       .getAdmin()
       .from('user_genres')
@@ -120,6 +167,25 @@ export class StatsService {
   async getTopReaders(): Promise<TopReader[]> {
     const statusId = await this.getReadStatusId();
 
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .rpc('stats_top_readers', { read_status_id: statusId });
+
+    if (error) {
+      console.warn('[Stats] stats_top_readers RPC failed, falling back to JS:', error.message);
+      return this.getTopReadersFallback(statusId);
+    }
+
+    return (data ?? []).map((row: Record<string, unknown>, i: number) => ({
+      rank: i + 1,
+      userId: row['user_id'] as string,
+      name: (row['name'] as string) ?? 'Reader',
+      avatarUrl: (row['profile_picture_url'] as string) ?? null,
+      booksRead: Number(row['books_read']),
+    }));
+  }
+
+  private async getTopReadersFallback(statusId: number): Promise<TopReader[]> {
     const { data, error } = await this.supabase
       .getAdmin()
       .from('user_books')

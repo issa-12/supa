@@ -30,6 +30,33 @@ function strictEmailValidator(control: AbstractControl): ValidationErrors | null
   return STRICT_EMAIL_PATTERN.test(value) ? null : { email: true };
 }
 
+// Signup is restricted to these providers. Keep in sync with the backend
+// allowlist in auth.controller.ts (ALLOWED_EMAIL_DOMAINS).
+const ALLOWED_EMAIL_DOMAINS = [
+  'gmail.com',
+  'outlook.com',
+  'hotmail.com',
+  'yahoo.com',
+  'icloud.com',
+];
+
+function allowedEmailDomainValidator(control: AbstractControl): ValidationErrors | null {
+  const value = (control.value ?? '').trim().toLowerCase();
+  if (!value || !value.includes('@')) return null; // format handled elsewhere
+  const domain = value.slice(value.lastIndexOf('@') + 1);
+  return ALLOWED_EMAIL_DOMAINS.includes(domain) ? null : { emailDomain: true };
+}
+
+// Supabase/GoTrue (bcrypt) rejects passwords longer than 72 characters.
+// Enforce it client-side so the user gets a clear message instead of a raw
+// backend error. Mirrored on the backend (auth.controller.ts).
+const MAX_PASSWORD_LENGTH = 72;
+
+function passwordMaxLengthValidator(control: AbstractControl): ValidationErrors | null {
+  const value: string = control.value ?? '';
+  return value.length > MAX_PASSWORD_LENGTH ? { passwordMaxLength: true } : null;
+}
+
 // Signup password policy: at least 8 chars, with an uppercase letter, a
 // lowercase letter, and a number. Mirrored on the backend (auth.controller.ts).
 function passwordPolicyValidator(control: AbstractControl): ValidationErrors | null {
@@ -127,6 +154,10 @@ export class AuthPageComponent {
       // fields" (i.e. something is actually empty).
       if (emailControl.value?.trim() && emailControl.errors?.['email']) {
         this.errorMessage = this.text.emailInvalid;
+      } else if (emailControl.value?.trim() && emailControl.errors?.['emailDomain']) {
+        this.errorMessage = this.text.emailDomainNotAllowed;
+      } else if (passwordControl.value && passwordControl.errors?.['passwordMaxLength']) {
+        this.errorMessage = this.text.passwordTooLong;
       } else if (passwordControl.value && passwordControl.errors?.['passwordPolicy']) {
         this.errorMessage = this.text.passwordPolicy;
       } else {
@@ -212,7 +243,7 @@ export class AuthPageComponent {
     return this.formBuilder.nonNullable.group({
       name: [''],
       email: ['', [Validators.required, strictEmailValidator]],
-      password: ['', [Validators.required]],
+      password: ['', [Validators.required, passwordMaxLengthValidator]],
     });
   }
 
@@ -223,6 +254,10 @@ export class AuthPageComponent {
 
     this.authForm.controls.name.addValidators([Validators.required]);
     this.authForm.controls.name.updateValueAndValidity();
+
+    // Signup-only: restrict the email to the allowed provider domains.
+    this.authForm.controls.email.addValidators([allowedEmailDomainValidator]);
+    this.authForm.controls.email.updateValueAndValidity();
 
     // The password policy applies to new accounts only — at login we just
     // require a non-empty password and let the server verify it.
@@ -290,8 +325,12 @@ export class AuthPageComponent {
           return this.text.emailExists;
         case 'WEAK_PASSWORD':
           return this.text.passwordPolicy;
+        case 'PASSWORD_TOO_LONG':
+          return this.text.passwordTooLong;
         case 'INVALID_EMAIL':
           return this.text.emailInvalid;
+        case 'EMAIL_DOMAIN_NOT_ALLOWED':
+          return this.text.emailDomainNotAllowed;
         case 'MISSING_FIELDS':
           return this.text.requiredFields;
         default:

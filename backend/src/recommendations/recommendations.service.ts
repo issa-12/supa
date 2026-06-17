@@ -1,6 +1,12 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface RecommendationBook {
   dbBookId: number | null;
@@ -25,13 +31,95 @@ interface ClaudeSuggestion {
 export class RecommendationsService {
   private readonly anthropic = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
   private readonly googleBooksKey = process.env['GOOGLE_BOOKS_API_KEY'];
+  private recommendedStatusId: number | null = null;
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async verifyUser(token: string): Promise<string> {
     const { data, error } = await this.supabase.getAdmin().auth.getUser(token);
     if (error || !data.user) throw new UnauthorizedException('Invalid or expired session.');
     return data.user.id;
+  }
+
+  // Add a friend's book recommendation to the recipient's shelf as
+  // `recommended_by_friend` and notify them — unless they already have the
+  // book on any shelf, in which case we do nothing and report it back so the
+  // recommender gets generic "already has it" feedback (no status is revealed,
+  // no clobbering of the recipient's existing row/progress, no duplicate).
+  // Runs with the admin client because user_books RLS only lets a user insert
+  // their own rows.
+  async recommendToFriend(
+    fromUserId: string,
+    toUserId: string,
+    bookId: number,
+  ): Promise<{ added: boolean }> {
+    if (fromUserId === toUserId) {
+      throw new BadRequestException('Cannot recommend a book to yourself.');
+    }
+    if (!isUuid(toUserId)) {
+      throw new BadRequestException('toUserId must be a valid UUID.');
+    }
+    if (!Number.isInteger(bookId) || bookId <= 0) {
+      throw new BadRequestException('bookId must be a positive integer.');
+    }
+
+    const admin = this.supabase.getAdmin();
+
+    // Don't clobber / duplicate if the recipient already has this book anywhere.
+    const { data: existing } = await admin
+      .from('user_books')
+      .select('user_book_id')
+      .eq('user_id', toUserId)
+      .eq('book_id', bookId)
+      .maybeSingle();
+
+    if (existing) return { added: false };
+
+    const statusId = await this.getRecommendedStatusId();
+
+    const { error } = await admin.from('user_books').insert({
+      user_id: toUserId,
+      book_id: bookId,
+      status_id: statusId,
+      recommended_by: fromUserId,
+      added_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      // 23505 = unique_violation: a row was created for this pair between the
+      // check above and the insert (rare race) — treat as already-present.
+      if ((error as { code?: string }).code === '23505') return { added: false };
+      if ((error as { code?: string }).code === '23503') {
+        throw new BadRequestException('Recipient or book does not exist.');
+      }
+      throw new InternalServerErrorException(error.message);
+    }
+
+    this.notifications
+      .createNotification(toUserId, fromUserId, 'book_recommended', bookId, 'book')
+      .catch(() => undefined);
+
+    return { added: true };
+  }
+
+  private async getRecommendedStatusId(): Promise<number> {
+    if (this.recommendedStatusId !== null) return this.recommendedStatusId;
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .from('reading_statuses')
+      .select('status_id')
+      .eq('status_name', 'recommended_by_friend')
+      .single();
+    if (error || !data) {
+      throw new InternalServerErrorException(
+        'reading_statuses seed missing "recommended_by_friend" row — run the day-1 migration.',
+      );
+    }
+    this.recommendedStatusId = data['status_id'] as number;
+    return this.recommendedStatusId;
   }
 
   async getRecommendations(userId: string): Promise<RecommendationBook[]> {
@@ -334,4 +422,9 @@ Do NOT recommend: ${excludeTitles || 'none'}`;
         { onConflict: 'user_id' },
       );
   }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(value: string): boolean {
+  return typeof value === 'string' && UUID_RE.test(value);
 }

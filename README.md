@@ -42,11 +42,12 @@ The whole app supports **multiple concurrent users** with real-time notification
 | Online presence | Heartbeat-based online/offline status shown on friends & profiles | _( )_ |
 | Real-time notifications | Live bell + dropdown (friend requests, likes, comments, recommendations) via Supabase Realtime | _( )_ |
 | Community feed | Create posts (with book + tags), threaded comments, likes, trending tab, tag filtering | _( )_ |
-| AI content moderation | Posts analysed and moderated (approved / flagged / rejected) via Claude | _( )_ |
+| AI content moderation | Posts **and comments** analysed and moderated via Claude (profanity/abuse blocked before publish) | _( )_ |
 | AI sentiment analysis | Each post tagged positive / negative / neutral / mixed | _( )_ |
 | AI recommendations | Personalized book suggestions (Claude), enriched with Google Books, cached 24h; powers the home hero + grid | _( )_ |
 | Stats dashboard | Top books, trending genres, top readers, personal monthly reading pace | _( )_ |
-| Profiles | Avatar upload, bio, username, reading goal, currently reading, recent posts | _( )_ |
+| Profiles | Avatar upload (add / change / remove), bio, username, reading goal, currently reading, recent posts | _( )_ |
+| Private accounts | Make a profile private — shelf/stats/posts/comments visible to friends only; still findable in search (shows a locked state) | _( )_ |
 | i18n + RTL | English / Arabic (RTL) / French with a live language switcher | _( )_ |
 | PWA | Installable, offline app shell via service worker | _( )_ |
 | HTTPS | nginx TLS termination + HTTP→HTTPS redirect | _( )_ |
@@ -119,10 +120,10 @@ PostgreSQL (Supabase). All tables have **Row-Level Security** enabled.
 
 Core tables and relationships:
 
-- **`users`** — mirrors `auth.users` (`id = auth.uid()`); `name`, `profile_picture_url`, `bio`, `username`, `last_seen_at`.
+- **`users`** — mirrors `auth.users` (`id = auth.uid()`); `name`, `profile_picture_url`, `bio`, `username`, `last_seen_at`, `is_private`.
 - **`profiles`** — extended profile data.
 - **`books`** — shared catalogue; `google_books_id` UNIQUE, `title`, `author_name`, `description`, `cover_image_url`.
-- **`user_books`** — a user's shelf entry: → `users`, → `books`, → `reading_statuses`; `rating`, `note`, `review_text`, `current_page`, `total_pages`. UNIQUE `(user_id, book_id)`.
+- **`user_books`** — a user's shelf entry: → `users`, → `books`, → `reading_statuses`; `rating`, `note`, `review_text`, `current_page`, `total_pages`, `recommended_by`. UNIQUE `(user_id, book_id)`.
 - **`reading_statuses`** — reference: read / want_to_read / currently_reading / recommended_by_friend.
 - **`reading_goals`** — annual goal per user; UNIQUE `(user_id, year)`.
 - **`genres`** (20 seeded) ↔ **`user_genres`** (many-to-many user↔genre).

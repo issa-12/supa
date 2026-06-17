@@ -15,6 +15,7 @@ export interface BookDetailCopy {
   noFriends: string;
   recommendSent: string;
   recommendFailed: string;
+  recommendAlreadyHas: string;
   changeStatus: string;
   removeFromShelf: string;
   addToShelf: string;
@@ -33,6 +34,10 @@ export interface BookDetailCopy {
   reviewHint: string;
   reviewPlaceholder: string;
   saveReview: string;
+  postReview: string;
+  updateReview: string;
+  editReview: string;
+  cancelEdit: string;
   communityReviews: string;
   likeReview: string;
   dislikeReview: string;
@@ -58,6 +63,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     noFriends: 'No friends yet.',
     recommendSent: 'Sent!',
     recommendFailed: 'Failed',
+    recommendAlreadyHas: 'Already on their shelf',
     changeStatus: 'Change status',
     removeFromShelf: 'Remove from shelf',
     addToShelf: 'Add to Shelf',
@@ -76,6 +82,10 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     reviewHint: 'Visible to your friends',
     reviewPlaceholder: 'Share your thoughts about this book…',
     saveReview: 'Save Review',
+    postReview: 'Post Review',
+    updateReview: 'Update Review',
+    editReview: 'Edit',
+    cancelEdit: 'Cancel',
     communityReviews: 'Community Reviews',
     likeReview: 'Helpful',
     dislikeReview: 'Not helpful',
@@ -99,6 +109,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     noFriends: 'لا توجد أصدقاء حتى الآن.',
     recommendSent: 'تم الإرسال!',
     recommendFailed: 'فشل',
+    recommendAlreadyHas: 'موجود بالفعل على رفّه',
     changeStatus: 'تغيير الحالة',
     removeFromShelf: 'إزالة من الرف',
     addToShelf: 'إضافة إلى الرف',
@@ -117,6 +128,10 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     reviewHint: 'مرئي لأصدقائك',
     reviewPlaceholder: 'شارك أفكارك حول هذا الكتاب…',
     saveReview: 'حفظ التقييم',
+    postReview: 'نشر التقييم',
+    updateReview: 'تحديث التقييم',
+    editReview: 'تعديل',
+    cancelEdit: 'إلغاء',
     communityReviews: 'تقييمات المجتمع',
     likeReview: 'مفيد',
     dislikeReview: 'غير مفيد',
@@ -140,6 +155,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     noFriends: 'Aucun ami pour le moment.',
     recommendSent: 'Envoyé !',
     recommendFailed: 'Échec',
+    recommendAlreadyHas: 'Déjà dans sa bibliothèque',
     changeStatus: 'Modifier le statut',
     removeFromShelf: 'Supprimer de la bibliothèque',
     addToShelf: 'Ajouter à la bibliothèque',
@@ -158,6 +174,10 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     reviewHint: 'Visible par vos amis',
     reviewPlaceholder: 'Partagez vos réflexions sur ce livre…',
     saveReview: 'Enregistrer l\'avis',
+    postReview: 'Publier l\'avis',
+    updateReview: 'Mettre a jour l\'avis',
+    editReview: 'Modifier',
+    cancelEdit: 'Annuler',
     communityReviews: 'Avis de la communauté',
     likeReview: 'Utile',
     dislikeReview: 'Pas utile',

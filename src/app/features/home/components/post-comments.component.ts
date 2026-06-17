@@ -139,6 +139,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               </svg>
             </button>
           </div>
+          @if (commentError) {
+            <p class="comment-error">{{ commentError }}</p>
+          }
         </div>
       }
     </div>
@@ -270,6 +273,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       gap: 8px;
     }
 
+    .comment-error {
+      color: var(--destructive);
+      font-size: 12px;
+      margin: 6px 0 0;
+    }
+
     .comment-input-row {
       flex: 1;
       display: flex;
@@ -345,6 +354,7 @@ export class PostCommentsComponent implements OnInit {
   replyingToId: number | null = null;
   replyContent = '';
   submitting = false;
+  commentError: string | null = null;
 
   get userInitial(): string {
     return (this.currentUserName ?? 'R')[0].toUpperCase();
@@ -366,13 +376,17 @@ export class PostCommentsComponent implements OnInit {
     const text = this.newContent.trim();
     if (!text || this.submitting) return;
     this.submitting = true;
+    this.commentError = null;
     this.commentService.addComment(this.postId, this.currentUserId, text).subscribe({
       next: (comment) => {
         this.comments = [...this.comments, comment];
         this.newContent = '';
         this.submitting = false;
       },
-      error: () => { this.submitting = false; },
+      error: (err) => {
+        this.commentError = err instanceof Error ? err.message : 'Could not post comment.';
+        this.submitting = false;
+      },
     });
   }
 
@@ -390,6 +404,7 @@ export class PostCommentsComponent implements OnInit {
     const text = this.replyContent.trim();
     if (!text || this.submitting) return;
     this.submitting = true;
+    this.commentError = null;
     this.commentService.addComment(this.postId, this.currentUserId, text, parent.id, parent.depth + 1).subscribe({
       next: (reply) => {
         const topLevel = this.findAndAddReply(this.comments, parent.id, reply);
@@ -398,7 +413,10 @@ export class PostCommentsComponent implements OnInit {
         this.replyContent = '';
         this.submitting = false;
       },
-      error: () => { this.submitting = false; },
+      error: (err) => {
+        this.commentError = err instanceof Error ? err.message : 'Could not post comment.';
+        this.submitting = false;
+      },
     });
   }
 

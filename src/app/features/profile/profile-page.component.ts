@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -14,6 +14,7 @@ import {
 } from '../../core/services/friendship.service';
 import { ReportService, ReportReason } from '../../core/services/report.service';
 import { PresenceService } from '../../core/services/presence.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { timeAgo } from '../../core/util/time-ago';
 import { TranslationService, PROFILE_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -24,6 +25,7 @@ interface ProfileBook {
   author: string;
   coverUrl: string | null;
   rating: number;
+  googleBooksId: string | null;
 }
 
 @Component({
@@ -41,6 +43,7 @@ export class ProfilePageComponent implements OnInit {
   private readonly friendshipService = inject(FriendshipService);
   private readonly reportService = inject(ReportService);
   private readonly presenceService = inject(PresenceService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
@@ -65,8 +68,13 @@ export class ProfilePageComponent implements OnInit {
   editName = '';
   editUsername = '';
   editBio = '';
+  editIsPrivate = false;
   savingProfile = false;
   editProfileError: string | null = null;
+
+  // True when viewing a private account that isn't an accepted friend (and not
+  // our own) — the detailed profile is locked; only the header + a notice show.
+  isPrivateLocked = false;
 
   allGenres: UserGenre[] = [];
   selectedGenreIds = new Set<number>();
@@ -76,6 +84,7 @@ export class ProfilePageComponent implements OnInit {
 
   uploadingAvatar = false;
   avatarError: string | null = null;
+  avatarMenuOpen = false;
 
   friendshipStatus: FriendshipStatusValue = 'none';
   friendshipId: number | null = null;
@@ -125,6 +134,12 @@ export class ProfilePageComponent implements OnInit {
     return !!userId && this.onlineIds.has(userId);
   }
 
+  // Online/offline status is only visible between accepted friends — not for
+  // strangers or pending/blocked relationships.
+  get canSeeViewedUserPresence(): boolean {
+    return !this.isOwnProfile && this.friendshipStatus === 'accepted';
+  }
+
   async ngOnInit(): Promise<void> {
     try {
       const supabase = await this.supabaseService.getClient();
@@ -155,9 +170,25 @@ export class ProfilePageComponent implements OnInit {
         }
       }
 
-      const [profile, stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
+      // Load the profile first — needed for the privacy gate, and always shown.
+      const profile = await firstValueFrom(this.userService.getUserProfileById(targetId));
+      this.profile = profile;
+
+      // Privacy gate: a private account is locked to anyone who isn't an
+      // accepted friend (own profile is never locked). We deliberately do NOT
+      // fetch the shelf/stats/posts in this case, so the private data never
+      // reaches the client.
+      if (!this.isOwnProfile && profile.isPrivate && this.friendshipStatus !== 'accepted') {
+        this.isPrivateLocked = true;
+        if (this.currentUserId) {
+          const count = await this.friendshipService.getFriendCount(targetId).catch(() => ({ count: 0 }));
+          this.friendCount = count.count;
+        }
+        return;
+      }
+
+      const [stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
         await Promise.all([
-          firstValueFrom(this.userService.getUserProfileById(targetId)),
           firstValueFrom(this.userService.getUserReadingStats(targetId)),
           firstValueFrom(this.userService.getUserGenres(targetId)),
           firstValueFrom(this.bookService.getUserBooksByRating(targetId, 5, 5)),
@@ -167,7 +198,6 @@ export class ProfilePageComponent implements OnInit {
           firstValueFrom(this.activityService.getUserPosts(targetId, this.currentUserId ?? targetId, 5)),
         ]);
 
-      this.profile = profile;
       this.readingStats = stats;
       this.goalInput = stats.booksGoal;
       this.genres = genres;
@@ -186,11 +216,14 @@ export class ProfilePageComponent implements OnInit {
         this.friends = friends;
         this.incomingRequests = requests;
         this.friendCount = count.count;
-        friends.forEach(f => void this.presenceService.loadPresenceForUser(f.userId));
+        void this.presenceService.loadPresenceForUsers(friends.map(f => f.userId));
       } else if (this.currentUserId) {
         const count = await this.friendshipService.getFriendCount(targetId);
         this.friendCount = count.count;
-        void this.presenceService.loadPresenceForUser(targetId);
+        // Only friends can see each other's online status.
+        if (this.friendshipStatus === 'accepted') {
+          void this.presenceService.loadPresenceForUser(targetId);
+        }
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Failed to load profile.';
@@ -297,7 +330,7 @@ export class ProfilePageComponent implements OnInit {
   async blockUser(): Promise<void> {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.friendActionLoading) return;
-    if (!window.confirm(this.copy.blockConfirm)) return;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.blockConfirm, danger: true }))) return;
 
     const wasAccepted = this.friendshipStatus === 'accepted';
     this.friendActionLoading = true;
@@ -448,8 +481,20 @@ export class ProfilePageComponent implements OnInit {
       .toUpperCase();
   }
 
+  toggleAvatarMenu(): void {
+    this.avatarMenuOpen = !this.avatarMenuOpen;
+  }
+
+  // Close the avatar menu on any click outside it (the menu container stops
+  // propagation, so clicks inside don't trigger this).
+  @HostListener('document:click')
+  closeAvatarMenu(): void {
+    this.avatarMenuOpen = false;
+  }
+
   async onAvatarFileChange(event: Event): Promise<void> {
     if (!this.currentUserId || this.uploadingAvatar) return;
+    this.avatarMenuOpen = false;
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -478,11 +523,29 @@ export class ProfilePageComponent implements OnInit {
     }
   }
 
+  async onRemoveAvatar(): Promise<void> {
+    if (!this.currentUserId || this.uploadingAvatar || !this.profile?.avatarUrl) return;
+    this.avatarMenuOpen = false;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.removePhotoConfirm, danger: true }))) return;
+    this.uploadingAvatar = true;
+    this.avatarError = null;
+    try {
+      await this.userService.removeAvatar(this.currentUserId);
+      if (this.profile) this.profile = { ...this.profile, avatarUrl: null };
+      this.userService.setCurrentUserAvatar(null);
+    } catch {
+      this.avatarError = this.copy.removePhotoError;
+    } finally {
+      this.uploadingAvatar = false;
+    }
+  }
+
   onEditProfile(): void {
     if (!this.profile) return;
     this.editName = this.profile.name;
     this.editUsername = this.profile.username ?? '';
     this.editBio = this.profile.bio ?? '';
+    this.editIsPrivate = this.profile.isPrivate;
     this.selectedGenreIds = new Set(this.genres.map((g) => g.id));
     this.editProfileError = null;
     this.editingProfile = true;
@@ -519,7 +582,7 @@ export class ProfilePageComponent implements OnInit {
 
   async deleteAccount(): Promise<void> {
     if (this.deletingAccount) return;
-    if (!confirm(this.copy.deleteAccountConfirm)) return;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.deleteAccountConfirm, danger: true }))) return;
     this.deletingAccount = true;
     this.deleteAccountError = null;
     try {
@@ -557,6 +620,7 @@ export class ProfilePageComponent implements OnInit {
           name: this.editName.trim() || this.profile!.name,
           username: this.editUsername.trim() || null,
           bio: this.editBio.trim() || null,
+          isPrivate: this.editIsPrivate,
         }),
       );
       this.profile = updated;
@@ -627,6 +691,13 @@ export class ProfilePageComponent implements OnInit {
         author: ub.book!.author,
         coverUrl: ub.book!.coverUrl,
         rating: ub.rating ?? 0,
+        googleBooksId: ub.book!.googleBooksId,
       }));
+  }
+
+  openBook(book: ProfileBook): void {
+    if (book.googleBooksId) {
+      this.router.navigate(['/books', book.googleBooksId]);
+    }
   }
 }

@@ -75,6 +75,9 @@
     <div class="filter-bar">
       <div class="filter-pills">
         <button class="filter-pill" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">{{ copy.allFilter }}</button>
+        @if (hasRecommendations) {
+          <button class="filter-pill" [class.active]="activeFilter === 'recommended_by_friend'" (click)="activeFilter = 'recommended_by_friend'">{{ copy.recommendationsFilter }}</button>
+        }
         <button class="filter-pill" [class.active]="activeFilter === 'currently_reading'" (click)="activeFilter = 'currently_reading'">{{ copy.readingFilter }}</button>
         <button class="filter-pill" [class.active]="activeFilter === 'want_to_read'" (click)="activeFilter = 'want_to_read'">{{ copy.wantToReadFilter }}</button>
         <button class="filter-pill" [class.active]="activeFilter === 'read'" (click)="activeFilter = 'read'">{{ copy.readFilter }}</button>
@@ -122,6 +125,14 @@
                 <div class="book-info">
                   <h3 class="book-title">{{ book.book?.title }}</h3>
                   <p class="book-author">{{ book.book?.author }}</p>
+
+                  @if (section.statusName === 'recommended_by_friend') {
+                    <p class="rec-by">{{ copy.recommendedByPrefix }} {{ book.recommendedByName || 'a friend' }}</p>
+                    <div class="rec-actions" (click)="$event.stopPropagation()">
+                      <button class="rec-accept" (click)="acceptRecommendation(book, $event)" [disabled]="savingId === book.id">{{ copy.acceptBtn }}</button>
+                      <button class="rec-decline" (click)="declineRecommendation(book, $event)" [disabled]="savingId === book.id">{{ copy.declineBtn }}</button>
+                    </div>
+                  } @else {
 
                   <!-- Stars -->
                   @if (book.rating) {
@@ -203,6 +214,7 @@
                       </div>
                     }
                   </div>
+                  }
                 </div>
 
               </div>

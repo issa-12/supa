@@ -86,6 +86,39 @@ export class NotificationsService {
     }
   }
 
+  async deleteNotification(id: number): Promise<void> {
+    const prev = this.notifications$.value;
+    const target = prev.find((n) => n.id === id);
+    if (!target) return;
+
+    // Optimistic: drop it from the list (and the badge if it was unread), roll
+    // back on failure. Never rejects — template click handlers fire-and-forget.
+    this.notifications$.next(prev.filter((n) => n.id !== id));
+    if (!target.isRead) this.unreadCount$.next(Math.max(0, this.unreadCount$.value - 1));
+    try {
+      await this.apiFetch(`/${id}`, { method: 'DELETE' });
+    } catch {
+      this.notifications$.next(prev);
+      void this.loadUnreadCount();
+    }
+  }
+
+  async deleteAll(): Promise<void> {
+    const prev = this.notifications$.value;
+    const prevCount = this.unreadCount$.value;
+    if (prev.length === 0) return;
+
+    // Optimistic: clear everything, roll back on failure. Never rejects.
+    this.notifications$.next([]);
+    this.unreadCount$.next(0);
+    try {
+      await this.apiFetch('', { method: 'DELETE' });
+    } catch {
+      this.notifications$.next(prev);
+      this.unreadCount$.next(prevCount);
+    }
+  }
+
   async markAllAsRead(): Promise<void> {
     const prev = this.notifications$.value;
     const prevCount = this.unreadCount$.value;

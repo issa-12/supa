@@ -135,6 +135,31 @@ export class NotificationsService {
     return { success: true };
   }
 
+  async deleteNotification(notificationId: number, userId: string): Promise<{ success: boolean }> {
+    const admin = this.supabase.getAdmin();
+    const { data: n } = await admin
+      .from('notifications')
+      .select('notification_id, user_id')
+      .eq('notification_id', notificationId)
+      .maybeSingle();
+
+    if (!n) throw new NotFoundException('Notification not found.');
+    if (n['user_id'] !== userId) throw new ForbiddenException('Not authorized.');
+
+    await admin.from('notifications').delete().eq('notification_id', notificationId);
+    return { success: true };
+  }
+
+  async deleteAllNotifications(userId: string): Promise<{ success: boolean }> {
+    const { error } = await this.supabase
+      .getAdmin()
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
+  }
+
   async markAllAsRead(userId: string): Promise<{ success: boolean }> {
     await this.supabase
       .getAdmin()

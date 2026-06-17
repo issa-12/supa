@@ -12,6 +12,12 @@ export interface ProfileCopy {
   readingSincePrefix: string;
   editProfile: string;
   editProfileBtn: string;
+  removePhotoBtn: string;
+  removePhotoConfirm: string;
+  removePhotoError: string;
+  addPhotoBtn: string;
+  changePhotoBtn: string;
+  editPhotoLabel: string;
   addFriend: string;
   addFriendBtn: string;
   cancelRequest: string;
@@ -87,6 +93,9 @@ export interface ProfileCopy {
   bioPlaceholder: string;
   favoriteGenres: string;
   favoriteGenresHint: string;
+  privateAccountLabel: string;
+  privateAccountHint: string;
+  privateAccountNotice: string;
   cancelEdit: string;
   saveChanges: string;
   saving: string;
@@ -143,6 +152,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     readingSincePrefix: 'Reading since ',
     editProfile: 'Edit Profile',
     editProfileBtn: 'Edit Profile',
+    removePhotoBtn: 'Remove photo',
+    removePhotoConfirm: 'Remove your profile photo?',
+    removePhotoError: 'Could not remove photo. Please try again.',
+    addPhotoBtn: 'Add photo',
+    changePhotoBtn: 'Change photo',
+    editPhotoLabel: 'Edit profile photo',
     addFriend: 'Add Friend',
     addFriendBtn: 'Add Friend',
     cancelRequest: 'Cancel Request',
@@ -218,6 +233,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     bioPlaceholder: 'Tell readers about yourself…',
     favoriteGenres: 'Favorite genres',
     favoriteGenresHint: 'Pick the genres you love — they shape your recommendations.',
+    privateAccountLabel: 'Private account',
+    privateAccountHint: 'Only friends can see your profile, posts, and comments.',
+    privateAccountNotice: 'This account is private. Add them as a friend to see their profile.',
     cancelEdit: 'Cancel',
     saveChanges: 'Save Changes',
     saving: 'Saving…',
@@ -272,6 +290,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     readingSincePrefix: 'القراءة منذ ',
     editProfile: 'تعديل الملف الشخصي',
     editProfileBtn: 'تعديل الملف الشخصي',
+    removePhotoBtn: 'إزالة الصورة',
+    removePhotoConfirm: 'إزالة صورة ملفك الشخصي؟',
+    removePhotoError: 'تعذّر إزالة الصورة. حاول مرة أخرى.',
+    addPhotoBtn: 'إضافة صورة',
+    changePhotoBtn: 'تغيير الصورة',
+    editPhotoLabel: 'تعديل صورة الملف الشخصي',
     addFriend: 'إضافة صديق',
     addFriendBtn: 'إضافة صديق',
     cancelRequest: 'إلغاء الطلب',
@@ -347,6 +371,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     bioPlaceholder: 'أخبر القراء عن نفسك…',
     favoriteGenres: 'الأنواع المفضلة',
     favoriteGenresHint: 'اختر الأنواع التي تحبها — فهي تشكّل توصياتك.',
+    privateAccountLabel: 'حساب خاص',
+    privateAccountHint: 'يمكن للأصدقاء فقط رؤية ملفك ومنشوراتك وتعليقاتك.',
+    privateAccountNotice: 'هذا الحساب خاص. أضِفه كصديق لرؤية ملفه الشخصي.',
     cancelEdit: 'إلغاء',
     saveChanges: 'حفظ التغييرات',
     saving: 'جاري الحفظ…',
@@ -401,6 +428,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     readingSincePrefix: 'Lecteur depuis ',
     editProfile: 'Modifier le profil',
     editProfileBtn: 'Modifier le profil',
+    removePhotoBtn: 'Supprimer la photo',
+    removePhotoConfirm: 'Supprimer votre photo de profil ?',
+    removePhotoError: 'Impossible de supprimer la photo. Veuillez reessayer.',
+    addPhotoBtn: 'Ajouter une photo',
+    changePhotoBtn: 'Changer la photo',
+    editPhotoLabel: 'Modifier la photo de profil',
     addFriend: 'Ajouter un ami',
     addFriendBtn: 'Ajouter un ami',
     cancelRequest: 'Annuler la demande',
@@ -476,6 +509,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     bioPlaceholder: 'Parlez-nous de vous…',
     favoriteGenres: 'Genres favoris',
     favoriteGenresHint: 'Choisissez les genres que vous aimez — ils façonnent vos recommandations.',
+    privateAccountLabel: 'Compte prive',
+    privateAccountHint: 'Seuls vos amis peuvent voir votre profil, vos messages et vos commentaires.',
+    privateAccountNotice: 'Ce compte est prive. Ajoutez cette personne en ami pour voir son profil.',
     cancelEdit: 'Annuler',
     saveChanges: 'Enregistrer les modifications',
     saving: 'Enregistrement en cours…',

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { Observable, from, throwError, of } from 'rxjs';
+import { Observable, from, throwError, of, firstValueFrom } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 export interface Book {
@@ -38,6 +38,8 @@ export interface UserBook {
   addedAt: string;
   readAt: string | null;
   updatedAt: string | null;
+  recommendedBy: string | null;
+  recommendedByName?: string | null;
   book?: Book;
   status?: { id: number; name: string };
 }
@@ -66,16 +68,33 @@ export interface ReadingStatus {
 export class BookService {
   private readonly supabaseService = inject(SupabaseService);
 
+  // reading_statuses is a static seed table (read / want_to_read /
+  // currently_reading / recommended_by_friend). Resolve the name→id map once
+  // and reuse it, instead of a round-trip to Supabase before every shelf call.
+  private statusMapPromise?: Promise<Map<string, number>>;
+
+  private async resolveStatusId(name: string): Promise<number | undefined> {
+    this.statusMapPromise ??= this.supabaseService.getClient().then(async (supabase) => {
+      const { data } = await supabase
+        .from('reading_statuses')
+        .select('status_id, status_name');
+      return new Map(
+        (data ?? []).map((r) => [r['status_name'] as string, r['status_id'] as number]),
+      );
+    });
+    try {
+      return (await this.statusMapPromise).get(name);
+    } catch {
+      // Don't cache a failed lookup — let the next call retry.
+      this.statusMapPromise = undefined;
+      return undefined;
+    }
+  }
+
   getContinueReadingBooks(userId: string): Observable<UserBook[]> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
-        const { data: status } = await supabase
-          .from('reading_statuses')
-          .select('status_id')
-          .eq('status_name', 'currently_reading')
-          .maybeSingle();
-
-        const statusId = status?.['status_id'] as number | undefined;
+        const statusId = await this.resolveStatusId('currently_reading');
         if (!statusId) return [];
 
         return supabase
@@ -93,18 +112,83 @@ export class BookService {
 
   getUserShelf(userId: string): Observable<UserBook[]> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then(async (supabase) => {
+        const { data, error } = await supabase
           .from('user_books')
           .select('*, book:books(*), status:reading_statuses(*)')
           .eq('user_id', userId)
-          .order('added_at', { ascending: false })
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return (data || []).map((item) => this.mapUserBook(item));
-          })
-      )
+          .order('added_at', { ascending: false });
+
+        if (error) throw error;
+        const books = (data || []).map((item) => this.mapUserBook(item));
+
+        // Attach recommender display names for friend-recommended rows so the
+        // shelf can show "Recommended by <name>". Separate query because
+        // user_books has no FK to public.users for a PostgREST join.
+        const recommenderIds = [...new Set(books.map((b) => b.recommendedBy).filter((id): id is string => !!id))];
+        if (recommenderIds.length) {
+          const { data: users } = await supabase
+            .from('users')
+            .select('id, name')
+            .in('id', recommenderIds);
+          const nameMap = new Map((users ?? []).map((u) => [u['id'] as string, u['name'] as string]));
+          for (const b of books) {
+            if (b.recommendedBy) b.recommendedByName = nameMap.get(b.recommendedBy) ?? null;
+          }
+        }
+
+        return books;
+      })
     ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  // Recipient accepts a friend recommendation: move it into the normal
+  // reading flow (Want to Read). recommended_by is kept for attribution.
+  acceptFriendRecommendation(userBookId: number): Observable<UserBook> {
+    return from(
+      (async () => {
+        const statusId = await this.resolveStatusId('want_to_read');
+        if (!statusId) throw new Error("Status 'want_to_read' not found");
+        return firstValueFrom(this.changeShelfStatus(userBookId, statusId));
+      })()
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  // Recipient declines: remove the recommendation from their shelf entirely.
+  declineFriendRecommendation(userBookId: number): Observable<void> {
+    return this.removeFromShelf(userBookId);
+  }
+
+  // All book_ids the user still has as pending friend recommendations. Lets the
+  // notification panel decide whether to show Accept/Decline (hidden once the
+  // rec was resolved elsewhere — shelf accept/decline or a status change).
+  async getPendingRecommendationBookIds(userId: string): Promise<Set<number>> {
+    const supabase = await this.supabaseService.getClient();
+    const statusId = await this.resolveStatusId('recommended_by_friend');
+    if (!statusId) return new Set();
+    const { data } = await supabase
+      .from('user_books')
+      .select('book_id')
+      .eq('user_id', userId)
+      .eq('status_id', statusId);
+    return new Set((data ?? []).map((r) => r['book_id'] as number));
+  }
+
+  // Resolve the recipient's pending recommendation row for a book (used by the
+  // notification panel, which only knows the book_id). Returns the user_book_id
+  // if the book is still in `recommended_by_friend` status, else null.
+  async findPendingRecommendationUserBookId(userId: string, bookId: number): Promise<number | null> {
+    const supabase = await this.supabaseService.getClient();
+    const statusId = await this.resolveStatusId('recommended_by_friend');
+    if (!statusId) return null;
+    const { data } = await supabase
+      .from('user_books')
+      .select('user_book_id')
+      .eq('user_id', userId)
+      .eq('book_id', bookId)
+      .eq('status_id', statusId)
+      .maybeSingle();
+    return data ? (data['user_book_id'] as number) : null;
   }
 
   getUserBookByGoogleId(userId: string, googleBooksId: string): Observable<UserBook | null> {
@@ -280,13 +364,7 @@ export class BookService {
   getUserBooksByStatus(userId: string, statusName: string, limit = 10): Observable<UserBook[]> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
-        const { data: statusRow } = await supabase
-          .from('reading_statuses')
-          .select('status_id')
-          .eq('status_name', statusName)
-          .single();
-
-        const statusId = statusRow?.['status_id'] as number | undefined;
+        const statusId = await this.resolveStatusId(statusName);
         if (!statusId) return [];
 
         const { data, error } = await supabase
@@ -401,12 +479,7 @@ export class BookService {
   ): Promise<void> {
     const supabase = await this.supabaseService.getClient();
 
-    const { data: statusRow } = await supabase
-      .from('reading_statuses')
-      .select('status_id')
-      .eq('status_name', 'currently_reading')
-      .maybeSingle();
-    const statusId = statusRow?.['status_id'] as number | undefined;
+    const statusId = await this.resolveStatusId('currently_reading');
     if (!statusId) throw new Error("Status 'currently_reading' not found");
 
     const numericId =
@@ -484,13 +557,7 @@ export class BookService {
   ): Observable<UserBook> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
-        const { data: statusRow } = await supabase
-          .from('reading_statuses')
-          .select('status_id')
-          .eq('status_name', statusName)
-          .maybeSingle();
-
-        const statusId = statusRow?.['status_id'] as number | undefined;
+        const statusId = await this.resolveStatusId(statusName);
         if (!statusId) throw new Error(`Status '${statusName}' not found`);
 
         const { data: existing } = await supabase
@@ -681,6 +748,7 @@ export class BookService {
       addedAt: raw.added_at,
       readAt: raw.read_at,
       updatedAt: raw.updated_at,
+      recommendedBy: raw.recommended_by ?? null,
       book: raw.book ? this.mapBook(raw.book) : undefined,
       status: raw.status
         ? { id: raw.status.status_id, name: raw.status.status_name }

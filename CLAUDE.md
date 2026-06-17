@@ -109,10 +109,10 @@ The root `.env` is read by `docker-compose.yml` (`env_file: - .env`).
 ## Database schema (key tables)
 
 ```sql
-public.users          -- mirrors auth.users (id = auth.uid())
+public.users          -- mirrors auth.users (id = auth.uid()); last_seen_at, is_private
 public.profiles       -- extended profile data
 public.books          -- shared book catalog (google_books_id UNIQUE)
-public.user_books     -- user shelf (user_id, book_id, status_id, rating, note, review_text, current_page, total_pages)
+public.user_books     -- user shelf (user_id, book_id, status_id, rating, note, review_text, current_page, total_pages, recommended_by)
 public.reading_statuses  -- reference: read / want_to_read / currently_reading
 public.reading_goals  -- annual reading goal per user
 public.genres         -- 20 genres seeded
@@ -188,12 +188,18 @@ All tables have RLS enabled. Key rules:
 | GET | `/api/friends/requests` | List incoming pending requests |
 | GET | `/api/friends/status/:userId` | Friendship status with a specific user |
 | GET | `/api/recommendations/:userId` | AI book recommendations (Claude, 24h cache) |
+| POST | `/api/recommendations/friend` | Recommend a book to a friend — admin-inserts it into the recipient's shelf as `recommended_by_friend` + notifies; returns `{ added: false }` if they already have it |
 | GET | `/api/stats/global?period=week\|month` | Top books, trending genres, top readers |
 | GET | `/api/stats/pace` | Authenticated user's monthly reading pace |
 | GET | `/api/community/posts?tag=&page=&trending=` | Get all posts or trending posts (with optional tag filter) |
 | GET | `/api/community/tags/trending` | Get trending tags across all community posts |
-| POST | `/api/community/posts` | Create a new community post (with content moderation) |
+| POST | `/api/community/posts` | Create a new community post (Claude moderation: blocks `flagged`/`rejected`) |
+| POST | `/api/community/comments` | Create a comment/reply (same moderation; depth computed server-side, cap 3; fires comment notification) |
+| DELETE | `/api/notifications/:id` | Delete one notification (ownership-checked) |
+| DELETE | `/api/notifications` | Delete all of the user's notifications ("Clear all") |
 | GET | `/api/health` | Health check endpoint for Docker |
+
+> Note: `/api/auth/request-signup` + `/api/auth/resend-verification` return **429 `RATE_LIMITED`** (not 500) when Supabase rate-limits the OTP send; signup enforces an email-domain allowlist (`EMAIL_DOMAIN_NOT_ALLOWED`) and a 72-char password cap (`PASSWORD_TOO_LONG`). `/api/books/:googleId` returns **502** (not 500) when Google Books is unreachable for an uncached book.
 
 ---
 
@@ -364,12 +370,19 @@ All tables have RLS enabled. Key rules:
 - **Community page added**: `/community` route with full social features
 - **Frontend**: `CommunityPageComponent` (`src/app/features/community/community-page.component.ts`) — two-tab interface (All Posts / Trending), book picker for posts, tag filtering, trending tags sidebar
 - **Backend**: `CommunityModule` in `backend/src/community/` with full REST API for post CRUD
-- **Content moderation**: `CommunityService` uses Anthropic API to analyze post sentiment and moderate content (flagged/rejected/approved states)
+- **Content moderation**: `CommunityService.moderateAndAnalyze` uses the Anthropic API (`claude-haiku-4-5`) to classify each post `approved` / `flagged` / `rejected` + sentiment. **Policy (updated): both `rejected` (hate/harassment/explicit) and `flagged` (profanity / mildly inappropriate) are blocked at publish time (422), so only `approved` posts are stored.** The feed filter (`getAllPosts`/`getTrendingPosts`) also hides any pre-existing `flagged`/`rejected` rows: `or(moderation_status.is.null,and(...neq.rejected,...neq.flagged))` (legacy null-status posts stay visible). Note: moderation runs only at post time — Claude classifies profanity as `flagged`, not `rejected`, which is why blocking `flagged` (not just `rejected`) is required to stop bad-word posts. Every failure path (missing `ANTHROPIC_API_KEY`, API error, JSON parse error) falls back to `approved`/`neutral` so posting never hard-fails on an AI outage.
 - **Database**: Posts table with `tags` (string array), `sentiment` (positive/negative/neutral/mixed), soft-delete support
 - **API endpoints**:
   - `GET /api/community/posts?tag=&page=&trending=` — paginated post feed with optional tag filter
   - `GET /api/community/tags/trending` — trending tags across all posts
   - `POST /api/community/posts` — create post with auto-tagging and moderation (max 2000 chars, up to 5 tags)
+  - `POST /api/community/comments` — create a comment/reply with the **same moderation** as posts (depth computed server-side, capped at 3; fires the comment notification)
+
+### Post-sprint Moderation Everywhere (Post-Day 15)
+- **Home-feed posts now moderated**: the home composer (`PostsFeedComponent.submitPost`) used `ActivityService.createPost` (a direct, **unmoderated** Supabase insert). It now calls `createCommunityPost` → `POST /api/community/posts`, so home-feed posts go through the same Claude moderation as the community page. Rejected/flagged posts surface an inline `postError`. (`ActivityService.createPost` is now unused.)
+- **Comments now moderated**: comment creation moved from a client-side insert (`CommentService.addComment`) to `POST /api/community/comments` → `CommunityService.createComment`, which runs `moderateAndAnalyze` (blocks `flagged`/`rejected`, 422), computes depth from the parent server-side (cap 3), inserts via the admin client, and fires the comment notification from the backend. `CommentService` lost its client-side notification firing + `NotificationsService` dependency. `PostCommentsComponent` shows an inline `commentError` on rejection.
+- **Caveat — comment notifications need a migration**: `notifications_type` was found to be **missing `post_commented` / `comment_replied`** on the live DB — migration `20260524000002_comment_notification_types.sql` was never applied, so comment notifications have never fired. Comment creation tolerates this (the notify call is best-effort/caught), but **apply `20260524000002` to enable comment notifications.**
+- **Tradeoff**: moderation adds a synchronous Claude call (~2–5s) to each post *and now each comment*. Kept synchronous on purpose (demonstrable "moderate before publish"); commenting is now correspondingly slower.
 
 ### Post-sprint Notifications & i18n Hardening (Post-Day 15)
 - **NG0203 crash fix**: `app.ts` and `top-nav.component.ts` called `takeUntilDestroyed()` inside `ngOnInit` (outside the injection context), which threw `NG0203` and aborted nav init — so the notification bell/panel never loaded. Fixed by injecting `DestroyRef` and passing it: `takeUntilDestroyed(this.destroyRef)`. All other `takeUntilDestroyed()` calls are in constructors (valid) and were left alone.
@@ -443,6 +456,74 @@ All tables have RLS enabled. Key rules:
 - **Backend** (`recommendations.service.ts`): Claude returns a `genre` per recommended book (added to the prompt, `ClaudeSuggestion`/`RecommendationBook` interfaces, mock fallback, and all return paths). **Existing cached `ai_recommendations` rows predate the field** — they fall back to the favorite genre until the 24h cache refreshes (or the row is deleted).
 - **Frontend**: `genre` flows through `BookService.getRecommendedBooks` → `mapBook` → `HeroSectionComponent`; `heroEyebrowPrefix` added to `HOME_COPY` (EN/AR/FR), genre name itself comes from the data.
 
+### Post-sprint Performance Pass (Post-Day 15)
+Latency/throughput audit + fixes. All changes verified: frontend `ng build` (prod) + backend `nest build` pass; the three stats RPCs were run against live Supabase; `nginx -t` passes. Pages audited page-by-page — no regressions.
+
+- **Lazy-load Home + Profile routes** (`app.routes.ts`): `HomePageComponent` and `ProfilePageComponent` were the only protected routes still statically imported (eagerly bundled into the initial chunk). Switched to `loadComponent`. The prod build now emits `home-page-component` (~54 kB) and `profile-page-component` (~77 kB) as separate lazy chunks, shrinking the initial download. (They're referenced nowhere else, so code-splitting is clean.)
+- **Cache `reading_statuses` IDs** (`book.service.ts`): added a memoized `resolveStatusId(name)` backed by a single `statusMapPromise` (name→id `Map`). Replaced the per-call `reading_statuses` lookup in `getContinueReadingBooks`, `getUserBooksByStatus`, `addToCurrentlyReading`, `addBookToReadingList` — removes one Supabase round-trip per shelf/book op. On fetch error the promise is reset so the next call retries (no cached failure). **Note:** `book-search.component.ts`, `book-detail.component.ts`, `shelf.component.ts`, and `user.service.getUserReadingStats` still do their own inline `reading_statuses` lookups — a future consistency cleanup, not a bug (static seed table, no staleness).
+- **Cache `friendship_status` ID** (`activity.service.ts`): memoized `resolveAcceptedStatusId()` (same reset-on-error pattern) — removes the extra round-trip on every home-feed load.
+- **Batch presence queries** (`presence.service.ts` + `profile-page.component.ts`): new `loadPresenceForUsers(ids)` resolves a whole friends list in one `.in('id', ids)` query. The profile page previously fired one query per friend in a `forEach` loop (N queries → 1). The single-user `loadPresenceForUser` is retained for the viewed-user path.
+- **Stats DB-side aggregation** (`backend/src/stats/stats.service.ts` + migration `20260616000001_stats_rpc.sql`): `getTopBooks` / `getTrendingGenres` / `getTopReaders` previously downloaded **every** matching `user_books` / `user_genres` row and counted in JS (full-table transfer that degrades at scale). Now they call Postgres functions `stats_top_books(since)`, `stats_trending_genres()`, `stats_top_readers(read_status_id)` that GROUP BY + aggregate server-side and return only the small result set. `stats_trending_genres` uses `SUM(cnt) OVER ()` so the percentage denominator is the platform-wide total, not just the top 6. `stats_top_readers` joins `user_books → users` in one pass (replacing the old two-query + JS pattern). **The pre-RPC JS implementations are retained as `*Fallback` methods** that trigger (with a logged warning) if the RPC errors — so an environment without the migration still works. `getReadingPace` was left on its direct query (per-user, small, now index-backed). Controller response contract (`{ topBooks, trendingGenres, topReaders }`) is unchanged.
+- **DB indexes** (migration `20260616000000_performance_indexes.sql`): composite `idx_user_books_user_status (user_id, status_id)` for shelf lookups; `idx_user_books_updated_at` for stats period range scans; partial `idx_users_last_seen (last_seen_at) WHERE last_seen_at IS NOT NULL` for presence checks.
+- **nginx backend keepalive** (`nginx.conf`): added `upstream backend { server backend:3000; keepalive 32; }` and pointed `proxy_pass` at it (with the existing `proxy_http_version 1.1` + `Connection ""`), so `/api/` reuses TCP connections to NestJS instead of opening a fresh one per request.
+- **Two new migrations must be applied** in the Supabase SQL editor: `20260616000000_performance_indexes.sql` and `20260616000001_stats_rpc.sql`. Until the RPC migration is applied, stats transparently fall back to the old JS path. **Restart the backend** after applying the RPC migration.
+- **Deliberately deferred** (not done): making community post moderation async/fire-and-forget (kept synchronous — the "moderate before publish" behavior is a graded, demonstrable AI module); `ChangeDetectionStrategy.OnPush` (broad, needs its own pass); trending-feed like-count sort pushed to the DB; the shared feed like/comment-count aggregation across `activity.service` + `community.service` (5 call sites, hot path — wants a dedicated change with verification).
+
+### Post-sprint Friend Book Recommendations (Post-Day 15)
+- **What/why**: when a friend recommends a book it's auto-added to the recipient's shelf as a pending **"Friends Recommendations"** inbox, where they **Accept** (→ moves to Want to Read) or **Decline** (→ row deleted). Fills the gap the schema anticipated — the `recommended_by_friend` reading status was seeded on day 1 but unused. Verified: backend `nest build` + frontend prod `ng build` pass; live check confirmed the `recommended_by_friend` seed (status_id **5** in this DB — resolved by name, never hardcoded) and the new column applied.
+- **Migration** `20260616000002_friend_recommendations.sql`: adds `recommended_by uuid` (FK → `users`, `ON DELETE SET NULL`) to `user_books` — records who recommended it (so the shelf card shows "Recommended by <name>"). No RLS change: the cross-user insert uses the backend admin client (user_books INSERT RLS only allows writing your own row); accept (UPDATE status) / decline (DELETE) act on the recipient's own row, already covered by existing policies.
+- **Backend** `POST /api/recommendations/friend` (`recommendations.controller`/`service`, now imports `NotificationsModule`): inserts the book into the recipient's shelf as `recommended_by_friend` + fires the `book_recommended` notification. **Generic "already has it" handling** — if the recipient already has the book in *any* status, it does nothing and returns `{ added: false }` (no clobber of their status/progress, no duplicate, no notification, no leak of which status). Status id resolved by name + cached; race-safe on the unique index (`23505` → treated as already-present).
+- **Frontend**:
+  - `recommendation.service.recommendBook` now ensures the book in the catalog (client) then calls the endpoint; returns `{ added }`.
+  - `book.service`: `recommendedBy`/`recommendedByName` on `UserBook` (shelf query batch-fetches recommender names — two-query pattern, no FK to users); `acceptFriendRecommendation` (→ want_to_read, keeps `recommended_by` for attribution), `declineFriendRecommendation` (delete), `findPendingRecommendationUserBookId` (used by the bell panel, which only knows the book_id).
+  - **Shelf**: "Friends Recommendations" section pinned at top (`STATUS_ORDER` -1), a filter pill shown only when recs exist, per-card "Recommended by X" + Accept/Decline. Resets the filter to "All" after acting on the last rec (avoids a stuck empty filter).
+  - **Notification panel**: Accept/Decline buttons on `book_recommended` notifications (idempotent — if already actioned from the shelf, the lookup returns null and the buttons just clear).
+  - **Book detail**: recommender sees "Already on their shelf" when the friend already has it.
+  - i18n: new EN/AR/FR strings in `shelf`, `notifications`, `bookDetail`.
+- **Audit fix — Top Books**: friend recommendations auto-insert a `user_books` row the recipient didn't choose, which would have inflated the **Top Books** stat. Migration `20260616000003_stats_top_books_exclude_recs.sql` re-defines `stats_top_books` to exclude the `recommended_by_friend` status; the JS fallback in `stats.service` filters it too. (Once accepted → want_to_read, the book counts normally; declined → row gone.) Other stats are unaffected (top readers count only `read`; genres are independent).
+- **Requires applying** migrations `20260616000002` and `20260616000003` (the recipient column was applied during testing; **`20260616000003` still needs running** for the Top Books exclusion to take effect) and **restarting the backend**.
+- **Follow-up — notification panel polish**:
+  - **Stale Accept/Decline fix**: the bell-panel buttons used to linger after a rec was resolved elsewhere (shelf accept/decline, or a status change on the book page). They're now gated on `BookService.getPendingRecommendationBookIds()` (one query fetched when the panel opens) — buttons show only while the book is still in `recommended_by_friend` status. In-panel actions still hide instantly via `handledRecIds`.
+  - **Dismiss (X) button**: every notification now has an X to delete it. `DELETE /api/notifications/:id` (admin client, ownership-checked) + `NotificationsService.deleteNotification` (optimistic remove + badge decrement, rollback on failure). `dismissAriaLabel` added to `NOTIFICATIONS_COPY` (EN/AR/FR).
+
+### Post-sprint Notifications "Clear all" (Post-Day 15)
+- Header **"Clear all"** button in the bell panel (shown when there's ≥1 notification) → confirm → deletes them all. `DELETE /api/notifications` (no id) → `deleteAllNotifications(userId)` (admin, ownership-scoped); coexists with `DELETE /:id`. `NotificationsService.deleteAll()` is optimistic (clears list + badge, rolls back on failure). `clearAllBtn` / `clearAllConfirm` in `NOTIFICATIONS_COPY` (EN/AR/FR).
+
+### Post-sprint Confirm Dialog — no more native `confirm()` (Post-Day 15)
+- **What/why**: native `confirm()`/`alert()` looked off-brand. Replaced **all 8** call sites with a themed modal.
+- `shared/confirm-dialog.service.ts` — `confirm({ message, title?, confirmText?, cancelText?, danger? })` returns a `Promise<boolean>` (signal-backed). `shared/confirm-dialog.component.ts` — one instance mounted in the app root (`app.html`); themed card + backdrop, **OK/Cancel** (OK red when `danger`), closes/resolves `false` on Cancel/backdrop/Escape. **Responsive**: bottom-sheet with stacked full-width buttons ≤480px; RTL-safe; localized via `DIALOG_COPY` (EN/AR/FR, `i18n/dialog.translations.ts`).
+- Converted sites (all `danger: true`, awaited): shelf remove, profile block/remove-photo/delete-account, posts-feed delete, notifications clear-all, community delete, book-detail remove. Two previously hardcoded-English confirms (community/book-detail) are now translated via existing copy keys.
+
+### Post-sprint Signup Hardening (Post-Day 15)
+- **Email domain allowlist** (signup only): only `gmail.com, outlook.com, hotmail.com, yahoo.com, icloud.com` allowed. Frontend `allowedEmailDomainValidator` (added to the email field in signup mode) + backend `requestSignup` reject with code `EMAIL_DOMAIN_NOT_ALLOWED`. Exact domain match, case-insensitive (so `gmail.com.evil.com` is rejected). Login + Google OAuth are **not** restricted. `ALLOWED_EMAIL_DOMAINS` lives in `auth-page.component.ts` **and** `auth.controller.ts` (keep in sync). `emailDomainNotAllowed` in `AUTH_COPY` (EN/AR/FR).
+- **Password max length (72)**: Supabase/bcrypt rejects >72 chars and surfaced as a confusing "Could not update pending account." Now both frontend (`passwordMaxLengthValidator`) and backend (`requestSignup`, code `PASSWORD_TOO_LONG`) reject >72 with a clear message (`passwordTooLong`).
+
+### Post-sprint Verify Page i18n (Post-Day 15)
+- The email-verification page was hardcoded English. New `i18n/verification.translations.ts` (`VERIFICATION_COPY`, EN/AR/FR); the component reads the language from `TranslationService` (carries over from signup via the shared selector → localStorage) and localizes every string + dynamic status/error message ({count} interpolated via getters). RTL handled by the global `<html dir>`.
+
+### Post-sprint Error Status Codes — no spurious 500s (Post-Day 15)
+- **Resend / signup OTP rate limit**: `auth.service.issueVerificationCode` threw `InternalServerErrorException` (500) when Supabase rate-limited the OTP (the ~60s resend cooldown). Now mapped to **429 `RATE_LIMITED`** with the wait message. (This is also why a visible resend countdown would be a nice future add — the ~60s is a Supabase rate limit, not a client timer.)
+- **Book detail with upstream down**: `books.service.getBookByGoogleId` threw 500 when Google Books was unreachable for an uncached book. Now **502 `BadGatewayException`**, and `book-detail.component` checks `r.ok` and shows a clean error state instead of rendering the error body as the book.
+- Audited the rest: every other `InternalServerErrorException` fires only on genuine DB/server failures (correct 500 use) and isn't reachable by normal input — real user-facing cases are mapped to 4xx first.
+
+### Post-sprint Review "Posted" UI (Post-Day 15)
+- The book-page "My Review" was always an editable textarea (saving just flashed "Saved!"). Now: once saved it shows as a **posted card** (review text + **Edit**); editing/first-time shows the textarea with **Post Review** / **Update Review** + **Cancel**. Separated the persisted review (`savedReview`) from the editing buffer (`reviewText`) so Cancel discards cleanly. New EN/AR/FR keys (`postReview`/`updateReview`/`editReview`/`cancelEdit`).
+
+### Post-sprint Avatar Edit Menu + Remove Photo (Post-Day 15)
+- Replaced the full-cover camera overlay with a **pen button** on the avatar corner (own profile) that opens a small menu: **Add photo** (no photo) or **Change photo** + **Remove photo** (has photo). Menu closes on outside-click / after action.
+- **Remove photo** (`UserService.removeAvatar`): best-effort deletes the stored file(s) from Supabase Storage, nulls `profile_picture_url`, reverts to the initials default, and updates the nav avatar live (`setCurrentUserAvatar(null)`). New EN/AR/FR keys (`addPhotoBtn`/`changePhotoBtn`/`removePhotoBtn`/`removePhotoConfirm`/`editPhotoLabel`).
+
+### Post-sprint Private Accounts (Post-Day 15)
+- **What/why**: a user can mark their profile **private** (toggle in the edit-profile panel). When private, their **detailed profile** (shelf/stats/posts) and their **community posts/comments** are visible only to **accepted friends**. **UI-gated** (see caveat); private users stay **findable in search** — their profile just shows a locked state to non-friends.
+- **Migration** `20260617000000_user_private_account.sql`: `is_private boolean NOT NULL DEFAULT false` on `users`. **Must be applied before the new code runs** — the queries reference the column.
+- **Model**: `isPrivate` on `UserProfile` (`user.service` — mapped from `is_private`, persisted via `updateUserProfile`).
+- **Profile gate** (`profile-page.component`): for a non-own private account that isn't an accepted friend, it sets `isPrivateLocked`, **does not fetch** the shelf/stats/posts (so private data never reaches the client), and shows a locked card (avatar + name + friend/report/block actions + "private account" notice). Privacy toggle styles live in global `styles.scss` (keeps the large profile component under its CSS budget).
+- **Community feed** (backend `community.service.getHiddenAuthorIds` = blocked ∪ private-non-friends): applied to `getAllPosts` + `getTrendingPosts`.
+- **Home "Trending" tab** (frontend `activity.service.getTrendingPosts`) and **comments** (`comment.service.getComments`) filter private non-friends too. The home "Friends" tab + profile recent-posts are friends-only already.
+- i18n: `privateAccountLabel` / `privateAccountHint` / `privateAccountNotice` in `PROFILE_COPY` (EN/AR/FR).
+- **Caveat (UI-gated)**: the community feed is truly backend-enforced, but the profile-detail lock is UI-only — a determined user could still read a private profile's rows via the API directly (the `users` table is world-readable under RLS). Making that RLS-enforced is a larger follow-up.
+- **Known scope note**: stats "Top Readers" can still show a private user's name/avatar/read-count (aggregate only — no posts/comments/detail), consistent with "findable in search."
+
 ---
 
 ## Production deployment checklist
@@ -452,7 +533,7 @@ Before deploying to a production server:
 1. **Set `FRONTEND_URL`** in `.env` / `backend/.env` to the actual production domain (e.g. `https://readtrack.example.com`) so CORS works correctly.
 2. **TLS is built in** — nginx serves HTTPS on port 443 and 301-redirects HTTP→HTTPS. The image bakes a **self-signed** cert (`/etc/nginx/certs/`), so browsers show a trust warning on first visit. For production, mount a CA-issued cert/key over `/etc/nginx/certs/selfsigned.crt` and `selfsigned.key` (e.g. via a volume), or terminate TLS at an upstream proxy (Caddy/Traefik) and point it at port 80.
 3. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
-4. **Run the Day 12 migration** if not already done (see Known Issues #7).
+4. **Run outstanding migrations** if not already done: the Day 12 `user_books` columns (see Known Issues #7), the post-sprint performance migrations `20260616000000_performance_indexes.sql` + `20260616000001_stats_rpc.sql` (see the Performance Pass section), the friend-recommendation migrations `20260616000002_friend_recommendations.sql` + `20260616000003_stats_top_books_exclude_recs.sql` (see the Friend Book Recommendations section), and the private-account migration `20260617000000_user_private_account.sql` (see the Private Accounts section — **required before the new code runs**).
 5. **Build and start**: `docker compose up --build -d`
 6. **Verify health**: `curl -k https://localhost/api/health` should return `{"status":"ok"}` (`-k` skips the self-signed cert check).
 

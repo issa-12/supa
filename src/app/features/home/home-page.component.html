@@ -40,7 +40,7 @@
             </div>
           </div>
           <!-- Recommended For You Section -->
-          <app-recommended-books *ngIf="!isLoadingRecommended" [books]="recommendedBooks" (addBook)="onAddBook($event)"></app-recommended-books>
+          <app-recommended-books *ngIf="!isLoadingRecommended" [books]="recommendedBooks"></app-recommended-books>
 
           <!-- Trending skeleton -->
           <div *ngIf="isLoadingTrending" class="home-section-skeleton">

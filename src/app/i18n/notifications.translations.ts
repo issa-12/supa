@@ -21,6 +21,11 @@ export interface NotificationsCopy {
   commentReply: string;
   reviewLiked: string;
   newPost: string;
+  acceptBtn: string;
+  declineBtn: string;
+  dismissAriaLabel: string;
+  clearAllBtn: string;
+  clearAllConfirm: string;
 }
 
 export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
@@ -45,6 +50,11 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     commentReply: 'replied to your comment',
     reviewLiked: 'liked your review',
     newPost: 'shared a new post',
+    acceptBtn: 'Accept',
+    declineBtn: 'Decline',
+    dismissAriaLabel: 'Dismiss notification',
+    clearAllBtn: 'Clear all',
+    clearAllConfirm: 'Clear all notifications?',
   },
   ar: {
     panelTitle: 'الإشعارات',
@@ -67,6 +77,11 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     commentReply: 'رد على تعليقك',
     reviewLiked: 'أعجب بتقييمك',
     newPost: 'شارك منشور جديد',
+    acceptBtn: 'قبول',
+    declineBtn: 'رفض',
+    dismissAriaLabel: 'تجاهل الإشعار',
+    clearAllBtn: 'مسح الكل',
+    clearAllConfirm: 'مسح جميع الإشعارات؟',
   },
   fr: {
     panelTitle: 'Notifications',
@@ -89,5 +104,10 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     commentReply: 'a répondu à votre commentaire',
     reviewLiked: 'a aimé votre avis',
     newPost: 'a partagé un nouveau message',
+    acceptBtn: 'Accepter',
+    declineBtn: 'Refuser',
+    dismissAriaLabel: 'Ignorer la notification',
+    clearAllBtn: 'Tout effacer',
+    clearAllConfirm: 'Effacer toutes les notifications ?',
   },
 };

@@ -1,9 +1,10 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, ElementRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -25,7 +26,7 @@ interface BookSearchResult {
 
       <!-- Compose Card -->
       @if (currentUserId) {
-        <div class="compose-card" [class.compose-card--expanded]="composeOpen">
+        <div #composeCard class="compose-card" [class.compose-card--expanded]="composeOpen">
 
           @if (!composeOpen) {
             <button class="compose-trigger" (click)="openCompose()">
@@ -41,11 +42,11 @@ interface BookSearchResult {
           } @else {
             <div class="compose-form">
               <textarea
+                #composeTextarea
                 class="compose-textarea"
                 [(ngModel)]="postContent"
                 [placeholder]="copy.composeTextareaPlaceholder"
                 rows="3"
-                autofocus
               ></textarea>
 
               <!-- Book picker -->
@@ -95,6 +96,10 @@ interface BookSearchResult {
                   }
                 }
               </div>
+
+              @if (postError) {
+                <p class="compose-error">{{ postError }}</p>
+              }
 
               <div class="compose-actions">
                 <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelBtn }}</button>
@@ -407,6 +412,15 @@ interface BookSearchResult {
       &:hover { color: var(--foreground); background: var(--border); }
     }
 
+    .compose-error {
+      color: var(--destructive);
+      background: rgba(220, 38, 38, 0.07);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin: 0 0 10px;
+    }
+
     .compose-actions {
       display: flex;
       justify-content: flex-end;
@@ -646,6 +660,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly translationService = inject(TranslationService);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -657,12 +672,16 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   loading = false;
   openCommentPostIds = new Set<number>();
 
+  @ViewChild('composeCard') private composeCard?: ElementRef<HTMLElement>;
+  @ViewChild('composeTextarea') private composeTextarea?: ElementRef<HTMLTextAreaElement>;
+
   composeOpen = false;
   postContent = '';
   bookQuery = '';
   bookResults: BookSearchResult[] = [];
   selectedBook: BookSearchResult | null = null;
   submitting = false;
+  postError: string | null = null;
 
   private bookSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -721,7 +740,17 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     });
   }
 
-  openCompose(): void { this.composeOpen = true; }
+  openCompose(): void {
+    this.composeOpen = true;
+    // The compose form sits at the top of the feed; if the user triggered it
+    // from the home FAB while scrolled down, bring it into view and focus the
+    // textarea so they can start typing immediately. setTimeout lets the form
+    // render first (it's behind @if (composeOpen)).
+    setTimeout(() => {
+      this.composeCard?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      this.composeTextarea?.nativeElement.focus({ preventScroll: true });
+    });
+  }
 
   closeCompose(): void {
     this.composeOpen = false;
@@ -729,12 +758,13 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     this.bookQuery = '';
     this.bookResults = [];
     this.selectedBook = null;
+    this.postError = null;
   }
 
   onBookQueryChange(): void {
     if (this.bookSearchTimer) clearTimeout(this.bookSearchTimer);
     const q = this.bookQuery.trim();
-    if (!q) { this.bookResults = []; return; }
+    if (q.length < 2) { this.bookResults = []; return; }
     this.bookSearchTimer = setTimeout(() => this.searchBooks(q), 400);
   }
 
@@ -765,17 +795,22 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   async submitPost(): Promise<void> {
     if (!this.canPost || !this.currentUserId || !this.selectedBook) return;
     this.submitting = true;
+    this.postError = null;
     try {
       const bookId = await this.ensureBookInDb(this.selectedBook);
-      this.activityService.createPost(this.currentUserId, bookId, this.postContent.trim()).subscribe({
-        next: (post) => {
-          this.posts = [post, ...this.posts];
-          this.closeCompose();
-          this.submitting = false;
-        },
-        error: () => { this.submitting = false; },
-      });
-    } catch {
+      // Route through the moderated backend endpoint (same as the community
+      // page) so home-feed posts are checked too. Rejects profanity/abuse.
+      const post = await this.activityService.createCommunityPost(
+        this.currentUserId,
+        bookId,
+        this.postContent.trim(),
+        [],
+      );
+      this.posts = [post, ...this.posts];
+      this.closeCompose();
+    } catch (err) {
+      this.postError = err instanceof Error ? err.message : 'Could not post.';
+    } finally {
       this.submitting = false;
     }
   }
@@ -827,8 +862,8 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     });
   }
 
-  deletePost(post: ActivityPost): void {
-    if (!confirm(this.copy.deletePostConfirm)) return;
+  async deletePost(post: ActivityPost): Promise<void> {
+    if (!(await this.confirmDialog.confirm({ message: this.copy.deletePostConfirm, danger: true }))) return;
     const prev = [...this.posts];
     this.posts = this.posts.filter((p) => p.id !== post.id);
     this.activityService.deletePost(post.id).subscribe({

@@ -85,30 +85,51 @@
               <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
             }
 
-            @if (!isOwnProfile && isOnline(viewedUserId)) {
+            @if (canSeeViewedUserPresence && isOnline(viewedUserId)) {
               <span class="presence-dot presence-dot--profile" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
             }
 
             @if (isOwnProfile) {
-              <label class="avatar-edit-overlay" [class.is-loading]="uploadingAvatar" aria-label="Change profile photo">
-                <input
-                  type="file"
-                  accept="image/*"
-                  class="avatar-file-input"
-                  (change)="onAvatarFileChange($event)"
+              <div class="avatar-edit" (click)="$event.stopPropagation()">
+                <button
+                  class="avatar-edit-btn"
+                  type="button"
                   [disabled]="uploadingAvatar"
-                />
-                @if (uploadingAvatar) {
-                  <svg class="avatar-spinner" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                  </svg>
-                } @else {
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                  </svg>
+                  (click)="toggleAvatarMenu()"
+                  [attr.aria-label]="copy.editPhotoLabel"
+                  [attr.aria-expanded]="avatarMenuOpen"
+                >
+                  @if (uploadingAvatar) {
+                    <svg class="avatar-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                  } @else {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    </svg>
+                  }
+                </button>
+
+                @if (avatarMenuOpen) {
+                  <div class="avatar-menu">
+                    <label class="avatar-menu-item">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        class="avatar-file-input"
+                        (change)="onAvatarFileChange($event)"
+                        [disabled]="uploadingAvatar"
+                      />
+                      {{ profile.avatarUrl ? copy.changePhotoBtn : copy.addPhotoBtn }}
+                    </label>
+                    @if (profile.avatarUrl) {
+                      <button class="avatar-menu-item avatar-menu-item--danger" type="button" (click)="onRemoveAvatar()">
+                        {{ copy.removePhotoBtn }}
+                      </button>
+                    }
+                  </div>
                 }
-              </label>
+              </div>
             }
           </div>
 
@@ -119,7 +140,7 @@
               <p class="profile-username">&#64;{{ profile.username }}</p>
             }
             <p class="profile-joined">{{ copy.readingSincePrefix }} {{ profile.joinDate }}</p>
-            @if (!isOwnProfile) {
+            @if (canSeeViewedUserPresence) {
               <p class="profile-presence" [class.is-online]="isOnline(viewedUserId)">
                 <span class="presence-dot"></span>
                 {{ isOnline(viewedUserId) ? copy.onlineLabel : copy.offlineLabel }}
@@ -197,25 +218,36 @@
           <p class="avatar-error">{{ avatarError }}</p>
         }
 
-        <!-- Bio -->
-        @if (profile.bio) {
-          <div class="profile-bio">
-            <p class="bio-text">{{ profile.bio }}</p>
+        @if (isPrivateLocked) {
+          <div class="private-notice">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <p>{{ copy.privateAccountNotice }}</p>
           </div>
-        }
-
-        <!-- Genres -->
-        @if (genres.length > 0) {
-          <div class="tags-section">
-            <div class="tag-list">
-              @for (genre of genres; track genre.id) {
-                <span class="tag">{{ genre.name }}</span>
-              }
+        } @else {
+          <!-- Bio -->
+          @if (profile.bio) {
+            <div class="profile-bio">
+              <p class="bio-text">{{ profile.bio }}</p>
             </div>
-          </div>
+          }
+
+          <!-- Genres -->
+          @if (genres.length > 0) {
+            <div class="tags-section">
+              <div class="tag-list">
+                @for (genre of genres; track genre.id) {
+                  <span class="tag">{{ genre.name }}</span>
+                }
+              </div>
+            </div>
+          }
         }
       </div>
 
+      @if (!isPrivateLocked) {
       <!-- Reading Stats -->
       @if (readingStats) {
         <div class="reading-stats-grid">
@@ -285,7 +317,12 @@
           <div class="books-grid">
             @for (book of currentlyReadingBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -495,7 +532,12 @@
           <div class="books-grid">
             @for (book of mostLikedBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -541,7 +583,12 @@
           <div class="books-grid">
             @for (book of inBetweenBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -587,7 +634,12 @@
           <div class="books-grid">
             @for (book of leastLikedBooks; track book.userBookId) {
               <div class="book-card">
-                <div class="book-cover-container">
+                <div class="book-cover-container"
+                  [class.book-cover-container--clickable]="book.googleBooksId"
+                  (click)="openBook(book)"
+                  [attr.role]="book.googleBooksId ? 'button' : null"
+                  [attr.tabindex]="book.googleBooksId ? 0 : null"
+                  (keydown.enter)="openBook(book)">
                   @if (book.coverUrl) {
                     <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
                   } @else {
@@ -632,6 +684,7 @@
           <p>{{ copy.noRatedBooks }}</p>
           <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooks }}</a>
         </div>
+      }
       }
 
       <!-- Edit Profile Panel -->
@@ -692,6 +745,18 @@
                   }
                 </div>
               }
+            </div>
+
+            <!-- Privacy -->
+            <div class="edit-field">
+              <label class="privacy-toggle">
+                <span class="privacy-toggle-text">
+                  <span class="edit-label">{{ copy.privateAccountLabel }}</span>
+                  <span class="privacy-toggle-hint">{{ copy.privateAccountHint }}</span>
+                </span>
+                <input type="checkbox" class="privacy-toggle-input" [(ngModel)]="editIsPrivate" />
+                <span class="privacy-toggle-switch" aria-hidden="true"></span>
+              </label>
             </div>
 
             <!-- Danger zone -->

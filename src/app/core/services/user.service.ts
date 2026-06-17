@@ -11,6 +11,7 @@ export interface UserProfile {
   avatarUrl: string | null;
   joinDate: string;
   username: string | null;
+  isPrivate: boolean;
 }
 
 export interface ReadingStats {
@@ -50,6 +51,7 @@ export class UserService {
           avatarUrl: null,
           joinDate: new Date().getFullYear().toString(),
           username: null,
+          isPrivate: false,
         };
       }),
       catchError((error) => throwError(() => error))
@@ -138,6 +140,24 @@ export class UserService {
     return `${data.publicUrl}?t=${Date.now()}`;
   }
 
+  // Remove the user's custom avatar: best-effort delete the stored file(s),
+  // then null the DB pointer so the UI falls back to the default (initials).
+  async removeAvatar(userId: string): Promise<void> {
+    const supabase = await this.supabaseService.getClient();
+    // We don't track the stored extension, so target every candidate.
+    const candidates = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map((e) => `${userId}/avatar.${e}`);
+    try {
+      await supabase.storage.from('avatars').remove(candidates);
+    } catch {
+      // best-effort — clearing the DB pointer below is what matters
+    }
+    const { error } = await supabase
+      .from('users')
+      .update({ profile_picture_url: null, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    if (error) throw error;
+  }
+
   setReadingGoal(userId: string, year: number, targetBooks: number): Observable<void> {
     return from(
       this.supabaseService.getClient().then((supabase) =>
@@ -222,6 +242,7 @@ export class UserService {
             about_me: updates.bio,
             profile_picture_url: updates.avatarUrl,
             username: updates.username,
+            is_private: updates.isPrivate,
             updated_at: new Date().toISOString(),
           })
           .eq('id', userId)
@@ -270,6 +291,7 @@ export class UserService {
         ? new Date(raw.created_at).getFullYear().toString()
         : new Date().getFullYear().toString(),
       username: raw.username || null,
+      isPrivate: raw.is_private ?? false,
     };
   }
 }

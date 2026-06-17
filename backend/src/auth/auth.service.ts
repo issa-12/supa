@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -178,7 +180,20 @@ export class AuthService {
       email,
       options: { shouldCreateUser: false },
     });
-    if (error) throw new InternalServerErrorException(error.message);
+    if (!error) return;
+
+    // Supabase rate-limits OTP sends (~60s between codes). That's an expected
+    // client condition, not a server fault — surface it as 429 with a stable
+    // code so the UI can show a "please wait" message instead of a scary 500.
+    const status = (error as { status?: number }).status;
+    const message = error.message ?? '';
+    if (status === 429 || /rate limit|only request this after|too many|seconds/i.test(message)) {
+      throw new HttpException(
+        { code: 'RATE_LIMITED', message: message || 'Please wait a moment before requesting another code.' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    throw new InternalServerErrorException(message || 'Could not send verification code.');
   }
 
   private async verifyAuthOtp(
