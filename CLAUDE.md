@@ -109,10 +109,10 @@ The root `.env` is read by `docker-compose.yml` (`env_file: - .env`).
 ## Database schema (key tables)
 
 ```sql
-public.users          -- mirrors auth.users (id = auth.uid())
+public.users          -- mirrors auth.users (id = auth.uid()); last_seen_at, is_private
 public.profiles       -- extended profile data
 public.books          -- shared book catalog (google_books_id UNIQUE)
-public.user_books     -- user shelf (user_id, book_id, status_id, rating, note, review_text, current_page, total_pages)
+public.user_books     -- user shelf (user_id, book_id, status_id, rating, note, review_text, current_page, total_pages, recommended_by)
 public.reading_statuses  -- reference: read / want_to_read / currently_reading
 public.reading_goals  -- annual reading goal per user
 public.genres         -- 20 genres seeded
@@ -193,8 +193,13 @@ All tables have RLS enabled. Key rules:
 | GET | `/api/stats/pace` | Authenticated user's monthly reading pace |
 | GET | `/api/community/posts?tag=&page=&trending=` | Get all posts or trending posts (with optional tag filter) |
 | GET | `/api/community/tags/trending` | Get trending tags across all community posts |
-| POST | `/api/community/posts` | Create a new community post (with content moderation) |
+| POST | `/api/community/posts` | Create a new community post (Claude moderation: blocks `flagged`/`rejected`) |
+| POST | `/api/community/comments` | Create a comment/reply (same moderation; depth computed server-side, cap 3; fires comment notification) |
+| DELETE | `/api/notifications/:id` | Delete one notification (ownership-checked) |
+| DELETE | `/api/notifications` | Delete all of the user's notifications ("Clear all") |
 | GET | `/api/health` | Health check endpoint for Docker |
+
+> Note: `/api/auth/request-signup` + `/api/auth/resend-verification` return **429 `RATE_LIMITED`** (not 500) when Supabase rate-limits the OTP send; signup enforces an email-domain allowlist (`EMAIL_DOMAIN_NOT_ALLOWED`) and a 72-char password cap (`PASSWORD_TOO_LONG`). `/api/books/:googleId` returns **502** (not 500) when Google Books is unreachable for an uncached book.
 
 ---
 
@@ -481,6 +486,44 @@ Latency/throughput audit + fixes. All changes verified: frontend `ng build` (pro
   - **Stale Accept/Decline fix**: the bell-panel buttons used to linger after a rec was resolved elsewhere (shelf accept/decline, or a status change on the book page). They're now gated on `BookService.getPendingRecommendationBookIds()` (one query fetched when the panel opens) — buttons show only while the book is still in `recommended_by_friend` status. In-panel actions still hide instantly via `handledRecIds`.
   - **Dismiss (X) button**: every notification now has an X to delete it. `DELETE /api/notifications/:id` (admin client, ownership-checked) + `NotificationsService.deleteNotification` (optimistic remove + badge decrement, rollback on failure). `dismissAriaLabel` added to `NOTIFICATIONS_COPY` (EN/AR/FR).
 
+### Post-sprint Notifications "Clear all" (Post-Day 15)
+- Header **"Clear all"** button in the bell panel (shown when there's ≥1 notification) → confirm → deletes them all. `DELETE /api/notifications` (no id) → `deleteAllNotifications(userId)` (admin, ownership-scoped); coexists with `DELETE /:id`. `NotificationsService.deleteAll()` is optimistic (clears list + badge, rolls back on failure). `clearAllBtn` / `clearAllConfirm` in `NOTIFICATIONS_COPY` (EN/AR/FR).
+
+### Post-sprint Confirm Dialog — no more native `confirm()` (Post-Day 15)
+- **What/why**: native `confirm()`/`alert()` looked off-brand. Replaced **all 8** call sites with a themed modal.
+- `shared/confirm-dialog.service.ts` — `confirm({ message, title?, confirmText?, cancelText?, danger? })` returns a `Promise<boolean>` (signal-backed). `shared/confirm-dialog.component.ts` — one instance mounted in the app root (`app.html`); themed card + backdrop, **OK/Cancel** (OK red when `danger`), closes/resolves `false` on Cancel/backdrop/Escape. **Responsive**: bottom-sheet with stacked full-width buttons ≤480px; RTL-safe; localized via `DIALOG_COPY` (EN/AR/FR, `i18n/dialog.translations.ts`).
+- Converted sites (all `danger: true`, awaited): shelf remove, profile block/remove-photo/delete-account, posts-feed delete, notifications clear-all, community delete, book-detail remove. Two previously hardcoded-English confirms (community/book-detail) are now translated via existing copy keys.
+
+### Post-sprint Signup Hardening (Post-Day 15)
+- **Email domain allowlist** (signup only): only `gmail.com, outlook.com, hotmail.com, yahoo.com, icloud.com` allowed. Frontend `allowedEmailDomainValidator` (added to the email field in signup mode) + backend `requestSignup` reject with code `EMAIL_DOMAIN_NOT_ALLOWED`. Exact domain match, case-insensitive (so `gmail.com.evil.com` is rejected). Login + Google OAuth are **not** restricted. `ALLOWED_EMAIL_DOMAINS` lives in `auth-page.component.ts` **and** `auth.controller.ts` (keep in sync). `emailDomainNotAllowed` in `AUTH_COPY` (EN/AR/FR).
+- **Password max length (72)**: Supabase/bcrypt rejects >72 chars and surfaced as a confusing "Could not update pending account." Now both frontend (`passwordMaxLengthValidator`) and backend (`requestSignup`, code `PASSWORD_TOO_LONG`) reject >72 with a clear message (`passwordTooLong`).
+
+### Post-sprint Verify Page i18n (Post-Day 15)
+- The email-verification page was hardcoded English. New `i18n/verification.translations.ts` (`VERIFICATION_COPY`, EN/AR/FR); the component reads the language from `TranslationService` (carries over from signup via the shared selector → localStorage) and localizes every string + dynamic status/error message ({count} interpolated via getters). RTL handled by the global `<html dir>`.
+
+### Post-sprint Error Status Codes — no spurious 500s (Post-Day 15)
+- **Resend / signup OTP rate limit**: `auth.service.issueVerificationCode` threw `InternalServerErrorException` (500) when Supabase rate-limited the OTP (the ~60s resend cooldown). Now mapped to **429 `RATE_LIMITED`** with the wait message. (This is also why a visible resend countdown would be a nice future add — the ~60s is a Supabase rate limit, not a client timer.)
+- **Book detail with upstream down**: `books.service.getBookByGoogleId` threw 500 when Google Books was unreachable for an uncached book. Now **502 `BadGatewayException`**, and `book-detail.component` checks `r.ok` and shows a clean error state instead of rendering the error body as the book.
+- Audited the rest: every other `InternalServerErrorException` fires only on genuine DB/server failures (correct 500 use) and isn't reachable by normal input — real user-facing cases are mapped to 4xx first.
+
+### Post-sprint Review "Posted" UI (Post-Day 15)
+- The book-page "My Review" was always an editable textarea (saving just flashed "Saved!"). Now: once saved it shows as a **posted card** (review text + **Edit**); editing/first-time shows the textarea with **Post Review** / **Update Review** + **Cancel**. Separated the persisted review (`savedReview`) from the editing buffer (`reviewText`) so Cancel discards cleanly. New EN/AR/FR keys (`postReview`/`updateReview`/`editReview`/`cancelEdit`).
+
+### Post-sprint Avatar Edit Menu + Remove Photo (Post-Day 15)
+- Replaced the full-cover camera overlay with a **pen button** on the avatar corner (own profile) that opens a small menu: **Add photo** (no photo) or **Change photo** + **Remove photo** (has photo). Menu closes on outside-click / after action.
+- **Remove photo** (`UserService.removeAvatar`): best-effort deletes the stored file(s) from Supabase Storage, nulls `profile_picture_url`, reverts to the initials default, and updates the nav avatar live (`setCurrentUserAvatar(null)`). New EN/AR/FR keys (`addPhotoBtn`/`changePhotoBtn`/`removePhotoBtn`/`removePhotoConfirm`/`editPhotoLabel`).
+
+### Post-sprint Private Accounts (Post-Day 15)
+- **What/why**: a user can mark their profile **private** (toggle in the edit-profile panel). When private, their **detailed profile** (shelf/stats/posts) and their **community posts/comments** are visible only to **accepted friends**. **UI-gated** (see caveat); private users stay **findable in search** — their profile just shows a locked state to non-friends.
+- **Migration** `20260617000000_user_private_account.sql`: `is_private boolean NOT NULL DEFAULT false` on `users`. **Must be applied before the new code runs** — the queries reference the column.
+- **Model**: `isPrivate` on `UserProfile` (`user.service` — mapped from `is_private`, persisted via `updateUserProfile`).
+- **Profile gate** (`profile-page.component`): for a non-own private account that isn't an accepted friend, it sets `isPrivateLocked`, **does not fetch** the shelf/stats/posts (so private data never reaches the client), and shows a locked card (avatar + name + friend/report/block actions + "private account" notice). Privacy toggle styles live in global `styles.scss` (keeps the large profile component under its CSS budget).
+- **Community feed** (backend `community.service.getHiddenAuthorIds` = blocked ∪ private-non-friends): applied to `getAllPosts` + `getTrendingPosts`.
+- **Home "Trending" tab** (frontend `activity.service.getTrendingPosts`) and **comments** (`comment.service.getComments`) filter private non-friends too. The home "Friends" tab + profile recent-posts are friends-only already.
+- i18n: `privateAccountLabel` / `privateAccountHint` / `privateAccountNotice` in `PROFILE_COPY` (EN/AR/FR).
+- **Caveat (UI-gated)**: the community feed is truly backend-enforced, but the profile-detail lock is UI-only — a determined user could still read a private profile's rows via the API directly (the `users` table is world-readable under RLS). Making that RLS-enforced is a larger follow-up.
+- **Known scope note**: stats "Top Readers" can still show a private user's name/avatar/read-count (aggregate only — no posts/comments/detail), consistent with "findable in search."
+
 ---
 
 ## Production deployment checklist
@@ -490,7 +533,7 @@ Before deploying to a production server:
 1. **Set `FRONTEND_URL`** in `.env` / `backend/.env` to the actual production domain (e.g. `https://readtrack.example.com`) so CORS works correctly.
 2. **TLS is built in** — nginx serves HTTPS on port 443 and 301-redirects HTTP→HTTPS. The image bakes a **self-signed** cert (`/etc/nginx/certs/`), so browsers show a trust warning on first visit. For production, mount a CA-issued cert/key over `/etc/nginx/certs/selfsigned.crt` and `selfsigned.key` (e.g. via a volume), or terminate TLS at an upstream proxy (Caddy/Traefik) and point it at port 80.
 3. **Supabase backups** — enable point-in-time recovery in the Supabase dashboard under Project Settings → Database.
-4. **Run outstanding migrations** if not already done: the Day 12 `user_books` columns (see Known Issues #7), the post-sprint performance migrations `20260616000000_performance_indexes.sql` + `20260616000001_stats_rpc.sql` (see the Performance Pass section), and the friend-recommendation migrations `20260616000002_friend_recommendations.sql` + `20260616000003_stats_top_books_exclude_recs.sql` (see the Friend Book Recommendations section).
+4. **Run outstanding migrations** if not already done: the Day 12 `user_books` columns (see Known Issues #7), the post-sprint performance migrations `20260616000000_performance_indexes.sql` + `20260616000001_stats_rpc.sql` (see the Performance Pass section), the friend-recommendation migrations `20260616000002_friend_recommendations.sql` + `20260616000003_stats_top_books_exclude_recs.sql` (see the Friend Book Recommendations section), and the private-account migration `20260617000000_user_private_account.sql` (see the Private Accounts section — **required before the new code runs**).
 5. **Build and start**: `docker compose up --build -d`
 6. **Verify health**: `curl -k https://localhost/api/health` should return `{"status":"ok"}` (`-k` skips the self-signed cert check).
 

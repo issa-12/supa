@@ -218,25 +218,36 @@
           <p class="avatar-error">{{ avatarError }}</p>
         }
 
-        <!-- Bio -->
-        @if (profile.bio) {
-          <div class="profile-bio">
-            <p class="bio-text">{{ profile.bio }}</p>
+        @if (isPrivateLocked) {
+          <div class="private-notice">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <p>{{ copy.privateAccountNotice }}</p>
           </div>
-        }
-
-        <!-- Genres -->
-        @if (genres.length > 0) {
-          <div class="tags-section">
-            <div class="tag-list">
-              @for (genre of genres; track genre.id) {
-                <span class="tag">{{ genre.name }}</span>
-              }
+        } @else {
+          <!-- Bio -->
+          @if (profile.bio) {
+            <div class="profile-bio">
+              <p class="bio-text">{{ profile.bio }}</p>
             </div>
-          </div>
+          }
+
+          <!-- Genres -->
+          @if (genres.length > 0) {
+            <div class="tags-section">
+              <div class="tag-list">
+                @for (genre of genres; track genre.id) {
+                  <span class="tag">{{ genre.name }}</span>
+                }
+              </div>
+            </div>
+          }
         }
       </div>
 
+      @if (!isPrivateLocked) {
       <!-- Reading Stats -->
       @if (readingStats) {
         <div class="reading-stats-grid">
@@ -674,6 +685,7 @@
           <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooks }}</a>
         </div>
       }
+      }
 
       <!-- Edit Profile Panel -->
       @if (editingProfile) {
@@ -733,6 +745,18 @@
                   }
                 </div>
               }
+            </div>
+
+            <!-- Privacy -->
+            <div class="edit-field">
+              <label class="privacy-toggle">
+                <span class="privacy-toggle-text">
+                  <span class="edit-label">{{ copy.privateAccountLabel }}</span>
+                  <span class="privacy-toggle-hint">{{ copy.privateAccountHint }}</span>
+                </span>
+                <input type="checkbox" class="privacy-toggle-input" [(ngModel)]="editIsPrivate" />
+                <span class="privacy-toggle-switch" aria-hidden="true"></span>
+              </label>
             </div>
 
             <!-- Danger zone -->
