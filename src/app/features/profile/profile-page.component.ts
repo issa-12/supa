@@ -14,6 +14,7 @@ import {
 } from '../../core/services/friendship.service';
 import { ReportService, ReportReason } from '../../core/services/report.service';
 import { PresenceService } from '../../core/services/presence.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { timeAgo } from '../../core/util/time-ago';
 import { TranslationService, PROFILE_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -42,6 +43,7 @@ export class ProfilePageComponent implements OnInit {
   private readonly friendshipService = inject(FriendshipService);
   private readonly reportService = inject(ReportService);
   private readonly presenceService = inject(PresenceService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
@@ -308,7 +310,7 @@ export class ProfilePageComponent implements OnInit {
   async blockUser(): Promise<void> {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.friendActionLoading) return;
-    if (!window.confirm(this.copy.blockConfirm)) return;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.blockConfirm, danger: true }))) return;
 
     const wasAccepted = this.friendshipStatus === 'accepted';
     this.friendActionLoading = true;
@@ -504,7 +506,7 @@ export class ProfilePageComponent implements OnInit {
   async onRemoveAvatar(): Promise<void> {
     if (!this.currentUserId || this.uploadingAvatar || !this.profile?.avatarUrl) return;
     this.avatarMenuOpen = false;
-    if (!confirm(this.copy.removePhotoConfirm)) return;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.removePhotoConfirm, danger: true }))) return;
     this.uploadingAvatar = true;
     this.avatarError = null;
     try {
@@ -559,7 +561,7 @@ export class ProfilePageComponent implements OnInit {
 
   async deleteAccount(): Promise<void> {
     if (this.deletingAccount) return;
-    if (!confirm(this.copy.deleteAccountConfirm)) return;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.deleteAccountConfirm, danger: true }))) return;
     this.deletingAccount = true;
     this.deleteAccountError = null;
     try {

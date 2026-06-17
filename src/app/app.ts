@@ -2,11 +2,12 @@ import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/co
 import { RouterOutlet } from '@angular/router';
 import { TranslationService } from './i18n';
 import { PresenceService } from './core/services/presence.service';
+import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ConfirmDialogComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

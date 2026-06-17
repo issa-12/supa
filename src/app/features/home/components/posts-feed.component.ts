@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -659,6 +660,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly translationService = inject(TranslationService);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -847,8 +849,8 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     });
   }
 
-  deletePost(post: ActivityPost): void {
-    if (!confirm(this.copy.deletePostConfirm)) return;
+  async deletePost(post: ActivityPost): Promise<void> {
+    if (!(await this.confirmDialog.confirm({ message: this.copy.deletePostConfirm, danger: true }))) return;
     const prev = [...this.posts];
     this.posts = this.posts.filter((p) => p.id !== post.id);
     this.activityService.deletePost(post.id).subscribe({

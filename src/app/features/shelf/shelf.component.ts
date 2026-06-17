@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, UserBook } from '../../core/services/book.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { TranslationService, SHELF_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -30,6 +31,7 @@ const STATUS_ORDER: Record<string, number> = {
 export class ShelfComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   private readonly bookService = inject(BookService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
 
@@ -181,7 +183,12 @@ export class ShelfComponent implements OnInit {
   }
 
   async removeBook(book: UserBook): Promise<void> {
-    if (!confirm(`Remove "${book.book?.title ?? 'this book'}" from your shelf?`)) return;
+    const title = book.book?.title ?? 'this book';
+    const ok = await this.confirmDialog.confirm({
+      message: this.copy.confirmRemove.replace('{{ title }}', title),
+      danger: true,
+    });
+    if (!ok) return;
     this.openMenuId = null;
     this.savingId = book.id;
 

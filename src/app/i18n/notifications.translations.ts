@@ -24,6 +24,8 @@ export interface NotificationsCopy {
   acceptBtn: string;
   declineBtn: string;
   dismissAriaLabel: string;
+  clearAllBtn: string;
+  clearAllConfirm: string;
 }
 
 export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
@@ -51,6 +53,8 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     acceptBtn: 'Accept',
     declineBtn: 'Decline',
     dismissAriaLabel: 'Dismiss notification',
+    clearAllBtn: 'Clear all',
+    clearAllConfirm: 'Clear all notifications?',
   },
   ar: {
     panelTitle: 'الإشعارات',
@@ -76,6 +80,8 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     acceptBtn: 'قبول',
     declineBtn: 'رفض',
     dismissAriaLabel: 'تجاهل الإشعار',
+    clearAllBtn: 'مسح الكل',
+    clearAllConfirm: 'مسح جميع الإشعارات؟',
   },
   fr: {
     panelTitle: 'Notifications',
@@ -101,5 +107,7 @@ export const NOTIFICATIONS_COPY: Record<LanguageCode, NotificationsCopy> = {
     acceptBtn: 'Accepter',
     declineBtn: 'Refuser',
     dismissAriaLabel: 'Ignorer la notification',
+    clearAllBtn: 'Tout effacer',
+    clearAllConfirm: 'Effacer toutes les notifications ?',
   },
 };

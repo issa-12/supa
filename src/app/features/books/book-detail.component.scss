@@ -595,6 +595,29 @@
   border: 1px solid rgba(122, 166, 111, 0.3);
 }
 
+// ── Own review (posted state) ───────────────────────────────────
+.own-review-card {
+  border-top: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  align-items: flex-start;
+}
+
+.own-review-edit {
+  align-self: flex-end;
+  min-height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+
+.own-review-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 // ── Community Reviews ───────────────────────────────────────────
 .review-card {
   display: flex;

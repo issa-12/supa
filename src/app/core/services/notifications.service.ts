@@ -103,6 +103,22 @@ export class NotificationsService {
     }
   }
 
+  async deleteAll(): Promise<void> {
+    const prev = this.notifications$.value;
+    const prevCount = this.unreadCount$.value;
+    if (prev.length === 0) return;
+
+    // Optimistic: clear everything, roll back on failure. Never rejects.
+    this.notifications$.next([]);
+    this.unreadCount$.next(0);
+    try {
+      await this.apiFetch('', { method: 'DELETE' });
+    } catch {
+      this.notifications$.next(prev);
+      this.unreadCount$.next(prevCount);
+    }
+  }
+
   async markAllAsRead(): Promise<void> {
     const prev = this.notifications$.value;
     const prevCount = this.unreadCount$.value;
