@@ -33,6 +33,7 @@ export interface AuthCopy {
   emailInvalid: string;
   emailDomainNotAllowed: string;
   passwordPolicy: string;
+  passwordTooLong: string;
   passwordHint: string;
   emailExists: string;
   invalidCredentials: string;
@@ -85,6 +86,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     emailInvalid: 'Please enter a valid email address (e.g. you@example.com).',
     emailDomainNotAllowed: 'Sign up requires a gmail.com, outlook.com, hotmail.com, yahoo.com, or icloud.com email address.',
     passwordPolicy: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number.',
+    passwordTooLong: 'Password must be 72 characters or fewer.',
     passwordHint: 'At least 8 characters, with an uppercase letter, a lowercase letter, and a number.',
     emailExists: 'An account with this email already exists. Log in or reset your password instead.',
     invalidCredentials: 'Incorrect email or password. Please try again.',
@@ -135,6 +137,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     emailInvalid: 'يرجى إدخال عنوان بريد إلكتروني صالح (مثال: you@example.com).',
     emailDomainNotAllowed: 'يتطلب التسجيل بريدًا إلكترونيًا من gmail.com أو outlook.com أو hotmail.com أو yahoo.com أو icloud.com.',
     passwordPolicy: 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وتتضمن حرفًا كبيرًا وحرفًا صغيرًا ورقمًا.',
+    passwordTooLong: 'يجب ألا تتجاوز كلمة المرور 72 حرفًا.',
     passwordHint: '8 أحرف على الأقل، مع حرف كبير وحرف صغير ورقم.',
     emailExists: 'يوجد حساب بهذا البريد الإلكتروني بالفعل. سجّل الدخول أو أعد تعيين كلمة المرور.',
     invalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى.',
@@ -185,6 +188,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     emailInvalid: 'Veuillez saisir une adresse e-mail valide (ex. : you@example.com).',
     emailDomainNotAllowed: 'L inscription requiert une adresse gmail.com, outlook.com, hotmail.com, yahoo.com ou icloud.com.',
     passwordPolicy: 'Le mot de passe doit comporter au moins 8 caracteres, dont une majuscule, une minuscule et un chiffre.',
+    passwordTooLong: 'Le mot de passe ne doit pas depasser 72 caracteres.',
     passwordHint: 'Au moins 8 caracteres, avec une majuscule, une minuscule et un chiffre.',
     emailExists: 'Un compte existe deja avec cet e-mail. Connectez-vous ou reinitialisez votre mot de passe.',
     invalidCredentials: 'E-mail ou mot de passe incorrect. Veuillez reessayer.',

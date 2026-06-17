@@ -59,6 +59,13 @@ export class AuthController {
       });
     }
 
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      throw new BadRequestException({
+        code: 'PASSWORD_TOO_LONG',
+        message: 'Password must be 72 characters or fewer.',
+      });
+    }
+
     if (!isStrongPassword(password)) {
       throw new BadRequestException({
         code: 'WEAK_PASSWORD',
@@ -143,6 +150,10 @@ function normalizeCode(code: string | undefined): string {
   const normalized = code?.trim() ?? '';
   return /^\d{8}$/.test(normalized) ? normalized : '';
 }
+
+// Supabase/GoTrue (bcrypt) rejects passwords longer than 72 characters.
+// Mirrored on the frontend (auth-page.component.ts).
+const MAX_PASSWORD_LENGTH = 72;
 
 // Mirrors the frontend password policy (auth-page.component.ts): at least 8
 // characters, with an uppercase letter, a lowercase letter, and a number.
