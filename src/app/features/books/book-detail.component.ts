@@ -108,7 +108,13 @@ export class BookDetailComponent implements OnInit {
 
     try {
       const [bookRes, user] = await Promise.all([
-        fetch(`/api/books/${googleId}`).then((r) => r.json() as Promise<BookDetail>),
+        fetch(`/api/books/${googleId}`).then(async (r) => {
+          if (!r.ok) {
+            const body = (await r.json().catch(() => ({}))) as { message?: string };
+            throw new Error(body.message ?? 'Failed to load book.');
+          }
+          return r.json() as Promise<BookDetail>;
+        }),
         this.supabaseService.getClient().then((s) => s.auth.getUser()),
       ]);
 

@@ -1,6 +1,6 @@
 import {
+  BadGatewayException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -162,7 +162,9 @@ export class BooksService {
     try {
       res = await fetchWithTimeout(url, 10_000);
     } catch {
-      throw new InternalServerErrorException('Failed to fetch book details.');
+      // Upstream (Google Books) unreachable — that's a gateway failure, not an
+      // internal server fault. 502 keeps it out of the "500" bucket.
+      throw new BadGatewayException('Could not reach the book provider. Please try again.');
     }
 
     if (!res.ok) {
