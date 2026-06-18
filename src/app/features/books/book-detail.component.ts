@@ -73,6 +73,7 @@ export class BookDetailComponent implements OnInit {
   }
 
   book: BookDetail | null = null;
+  descriptionText = '';   // book.description with HTML stripped (Google Books returns markup)
   userBook: UserBook | null = null;
   isLoading = true;
   error: string | null = null;
@@ -119,6 +120,7 @@ export class BookDetailComponent implements OnInit {
       ]);
 
       this.book = bookRes;
+      this.descriptionText = this.toPlainText(bookRes.description);
       this.userId = user.data.user?.id ?? null;
 
       if (this.userId) {
@@ -386,5 +388,20 @@ export class BookDetailComponent implements OnInit {
 
   get publishYear(): string {
     return this.book?.publishedDate?.slice(0, 4) ?? '';
+  }
+
+  // Google Books descriptions arrive as HTML (e.g. <p>, <br>, <b>, &quot;).
+  // Interpolating that with {{ }} shows the raw tags as text, so convert it to
+  // readable plain text: line breaks for block tags, strip the rest, decode
+  // entities. Runs once (in ngOnInit) — not a per-CD getter.
+  private toPlainText(html: string | null): string {
+    if (!html) return '';
+    const withBreaks = html
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/\s*p\s*>/gi, '\n\n')
+      .replace(/<[^>]+>/g, '');
+    const ta = document.createElement('textarea');
+    ta.innerHTML = withBreaks;
+    return ta.value.replace(/\n{3,}/g, '\n\n').trim();
   }
 }
