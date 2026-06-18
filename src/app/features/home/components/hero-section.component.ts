@@ -39,7 +39,7 @@ interface Book {
         </div>
 
         <p class="text-body">
-          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : copy.heroFallbackDescription }}
+          {{ descriptionPreview || copy.heroFallbackDescription }}
         </p>
 
         <div class="hero-actions">
@@ -349,6 +349,22 @@ export class HeroSectionComponent {
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
+  // Google Books descriptions contain HTML markup; strip tags + decode common
+  // entities so the hero shows clean text (not raw <p>/&quot;), then truncate.
+  protected get descriptionPreview(): string {
+    const raw = this.book?.description;
+    if (!raw) return '';
+    const text = raw
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > 220 ? text.slice(0, 220) + '…' : text;
   }
 
   onViewBook(): void {

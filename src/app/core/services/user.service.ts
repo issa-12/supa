@@ -270,6 +270,9 @@ export class UserService {
         supabase
           .from('users')
           .select('*')
+          // Only surface fully-onboarded accounts — hides abandoned/unverified
+          // signups (the public.users row is created at signup-request time).
+          .eq('verified', true)
           .or(`name.ilike.%${sanitized}%,username.ilike.%${sanitized}%`)
           .limit(limit)
           .then(({ data, error }) => {

@@ -244,7 +244,7 @@ export class AuthService {
         : nameFromEmail(email);
 
     const { error } = await admin.from('users').upsert(
-      { id: user.id, email: email.toLowerCase(), name, updated_at: new Date().toISOString() },
+      { id: user.id, email: email.toLowerCase(), name, verified: true, updated_at: new Date().toISOString() },
       { onConflict: 'id' },
     );
     if (error) throw new InternalServerErrorException(error.message);
