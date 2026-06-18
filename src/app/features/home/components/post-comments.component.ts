@@ -384,7 +384,7 @@ export class PostCommentsComponent implements OnInit {
         this.submitting = false;
       },
       error: (err) => {
-        this.commentError = err instanceof Error ? err.message : 'Could not post comment.';
+        this.commentError = (err as { status?: number })?.status === 422 ? this.copy.contentRejected : this.copy.commentFailed;
         this.submitting = false;
       },
     });
@@ -414,7 +414,7 @@ export class PostCommentsComponent implements OnInit {
         this.submitting = false;
       },
       error: (err) => {
-        this.commentError = err instanceof Error ? err.message : 'Could not post comment.';
+        this.commentError = (err as { status?: number })?.status === 422 ? this.copy.contentRejected : this.copy.commentFailed;
         this.submitting = false;
       },
     });

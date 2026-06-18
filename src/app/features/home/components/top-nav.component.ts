@@ -24,7 +24,7 @@ interface NavSearchBook {
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <header class="top-nav">
-      <div class="brand" routerLink="/">
+      <div class="brand" routerLink="/home">
         <div class="brand-icon">
           <iconify-icon icon="lucide:book-open" style="font-size: 22px"></iconify-icon>
         </div>

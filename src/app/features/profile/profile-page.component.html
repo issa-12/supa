@@ -239,7 +239,7 @@
             <div class="tags-section">
               <div class="tag-list">
                 @for (genre of genres; track genre.id) {
-                  <span class="tag">{{ genre.name }}</span>
+                  <span class="tag">{{ genre.name | genreName:lang }}</span>
                 }
               </div>
             </div>
@@ -264,7 +264,7 @@
               </div>
             </div>
             <div class="progress-footer">
-              <p class="progress-percentage">{{ goalPercent }}% of {{ readingStats.currentYear }} goal</p>
+              <p class="progress-percentage">{{ goalProgressText }}</p>
               @if (isOwnProfile) {
                 @if (editingGoal) {
                   <div class="goal-edit" (click)="$event.stopPropagation()">
@@ -740,7 +740,7 @@
                           <path d="M20 6 9 17l-5-5"/>
                         </svg>
                       }
-                      {{ genre.name }}
+                      {{ genre.name | genreName:lang }}
                     </button>
                   }
                 </div>
@@ -789,7 +789,7 @@
           <a routerLink="/privacy" class="footer-link">{{ copy.privacyPolicy }}</a>
           <a routerLink="/terms" class="footer-link">{{ copy.termsOfService }}</a>
         </div>
-        <p class="footer-copyright">{{ copy.copyright }}</p>
+        <p class="footer-copyright">{{ copyrightText }}</p>
       </footer>
 
     </div>

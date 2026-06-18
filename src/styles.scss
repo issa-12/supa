@@ -174,3 +174,13 @@ img {
 [dir="rtl"] .privacy-toggle-input:checked + .privacy-toggle-switch::after {
   transform: translateX(-18px);
 }
+
+/* RTL: mirror back-arrow icons so they point the natural "back" direction
+   (rightward) in Arabic. Covers every page's circular .back-btn. The "see all"
+   forward arrow in the nav search is flipped too. */
+[dir="rtl"] .back-btn svg {
+  transform: scaleX(-1);
+}
+[dir="rtl"] .search-see-all iconify-icon {
+  transform: scaleX(-1);
+}

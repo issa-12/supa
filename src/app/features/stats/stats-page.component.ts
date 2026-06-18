@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
-import { TranslationService, STATS_COPY, LanguageCode } from '../../i18n';
+import { TranslationService, STATS_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface TopBook {
@@ -37,7 +37,7 @@ interface MonthlyPace {
 @Component({
   selector: 'app-stats-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, TopNavComponent],
+  imports: [CommonModule, RouterLink, TopNavComponent, GenreNamePipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './stats-page.component.html',
   styleUrl: './stats-page.component.scss',
@@ -48,6 +48,13 @@ export class StatsPageComponent implements OnInit {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return STATS_COPY[this.lang]; }
+
+  // Backend returns English short month names; map to the chosen language.
+  private static readonly EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  monthLabel(month: string): string {
+    const i = StatsPageComponent.EN_MONTHS.indexOf(month);
+    return i >= 0 ? this.copy.months[i] : month;
+  }
 
   period: 'week' | 'month' = 'week';
   isLoadingGlobal = true;
@@ -101,11 +108,11 @@ export class StatsPageComponent implements OnInit {
     this.errorGlobal = null;
     try {
       const token = await this.getToken();
-      if (!token) { this.errorGlobal = 'Not authenticated.'; return; }
+      if (!token) { this.errorGlobal = this.copy.errorNotAuthenticated; return; }
       const res = await fetch(`/api/stats/global?period=${this.period}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) { this.errorGlobal = 'Failed to load stats. Try again.'; return; }
+      if (!res.ok) { this.errorGlobal = this.copy.errorLoadStats; return; }
       const data = (await res.json()) as {
         topBooks: TopBook[];
         trendingGenres: TrendingGenre[];
@@ -115,7 +122,7 @@ export class StatsPageComponent implements OnInit {
       this.trendingGenres = data.trendingGenres;
       this.topReaders = data.topReaders;
     } catch {
-      this.errorGlobal = 'Failed to load stats. Check your connection.';
+      this.errorGlobal = this.copy.errorLoadStats;
     } finally {
       this.isLoadingGlobal = false;
     }
@@ -126,15 +133,15 @@ export class StatsPageComponent implements OnInit {
     this.errorPace = null;
     try {
       const token = await this.getToken();
-      if (!token) { this.errorPace = 'Not authenticated.'; return; }
+      if (!token) { this.errorPace = this.copy.errorNotAuthenticated; return; }
       const res = await fetch('/api/stats/pace', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) { this.errorPace = 'Failed to load reading pace.'; return; }
+      if (!res.ok) { this.errorPace = this.copy.errorLoadPace; return; }
       const data = (await res.json()) as { pace: MonthlyPace[] };
       this.readingPace = data.pace;
     } catch {
-      this.errorPace = 'Failed to load reading pace. Check your connection.';
+      this.errorPace = this.copy.errorLoadPace;
     } finally {
       this.isLoadingPace = false;
     }

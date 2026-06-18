@@ -340,7 +340,13 @@ export class ActivityService {
       body: JSON.stringify({ bookId, content, tags }),
     });
     const body = await res.json() as ActivityPost & { message?: string };
-    if (!res.ok) throw new Error(body.message ?? 'Failed to post');
+    if (!res.ok) {
+      // Attach the HTTP status so the UI can show a translated message for a
+      // moderation rejection (422) vs a generic failure.
+      const err = new Error(body.message ?? 'Failed to post') as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
     return body;
   }
 

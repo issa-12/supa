@@ -231,7 +231,7 @@
                 <div class="post-header-right">
                   @if (post.sentiment) {
                     <span class="sentiment-badge sentiment-badge--{{ post.sentiment }}">
-                      {{ sentimentEmoji(post.sentiment) }} {{ post.sentiment }}
+                      {{ sentimentEmoji(post.sentiment) }} {{ sentimentLabel(post.sentiment) }}
                     </span>
                   }
                   @if (post.userId === currentUserId) {

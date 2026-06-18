@@ -176,7 +176,11 @@ export class CommentService {
           body: JSON.stringify({ postId, content, parentCommentId }),
         });
         const body = (await res.json().catch(() => ({}))) as Comment & { message?: string };
-        if (!res.ok) throw new Error(body.message ?? 'Failed to post comment.');
+        if (!res.ok) {
+          const err = new Error(body.message ?? 'Failed to post comment.') as Error & { status?: number };
+          err.status = res.status;
+          throw err;
+        }
         return body as Comment;
       })(),
     ).pipe(catchError((err) => throwError(() => err)));
