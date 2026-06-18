@@ -300,7 +300,9 @@ export class AuthPageComponent {
     this.authForm.reset();
 
     window.setTimeout(() => {
-      void this.router.navigateByUrl('/home');
+      // replaceUrl so the login page leaves the history stack — pressing back
+      // from /home must not return to the sign-in screen.
+      void this.router.navigateByUrl('/home', { replaceUrl: true });
     }, 900);
   }
 

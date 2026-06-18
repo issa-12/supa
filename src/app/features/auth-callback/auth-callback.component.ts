@@ -87,7 +87,8 @@ export class AuthCallbackComponent implements OnInit {
       this.message = this.copy.callbackReady;
 
       window.setTimeout(() => {
-        void this.router.navigateByUrl('/home');
+        // replaceUrl so the OAuth callback page isn't left in history.
+        void this.router.navigateByUrl('/home', { replaceUrl: true });
       }, 900);
     } catch {
       this.title = this.copy.callbackErrorTitle;

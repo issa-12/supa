@@ -376,7 +376,9 @@ export class GenreOnboardingComponent implements OnInit {
         .not('genre_id', 'in', `(${desired.join(',')})`);
       if (deleteErr) throw deleteErr;
 
-      await this.router.navigateByUrl('/home');
+      // replaceUrl so the onboarding page leaves history — back from /home
+      // must not return to the genre picker.
+      await this.router.navigateByUrl('/home', { replaceUrl: true });
     } catch (err) {
       this.submitError = this.copy.saveGenresFailed;
     } finally {
