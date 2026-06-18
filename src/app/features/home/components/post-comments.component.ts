@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { CommentService, Comment } from '../../../core/services/comment.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { timeAgo } from '../../../core/util/time-ago';
-import { TranslationService, COMMENTS_COPY, LanguageCode } from '../../../i18n';
+import { TranslationService, COMMENTS_COPY, A11Y_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -120,7 +120,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         <div class="add-comment">
           <div class="comment-avatar">
             @if (currentUserAvatar) {
-              <img [src]="currentUserAvatar" alt="You" loading="lazy" />
+              <img [src]="currentUserAvatar" [alt]="a11y.youAlt" loading="lazy" />
             } @else {
               <span>{{ userInitial }}</span>
             }
@@ -342,6 +342,7 @@ export class PostCommentsComponent implements OnInit {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return COMMENTS_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);

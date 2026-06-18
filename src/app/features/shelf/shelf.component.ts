@@ -76,8 +76,9 @@ export class ShelfComponent implements OnInit {
 
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user.id));
       this.buildSections(allBooks);
-    } catch (err) {
-      this.error = err instanceof Error ? err.message : this.copy.failedToLoadShelfMsg;
+    } catch {
+      // Always localized — a raw Supabase/network err.message is English/technical.
+      this.error = this.copy.failedToLoadShelfMsg;
     } finally {
       this.isLoading = false;
     }

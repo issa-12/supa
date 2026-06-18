@@ -20,6 +20,9 @@ export interface BookSearchCopy {
   wantToReadStatusLabel: string;
   currentlyReadingStatusLabel: string;
   alreadyReadStatusLabel: string;
+  searchFailed: string;
+  notSignedIn: string;
+  addFailed: string;
 }
 
 export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
@@ -43,6 +46,9 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     wantToReadStatusLabel: 'Want to Read',
     currentlyReadingStatusLabel: 'Currently Reading',
     alreadyReadStatusLabel: 'Already Read',
+    searchFailed: 'Search failed. Please try again.',
+    notSignedIn: 'You need to be signed in. Please log in and try again.',
+    addFailed: 'Could not add the book. Please try again.',
   },
   ar: {
     title: 'ابحث عن الكتب',
@@ -64,6 +70,9 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     wantToReadStatusLabel: 'أريد أن أقرأ',
     currentlyReadingStatusLabel: 'قيد القراءة حالياً',
     alreadyReadStatusLabel: 'تمت قراءته بالفعل',
+    searchFailed: 'فشل البحث. يرجى المحاولة مرة أخرى.',
+    notSignedIn: 'يجب تسجيل الدخول. يرجى تسجيل الدخول والمحاولة مرة أخرى.',
+    addFailed: 'تعذّرت إضافة الكتاب. يرجى المحاولة مرة أخرى.',
   },
   fr: {
     title: 'Trouver des livres',
@@ -85,5 +94,8 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     wantToReadStatusLabel: 'À lire',
     currentlyReadingStatusLabel: 'En cours de lecture',
     alreadyReadStatusLabel: 'Déjà lu',
+    searchFailed: 'La recherche a échoué. Veuillez réessayer.',
+    notSignedIn: 'Vous devez être connecté. Veuillez vous connecter et réessayer.',
+    addFailed: 'Impossible d\'ajouter le livre. Veuillez réessayer.',
   },
 };

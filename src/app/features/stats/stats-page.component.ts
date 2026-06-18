@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
-import { TranslationService, STATS_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
+import { TranslationService, STATS_COPY, A11Y_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface TopBook {
@@ -48,6 +48,7 @@ export class StatsPageComponent implements OnInit {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return STATS_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   // Backend returns English short month names; map to the chosen language.
   private static readonly EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

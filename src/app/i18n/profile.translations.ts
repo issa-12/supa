@@ -107,6 +107,7 @@ export interface ProfileCopy {
   avatarInvalidType: string;
   avatarTooLarge: string;
   avatarUploadError: string;
+  loadProfileError: string;
   privacyPolicy: string;
   termsOfService: string;
   copyright: string;
@@ -252,6 +253,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     avatarInvalidType: 'Please select an image file.',
     avatarTooLarge: 'Image must be under 5 MB.',
     avatarUploadError: 'Could not upload photo. Please try again.',
+    loadProfileError: 'Could not load this profile. Please try again.',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
     copyright: '© {year} ReadTrack. All rights reserved.',
@@ -395,6 +397,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     avatarInvalidType: 'يرجى اختيار ملف صورة.',
     avatarTooLarge: 'يجب أن تكون الصورة أقل من 5 ميغابايت.',
     avatarUploadError: 'تعذّر رفع الصورة. حاول مرة أخرى.',
+    loadProfileError: 'تعذّر تحميل هذا الملف الشخصي. حاول مرة أخرى.',
     privacyPolicy: 'سياسة الخصوصية',
     termsOfService: 'شروط الخدمة',
     copyright: '© {year} ReadTrack. جميع الحقوق محفوظة.',
@@ -538,6 +541,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     avatarInvalidType: 'Veuillez sélectionner un fichier image.',
     avatarTooLarge: 'L\'image doit faire moins de 5 Mo.',
     avatarUploadError: 'Impossible de téléverser la photo. Veuillez réessayer.',
+    loadProfileError: 'Impossible de charger ce profil. Veuillez réessayer.',
     privacyPolicy: 'Politique de confidentialité',
     termsOfService: 'Conditions d\'utilisation',
     copyright: '© {year} ReadTrack. Tous droits réservés.',

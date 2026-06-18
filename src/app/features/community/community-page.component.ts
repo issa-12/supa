@@ -9,7 +9,7 @@ import { PostCommentsComponent } from '../home/components/post-comments.componen
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { timeAgo } from '../../core/util/time-ago';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
-import { TranslationService, COMMUNITY_COPY, LanguageCode } from '../../i18n';
+import { TranslationService, COMMUNITY_COPY, A11Y_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface BookResult {
@@ -42,6 +42,7 @@ export class CommunityPageComponent implements OnInit {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return COMMUNITY_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);

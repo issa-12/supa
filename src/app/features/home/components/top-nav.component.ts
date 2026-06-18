@@ -8,7 +8,7 @@ import { NotificationsService, AppNotification } from '../../../core/services/no
 import { NotificationsPanelComponent } from './notifications-panel.component';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { UserService, UserProfile } from '../../../core/services/user.service';
-import { TranslationService, LanguageSelectorComponent, LANGUAGE_OPTIONS, LanguageOption, NAV_COPY, LanguageCode } from '../../../i18n';
+import { TranslationService, LanguageSelectorComponent, LANGUAGE_OPTIONS, LanguageOption, NAV_COPY, A11Y_COPY, LanguageCode } from '../../../i18n';
 
 interface NavSearchBook {
   googleId: string;
@@ -157,7 +157,7 @@ interface NavSearchBook {
         <div class="avatar-wrap" (click)="$event.stopPropagation()">
           <img
             [src]="avatarUrl || avatarFallback"
-            alt="Profile"
+            [alt]="a11y.profileAlt"
             class="nav-avatar"
             (click)="toggleUserMenu()"
           />
@@ -598,6 +598,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   searchUserResults: UserProfile[] = [];
 
   protected get copy() { return NAV_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   private sub?: Subscription;
   private searchTimer?: ReturnType<typeof setTimeout>;

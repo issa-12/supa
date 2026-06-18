@@ -16,7 +16,7 @@ import { ReportService, ReportReason } from '../../core/services/report.service'
 import { PresenceService } from '../../core/services/presence.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { timeAgo } from '../../core/util/time-ago';
-import { TranslationService, PROFILE_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
+import { TranslationService, PROFILE_COPY, A11Y_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ProfileBook {
@@ -50,6 +50,7 @@ export class ProfilePageComponent implements OnInit {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return PROFILE_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   profile: UserProfile | null = null;
   readingStats: ReadingStats | null = null;
@@ -225,8 +226,8 @@ export class ProfilePageComponent implements OnInit {
           void this.presenceService.loadPresenceForUser(targetId);
         }
       }
-    } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to load profile.';
+    } catch {
+      this.error = this.copy.loadProfileError;
     } finally {
       this.isLoading = false;
     }

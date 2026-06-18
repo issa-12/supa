@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, GoogleBook } from '../../core/services/book.service';
-import { TranslationService, BOOK_SEARCH_COPY, LanguageCode } from '../../i18n';
+import { TranslationService, BOOK_SEARCH_COPY, A11Y_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ShelfStatus {
@@ -36,6 +36,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return BOOK_SEARCH_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   statuses: ShelfStatus[] = [];
 
@@ -149,8 +150,9 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       this.results = books;
       this.totalItems = totalItems;
       this.startIndex = books.length;
-    } catch (err) {
-      this.searchError = err instanceof Error ? err.message : 'Search failed. Please try again.';
+    } catch {
+      // Always show a localized message (raw err.message is English/unlocalized).
+      this.searchError = this.copy.searchFailed;
       this.results = [];
     } finally {
       this.isSearching = false;
@@ -171,12 +173,15 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       const supabase = await this.supabaseService.getClient();
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) throw new Error('Not signed in.');
+      if (!user) {
+        this.addError = this.copy.notSignedIn;
+        return;
+      }
 
       await this.bookService.addGoogleBookToShelf(book, user.id, status.id);
       this.addedBooks.set(book.googleId, status.label);
-    } catch (err) {
-      this.addError = err instanceof Error ? err.message : 'Could not add book. Try again.';
+    } catch {
+      this.addError = this.copy.addFailed;
     } finally {
       this.addingBookId = null;
     }

@@ -7,7 +7,7 @@ import { BookService } from '../../../core/services/book.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
-import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { TranslationService, HOME_COPY, A11Y_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostCommentsComponent } from './post-comments.component';
 
@@ -33,7 +33,7 @@ interface BookSearchResult {
             <button class="compose-trigger" (click)="openCompose()">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+                  <img [src]="currentUserAvatar" [alt]="a11y.youAlt" loading="lazy" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -61,7 +61,7 @@ interface BookSearchResult {
                       <span class="selected-book-title">{{ selectedBook.title }}</span>
                       <span class="selected-book-author">{{ selectedBook.author }}</span>
                     </div>
-                    <button class="clear-book" (click)="clearBook()" aria-label="Remove book">
+                    <button class="clear-book" (click)="clearBook()" [attr.aria-label]="a11y.removeBook">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
@@ -158,7 +158,7 @@ interface BookSearchResult {
                   </div>
                 </a>
                 @if (post.userId === currentUserId) {
-                  <button class="post-delete" (click)="deletePost(post)" aria-label="Delete post">
+                  <button class="post-delete" (click)="deletePost(post)" [attr.aria-label]="a11y.deletePost">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                     </svg>
@@ -667,6 +667,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return HOME_COPY[this.lang]; }
+  protected get a11y() { return A11Y_COPY[this.lang]; }
 
   posts: ActivityPost[] = [];
   trendingPosts: ActivityPost[] = [];
