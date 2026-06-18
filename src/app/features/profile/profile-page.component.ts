@@ -618,7 +618,7 @@ export class ProfilePageComponent implements OnInit {
       } catch {
         // ignore — the server-side account is already deleted
       }
-      this.router.navigate(['/']);
+      this.router.navigate(['/'], { replaceUrl: true });
     } catch {
       this.deleteAccountError = this.copy.deleteAccountError;
       this.deletingAccount = false;

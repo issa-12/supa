@@ -408,6 +408,35 @@ export class BookService {
     return { books: payload.books ?? [], totalItems: payload.totalItems ?? 0 };
   }
 
+  // Find-or-create a catalog book via the backend (service-role). The browser
+  // has no write access to public.books, so this is the only way to add one.
+  async ensureBookViaApi(book: {
+    googleId: string;
+    title?: string;
+    author?: string;
+    coverUrl?: string | null;
+    description?: string | null;
+  }): Promise<number> {
+    const session = await this.supabaseService.getCurrentSession();
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch('/api/books/ensure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        googleId: book.googleId,
+        title: book.title,
+        author: book.author,
+        coverUrl: book.coverUrl ?? null,
+        description: book.description ?? null,
+      }),
+    });
+    if (!res.ok) throw new Error('Failed to save book.');
+    const { bookId } = (await res.json()) as { bookId: number };
+    return bookId;
+  }
+
   async addGoogleBookToShelf(
     book: GoogleBook,
     userId: string,
@@ -415,34 +444,10 @@ export class BookService {
   ): Promise<void> {
     const supabase = await this.supabaseService.getClient();
 
-    // Find existing book or insert new one
-    let bookId: number;
-    const { data: existing } = await supabase
-      .from('books')
-      .select('book_id')
-      .eq('google_books_id', book.googleId)
-      .maybeSingle();
-
-    if (existing) {
-      bookId = existing['book_id'] as number;
-    } else {
-      const publishDate = normalizePublishedDate(book.publishedDate);
-      const { data: inserted, error: insertErr } = await supabase
-        .from('books')
-        .insert({
-          title: book.title,
-          author_name: book.author,
-          description: book.description,
-          publish_date: publishDate,
-          cover_image_url: book.coverUrl,
-          google_books_id: book.googleId,
-        })
-        .select('book_id')
-        .single();
-
-      if (insertErr || !inserted) throw insertErr ?? new Error('Failed to save book.');
-      bookId = inserted['book_id'] as number;
-    }
+    // The browser can no longer write to public.books (RLS) — find-or-create
+    // the catalog row server-side. Only the user_books row (owner-scoped) is
+    // written client-side below.
+    const bookId = await this.ensureBookViaApi(book);
 
     // If the user already has this book on a shelf, just update the
     // status — preserve the original added_at so first-added date stays
@@ -780,14 +785,4 @@ export class BookService {
         : undefined,
     };
   }
-}
-
-// Google Books returns publishedDate as 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'.
-// Normalize to a Postgres DATE-compatible 'YYYY-MM-DD' string (or null).
-function normalizePublishedDate(value: string | null | undefined): string | null {
-  if (!value) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
-  if (/^\d{4}$/.test(value)) return `${value}-01-01`;
-  return null;
 }

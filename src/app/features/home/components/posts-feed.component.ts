@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
+import { BookService } from '../../../core/services/book.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
@@ -659,6 +660,7 @@ export class PostsFeedComponent implements OnInit, OnChanges {
 
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
+  private readonly bookService = inject(BookService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly translationService = inject(TranslationService);
@@ -818,28 +820,10 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   }
 
   private async ensureBookInDb(book: BookSearchResult): Promise<number> {
-    const supabase = await this.supabaseService.getClient();
-    const { data: existing } = await supabase
-      .from('books')
-      .select('book_id')
-      .eq('google_books_id', book.googleId)
-      .maybeSingle();
-
-    if (existing) return existing['book_id'] as number;
-
-    const { data: inserted, error } = await supabase
-      .from('books')
-      .insert({
-        title: book.title,
-        author_name: book.author,
-        cover_image_url: book.coverUrl,
-        google_books_id: book.googleId,
-      })
-      .select('book_id')
-      .single();
-
-    if (error || !inserted) throw error ?? new Error('Failed to save book');
-    return inserted['book_id'] as number;
+    // public.books is no longer client-writable — create it server-side.
+    return this.bookService.ensureBookViaApi({
+      googleId: book.googleId, title: book.title, author: book.author, coverUrl: book.coverUrl,
+    });
   }
 
   toggleComments(postId: number): void {

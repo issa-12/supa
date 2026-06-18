@@ -112,6 +112,31 @@ const main = async () => {
   const othersNotes = await anon.from('user_book_notes').select('user_book_id').neq('user_id', aria.userId);
   ok("cannot read other users' notes (owner-only RLS)", (othersNotes.data?.length ?? 0) === 0, `rows=${othersNotes.data?.length ?? 0}`);
 
+  console.log('\n=== SECURITY: books catalog is read-only to the browser ===');
+  // Reproduce the reported attack: a logged-in user (anon key + JWT) tries to
+  // rewrite a book directly via the REST API. After the lockdown migration this
+  // must NOT change the row.
+  const { data: aBook } = await anon.from('books').select('book_id, title, google_books_id').limit(1).maybeSingle();
+  if (aBook) {
+    await anon.from('books').update({ title: 'HACKED BY TEST' }).eq('book_id', aBook.book_id);
+    const { data: after } = await anon.from('books').select('title').eq('book_id', aBook.book_id).maybeSingle();
+    const updateBlocked = after?.title === aBook.title;
+    ok('client UPDATE of a book is blocked', updateBlocked, `title="${after?.title}"`);
+    // Self-heal if the lockdown migration isn't applied yet (don't leave damage).
+    if (!updateBlocked) await admin.from('books').update({ title: aBook.title }).eq('book_id', aBook.book_id);
+
+    const evilId = `evil-${Date.now()}`;
+    const { error: insErr } = await anon.from('books').insert({ title: 'x', author_name: 'x', google_books_id: evilId });
+    ok('client INSERT of a book is blocked', !!insErr, `err="${insErr?.message ?? 'none'}"`);
+    if (!insErr) await admin.from('books').delete().eq('google_books_id', evilId);
+
+    // Legit path still works: backend ensure resolves an existing book.
+    const ens = await api('/api/books/ensure', aria.token, { method: 'POST', body: JSON.stringify({ googleId: aBook.google_books_id }) });
+    ok('backend /api/books/ensure works', ens.status === 201 || ens.status === 200, `status=${ens.status} bookId=${ens.body?.bookId}`);
+  } else {
+    ok('books catalog has rows to test', false);
+  }
+
   console.log(`\n${fail === 0 ? '✅' : '❌'} ${pass} passed, ${fail} failed`);
   process.exit(fail === 0 ? 0 : 1);
 };
