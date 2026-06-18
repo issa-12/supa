@@ -1,51 +1,26 @@
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Location } from '@angular/common';
+import { Router } from '@angular/router';
+import { TranslationService, TERMS_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-terms-of-service',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
   template: `
-    <main class="static-page">
+    <main class="static-page" [attr.dir]="lang === 'ar' ? 'rtl' : 'ltr'">
       <div class="static-card">
-        <a routerLink="/" class="back-link">← Back to ReadTrack</a>
-        <h1>Terms of Service</h1>
-        <p class="updated">Last updated: May 2026</p>
+        <button type="button" class="back-link" (click)="goBack()">{{ copy.backLink }}</button>
+        <h1>{{ copy.title }}</h1>
+        <p class="updated">{{ copy.lastUpdated }}</p>
 
-        <section>
-          <h2>1. Acceptance of Terms</h2>
-          <p>By creating a ReadTrack account you agree to these Terms of Service. If you do not agree, do not use the platform.</p>
-        </section>
-
-        <section>
-          <h2>2. User Conduct</h2>
-          <p>You agree not to post content that is hateful, abusive, or violates the rights of others. Community posts are subject to AI moderation. Repeated violations may result in account suspension.</p>
-        </section>
-
-        <section>
-          <h2>3. Content Ownership</h2>
-          <p>You retain ownership of content you post. By posting, you grant ReadTrack a non-exclusive licence to display that content on the platform.</p>
-        </section>
-
-        <section>
-          <h2>4. Book Data</h2>
-          <p>Book metadata (titles, authors, descriptions, covers) is sourced from the Google Books API and is subject to Google's terms. ReadTrack does not claim ownership of this data.</p>
-        </section>
-
-        <section>
-          <h2>5. Account Termination</h2>
-          <p>We reserve the right to suspend or terminate accounts that violate these terms. You may delete your account at any time from your profile settings.</p>
-        </section>
-
-        <section>
-          <h2>6. Disclaimer</h2>
-          <p>ReadTrack is provided "as is" without warranty. We are not liable for any damages arising from use of the platform.</p>
-        </section>
-
-        <section>
-          <h2>7. Contact</h2>
-          <p>For terms-related questions, contact us at legal&#64;readtrack.app.</p>
-        </section>
+        @for (section of copy.sections; track section.heading) {
+          <section>
+            <h2>{{ section.heading }}</h2>
+            <p>{{ section.body }}</p>
+          </section>
+        }
       </div>
     </main>
   `,
@@ -69,9 +44,14 @@ import { RouterLink } from '@angular/router';
       display: inline-block;
       margin-bottom: 24px;
       color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
       text-decoration: none;
       font-weight: 600;
       font-size: 14px;
+      font-family: inherit;
+      padding: 0;
       &:hover { text-decoration: underline; }
     }
     h1 {
@@ -100,4 +80,20 @@ import { RouterLink } from '@angular/router';
     section { border-top: 1px solid var(--border); padding-top: 4px; }
   `],
 })
-export class TermsOfServiceComponent {}
+export class TermsOfServiceComponent {
+  private readonly translationService = inject(TranslationService);
+  private readonly location = inject(Location);
+  private readonly router = inject(Router);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return TERMS_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
+  goBack(): void {
+    if (window.history.length > 1) this.location.back();
+    else void this.router.navigate(['/profile']);
+  }
+}

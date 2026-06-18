@@ -193,6 +193,16 @@ export class AuthService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+    // A failed email send (e.g. SMTP misconfigured / provider down) is an
+    // upstream email-infrastructure failure, not an internal server fault.
+    // Surface it as 502 with a stable code so the UI shows a clear "try again"
+    // message instead of a scary 500.
+    if (/sending.*email|error sending|smtp|magic link email|recovery email/i.test(message)) {
+      throw new HttpException(
+        { code: 'EMAIL_SEND_FAILED', message: 'Could not send the verification email. Please try again later.' },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
     throw new InternalServerErrorException(message || 'Could not send verification code.');
   }
 
@@ -244,7 +254,7 @@ export class AuthService {
         : nameFromEmail(email);
 
     const { error } = await admin.from('users').upsert(
-      { id: user.id, email: email.toLowerCase(), name, updated_at: new Date().toISOString() },
+      { id: user.id, email: email.toLowerCase(), name, verified: true, updated_at: new Date().toISOString() },
       { onConflict: 'id' },
     );
     if (error) throw new InternalServerErrorException(error.message);

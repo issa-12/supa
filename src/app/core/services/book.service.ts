@@ -210,7 +210,18 @@ export class BookService {
           .maybeSingle();
 
         if (error) throw error;
-        return data ? this.mapUserBook(data) : null;
+        if (!data) return null;
+
+        const mapped = this.mapUserBook(data);
+        // Notes live in a separate owner-only table (user_book_notes) so they
+        // can't be read off a public user_books row. Fetch the owner's note.
+        const { data: noteRow } = await supabase
+          .from('user_book_notes')
+          .select('note')
+          .eq('user_book_id', mapped.id)
+          .maybeSingle();
+        mapped.note = (noteRow?.['note'] as string) ?? null;
+        return mapped;
       })
     ).pipe(catchError((error) => throwError(() => error)));
   }
@@ -658,18 +669,32 @@ export class BookService {
 
   saveNote(userBookId: number, note: string): Observable<UserBook> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then(async (supabase) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // Notes are stored in the owner-only user_book_notes table (RLS:
+        // user_id = auth.uid()), so they're never readable off a public
+        // user_books row.
+        const { error: noteErr } = await supabase
+          .from('user_book_notes')
+          .upsert(
+            { user_book_id: userBookId, user_id: user.id, note, updated_at: new Date().toISOString() },
+            { onConflict: 'user_book_id' },
+          );
+        if (noteErr) throw noteErr;
+
+        const { data, error } = await supabase
           .from('user_books')
-          .update({ note, updated_at: new Date().toISOString() })
-          .eq('user_book_id', userBookId)
           .select('*, book:books(*), status:reading_statuses(*)')
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data?.length) throw new Error('Failed to save note');
-            return this.mapUserBook(data[0]);
-          })
-      )
+          .eq('user_book_id', userBookId)
+          .single();
+        if (error) throw error;
+
+        const mapped = this.mapUserBook(data);
+        mapped.note = note;
+        return mapped;
+      })
     ).pipe(catchError((error) => throwError(() => error)));
   }
 

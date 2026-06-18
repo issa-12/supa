@@ -225,9 +225,12 @@ export class SupabaseService {
 
   private async upsertPublicUser(profile: AppUserProfile): Promise<AppUserProfile> {
     const supabase = await this.getClient();
+    // Reaching here means an authenticated session (password login blocks
+    // unverified accounts; OAuth accounts are inherently verified), so mark
+    // the public.users row verified — this also self-heals the flag.
     const { error } = await supabase
       .from('users')
-      .upsert(profile, { onConflict: 'id' });
+      .upsert({ ...profile, verified: true }, { onConflict: 'id' });
 
     if (error) {
       throw error;

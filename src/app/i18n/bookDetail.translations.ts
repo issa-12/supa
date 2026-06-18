@@ -5,6 +5,8 @@ export interface BookDetailCopy {
   myShelf: string;
   loadingBook: string;
   goBack: string;
+  bookNotFound: string;
+  loadFailed: string;
   pages: string;
   pagesUnit: string;
   byAuthor: string;
@@ -53,6 +55,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'My Shelf',
     loadingBook: 'Loading book…',
     goBack: 'Go back',
+    bookNotFound: 'Book not found.',
+    loadFailed: 'Failed to load book.',
     pages: '{{ n }} pages',
     pagesUnit: 'pages',
     byAuthor: 'by',
@@ -79,7 +83,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     saving: 'Saving…',
     saved: 'Saved!',
     myReview: 'My Review',
-    reviewHint: 'Visible to your friends',
+    reviewHint: 'Visible to the ReadTrack community',
     reviewPlaceholder: 'Share your thoughts about this book…',
     saveReview: 'Save Review',
     postReview: 'Post Review',
@@ -99,6 +103,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'رفي الخاص',
     loadingBook: 'جاري تحميل الكتاب…',
     goBack: 'العودة',
+    bookNotFound: 'الكتاب غير موجود.',
+    loadFailed: 'فشل تحميل الكتاب.',
     pages: '{{ n }} صفحة',
     pagesUnit: 'صفحة',
     byAuthor: 'بقلم',
@@ -125,7 +131,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     saving: 'جاري الحفظ…',
     saved: 'تم الحفظ!',
     myReview: 'تقييمي',
-    reviewHint: 'مرئي لأصدقائك',
+    reviewHint: 'مرئي لمجتمع ReadTrack',
     reviewPlaceholder: 'شارك أفكارك حول هذا الكتاب…',
     saveReview: 'حفظ التقييم',
     postReview: 'نشر التقييم',
@@ -145,6 +151,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'Ma Bibliothèque',
     loadingBook: 'Chargement du livre…',
     goBack: 'Retour',
+    bookNotFound: 'Livre introuvable.',
+    loadFailed: 'Impossible de charger le livre.',
     pages: '{{ n }} pages',
     pagesUnit: 'pages',
     byAuthor: 'par',
@@ -171,7 +179,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     saving: 'Enregistrement en cours…',
     saved: 'Enregistré !',
     myReview: 'Mon avis',
-    reviewHint: 'Visible par vos amis',
+    reviewHint: 'Visible par la communauté ReadTrack',
     reviewPlaceholder: 'Partagez vos réflexions sur ce livre…',
     saveReview: 'Enregistrer l\'avis',
     postReview: 'Publier l\'avis',

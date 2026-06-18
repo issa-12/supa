@@ -225,7 +225,9 @@ export class CommunityPageComponent implements OnInit {
       this.closeCompose();
       void this.loadTrendingTags();
     } catch (err: unknown) {
-      this.submitError = err instanceof Error ? err.message : 'Could not post. Try again.';
+      this.submitError = (err as { status?: number })?.status === 422
+        ? this.copy.contentRejected
+        : this.copy.postFailed;
     } finally {
       this.submitting = false;
     }
@@ -271,6 +273,16 @@ export class CommunityPageComponent implements OnInit {
 
   sentimentEmoji(s: string | null): string {
     return ({ positive: '😊', negative: '😞', neutral: '😐', mixed: '🤔' } as Record<string, string>)[s ?? ''] ?? '';
+  }
+
+  sentimentLabel(s: string | null): string {
+    switch (s) {
+      case 'positive': return this.copy.sentimentPositive;
+      case 'negative': return this.copy.sentimentNegative;
+      case 'neutral': return this.copy.sentimentNeutral;
+      case 'mixed': return this.copy.sentimentMixed;
+      default: return s ?? '';
+    }
   }
 
   readonly timeAgo = timeAgo;

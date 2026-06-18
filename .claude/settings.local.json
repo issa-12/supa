@@ -64,7 +64,10 @@
       "Bash(docker run *)",
       "PowerShell(docker run --rm --memory=6g -v \"${PWD}\\\\backend:/src:ro\" node:20.19.2-bookworm-slim bash -c 'cp -r /src /app && cd /app && rm -rf node_modules && echo \"NPM=$\\(npm -v\\)\"; npm ci --include=dev --no-audit --no-fund; echo \"CI_EXIT=$?\"; echo \"PEAK_MB=$\\(\\( $\\(cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo 0\\) / 1048576 \\)\\)\"' 2>&1 | Select-Object -Last 12)",
       "PowerShell(docker run --rm --memory=6g -v \"${PWD}:/work:ro\" node:20.19.2-bookworm-slim bash /work/scripts/_npmtest.sh 2>&1 | Select-String -Pattern \"NODE=|CI_EXIT=|PEAK_MB=|Exit handler|added \\\\d+ packages|npm error code\" | Select-Object -Last 10)",
-      "PowerShell(docker system df *)"
+      "PowerShell(docker system df *)",
+      "PowerShell(node_modules\\\\.bin\\\\ng build --configuration production 2>&1 | Select-Object -Last 20)",
+      "PowerShell(curl.exe -sk https://localhost:8443/api/health; Write-Output \"\"; curl.exe -sk -o NUL -w \"books-search HTTP %{http_code}\\\\n\" \"https://localhost:8443/api/books/search?q=dune&maxResults=2\")",
+      "PowerShell(docker ps --format \"{{.Names}} {{.Status}}\"; Write-Output \"---\"; curl.exe -sk https://localhost:8443/api/health)"
     ]
   }
 }

@@ -8,7 +8,7 @@ import { FriendshipService, FriendUser } from '../../core/services/friendship.se
 import { RecommendationService } from '../../core/services/recommendation.service';
 import { LikesService } from '../../core/services/likes.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
-import { TranslationService, BOOK_DETAIL_COPY, LanguageCode } from '../../i18n';
+import { TranslationService, BOOK_DETAIL_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface RatingBucket {
@@ -45,7 +45,7 @@ const SHELF_STATUSES = [
 @Component({
   selector: 'app-book-detail',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, GenreNamePipe],
   templateUrl: './book-detail.component.html',
   styleUrl: './book-detail.component.scss',
 })
@@ -73,6 +73,7 @@ export class BookDetailComponent implements OnInit {
   }
 
   book: BookDetail | null = null;
+  descriptionText = '';   // book.description with HTML stripped (Google Books returns markup)
   userBook: UserBook | null = null;
   isLoading = true;
   error: string | null = null;
@@ -104,7 +105,7 @@ export class BookDetailComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const googleId = this.route.snapshot.paramMap.get('googleId');
-    if (!googleId) { this.error = 'Book not found.'; this.isLoading = false; return; }
+    if (!googleId) { this.error = this.copy.bookNotFound; this.isLoading = false; return; }
 
     try {
       const [bookRes, user] = await Promise.all([
@@ -119,6 +120,7 @@ export class BookDetailComponent implements OnInit {
       ]);
 
       this.book = bookRes;
+      this.descriptionText = this.toPlainText(bookRes.description);
       this.userId = user.data.user?.id ?? null;
 
       if (this.userId) {
@@ -133,8 +135,8 @@ export class BookDetailComponent implements OnInit {
       if (this.book.dbBookId) {
         this.loadCommunityReviews(this.book.dbBookId);
       }
-    } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to load book.';
+    } catch {
+      this.error = this.copy.loadFailed;
     } finally {
       this.isLoading = false;
     }
@@ -386,5 +388,20 @@ export class BookDetailComponent implements OnInit {
 
   get publishYear(): string {
     return this.book?.publishedDate?.slice(0, 4) ?? '';
+  }
+
+  // Google Books descriptions arrive as HTML (e.g. <p>, <br>, <b>, &quot;).
+  // Interpolating that with {{ }} shows the raw tags as text, so convert it to
+  // readable plain text: line breaks for block tags, strip the rest, decode
+  // entities. Runs once (in ngOnInit) — not a per-CD getter.
+  private toPlainText(html: string | null): string {
+    if (!html) return '';
+    const withBreaks = html
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/\s*p\s*>/gi, '\n\n')
+      .replace(/<[^>]+>/g, '');
+    const ta = document.createElement('textarea');
+    ta.innerHTML = withBreaks;
+    return ta.value.replace(/\n{3,}/g, '\n\n').trim();
   }
 }

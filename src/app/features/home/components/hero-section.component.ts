@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
+import { TranslationService, HOME_COPY, LanguageCode, translateGenre } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BookService } from '../../../core/services/book.service';
 
@@ -39,7 +39,7 @@ interface Book {
         </div>
 
         <p class="text-body">
-          {{ book.description ? (book.description.length > 220 ? book.description.slice(0, 220) + '…' : book.description) : copy.heroFallbackDescription }}
+          {{ descriptionPreview || copy.heroFallbackDescription }}
         </p>
 
         <div class="hero-actions">
@@ -339,7 +339,7 @@ export class HeroSectionComponent {
   // falling back to the user's top genre, then a generic label.
   protected get eyebrowText(): string {
     const g = this.book?.genre || this.genre;
-    return g ? `${this.copy.heroEyebrowPrefix} ${g}` : this.copy.heroEyebrow;
+    return g ? `${this.copy.heroEyebrowPrefix} ${translateGenre(g, this.lang)}` : this.copy.heroEyebrow;
   }
 
   coverBroken = false;
@@ -349,6 +349,22 @@ export class HeroSectionComponent {
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
+
+  // Google Books descriptions contain HTML markup; strip tags + decode common
+  // entities so the hero shows clean text (not raw <p>/&quot;), then truncate.
+  protected get descriptionPreview(): string {
+    const raw = this.book?.description;
+    if (!raw) return '';
+    const text = raw
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > 220 ? text.slice(0, 220) + '…' : text;
   }
 
   onViewBook(): void {

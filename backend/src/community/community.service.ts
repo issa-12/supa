@@ -245,9 +245,11 @@ Respond ONLY with valid JSON, no markdown, no code fences, no extra text:
 {"status":"approved|flagged|rejected","reason":"(only if flagged or rejected)","sentiment":"positive|negative|neutral|mixed"}
 
 Rules:
-- approved: normal book discussion, reviews, recommendations
-- flagged: mildly inappropriate, spam-like, very mild rudeness
-- rejected: hate speech, explicit content, harassment, completely unrelated spam`,
+- approved: normal book discussion — reviews and opinions (INCLUDING harsh, negative, or passionate criticism of a book, author, plot, or character), debates, recommendations, and frustration about a story. Strong wording ABOUT a book is fine.
+- flagged: contains actual profanity/swear words, a direct insult aimed at another person, or obvious spam/advertising
+- rejected: hate speech, sexual or explicit content, harassment or threats against a person, or content completely unrelated to books
+
+Default to "approved". Only choose flagged or rejected when the text clearly matches. A negative or critical book opinion is always approved.`,
         messages: [{ role: 'user', content: `<<<USER_POST>>>\n${content}\n<<<END_USER_POST>>>` }],
       });
       const block = response.content?.[0];

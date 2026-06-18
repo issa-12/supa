@@ -809,7 +809,9 @@ export class PostsFeedComponent implements OnInit, OnChanges {
       this.posts = [post, ...this.posts];
       this.closeCompose();
     } catch (err) {
-      this.postError = err instanceof Error ? err.message : 'Could not post.';
+      this.postError = (err as { status?: number })?.status === 422
+        ? this.copy.contentRejected
+        : this.copy.postFailed;
     } finally {
       this.submitting = false;
     }

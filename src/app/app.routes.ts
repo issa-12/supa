@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
 import { genreOnboardingGuard } from './core/guards/genre-onboarding.guard';
 import { AuthCallbackComponent } from './features/auth-callback/auth-callback.component';
 import { AuthPageComponent } from './features/auth/auth-page.component';
@@ -10,11 +11,13 @@ export const routes: Routes = [
   {
     path: '',
     component: AuthPageComponent,
+    canActivate: [guestGuard],
     data: { mode: 'login' },
   },
   {
     path: 'signup',
     component: AuthPageComponent,
+    canActivate: [guestGuard],
     data: { mode: 'signup' },
   },
   {

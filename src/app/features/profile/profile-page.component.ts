@@ -16,7 +16,7 @@ import { ReportService, ReportReason } from '../../core/services/report.service'
 import { PresenceService } from '../../core/services/presence.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { timeAgo } from '../../core/util/time-ago';
-import { TranslationService, PROFILE_COPY, LanguageCode } from '../../i18n';
+import { TranslationService, PROFILE_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface ProfileBook {
@@ -31,7 +31,7 @@ interface ProfileBook {
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, GenreNamePipe],
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.scss',
 })
@@ -258,7 +258,7 @@ export class ProfilePageComponent implements OnInit {
       // The backend returns a specific reason (e.g. blocked / already exists);
       // surface it so the user isn't told to "try again" on an unretryable error.
       const msg = err instanceof Error ? err.message : '';
-      this.friendActionError = msg || 'Could not send friend request. Please try again.';
+      this.friendActionError = msg || this.copy.friendActionFailed;
       // Our local view of the relationship is stale — re-sync the button state.
       void this.refreshFriendshipStatus();
     } finally {
@@ -275,7 +275,7 @@ export class ProfilePageComponent implements OnInit {
       this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
-      this.friendActionError = 'Could not cancel request. Please try again.';
+      this.friendActionError = this.copy.friendActionFailed;
     } finally {
       this.friendActionLoading = false;
     }
@@ -290,7 +290,7 @@ export class ProfilePageComponent implements OnInit {
       this.friendshipStatus = 'accepted';
       this.friendCount += 1;
     } catch {
-      this.friendActionError = 'Could not accept request. Please try again.';
+      this.friendActionError = this.copy.friendActionFailed;
     } finally {
       this.friendActionLoading = false;
     }
@@ -305,7 +305,7 @@ export class ProfilePageComponent implements OnInit {
       this.friendshipStatus = 'none';
       this.friendshipId = null;
     } catch {
-      this.friendActionError = 'Could not decline request. Please try again.';
+      this.friendActionError = this.copy.friendActionFailed;
     } finally {
       this.friendActionLoading = false;
     }
@@ -321,7 +321,7 @@ export class ProfilePageComponent implements OnInit {
       this.friendshipId = null;
       this.friendCount = Math.max(0, this.friendCount - 1);
     } catch {
-      this.friendActionError = 'Could not remove friend. Please try again.';
+      this.friendActionError = this.copy.friendActionFailed;
     } finally {
       this.friendActionLoading = false;
     }
@@ -416,7 +416,7 @@ export class ProfilePageComponent implements OnInit {
       this.friends = await this.friendshipService.getFriends();
       this.friendCount = this.friends.length;
     } catch {
-      this.friendActionError = 'Could not accept request. Please try again.';
+      this.friendActionError = this.copy.friendActionFailed;
     }
   }
 
@@ -425,7 +425,7 @@ export class ProfilePageComponent implements OnInit {
       await this.friendshipService.rejectRequest(req.friendshipId);
       this.incomingRequests = this.incomingRequests.filter((r) => r.friendshipId !== req.friendshipId);
     } catch {
-      this.friendActionError = 'Could not decline request. Please try again.';
+      this.friendActionError = this.copy.friendActionFailed;
     }
   }
 
@@ -472,6 +472,17 @@ export class ProfilePageComponent implements OnInit {
     );
   }
 
+  get goalProgressText(): string {
+    if (!this.readingStats) return '';
+    return this.copy.goalProgress
+      .replace('{percent}', String(this.goalPercent))
+      .replace('{year}', String(this.readingStats.currentYear));
+  }
+
+  get copyrightText(): string {
+    return this.copy.copyright.replace('{year}', String(new Date().getFullYear()));
+  }
+
   get avatarInitials(): string {
     return (this.profile?.name ?? '?')
       .split(' ')
@@ -499,11 +510,11 @@ export class ProfilePageComponent implements OnInit {
     const file = input.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      this.avatarError = 'Please select an image file.';
+      this.avatarError = this.copy.avatarInvalidType;
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      this.avatarError = 'Image must be under 5 MB.';
+      this.avatarError = this.copy.avatarTooLarge;
       return;
     }
     this.uploadingAvatar = true;
@@ -516,7 +527,7 @@ export class ProfilePageComponent implements OnInit {
       if (this.profile) this.profile = { ...this.profile, avatarUrl: url };
       this.userService.setCurrentUserAvatar(url);
     } catch {
-      this.avatarError = 'Could not upload photo. Please try again.';
+      this.avatarError = this.copy.avatarUploadError;
     } finally {
       this.uploadingAvatar = false;
       input.value = '';
@@ -599,7 +610,11 @@ export class ProfilePageComponent implements OnInit {
       // the user on a "delete failed" error when their account is already gone.
       try {
         const supabase = await this.supabaseService.getClient();
-        await supabase.auth.signOut();
+        // scope: 'local' clears the cached token WITHOUT a server round-trip.
+        // The account is already gone, so a global sign-out would 401 and could
+        // leave the stale token behind — making the deleted account look like
+        // it still exists on the next guarded navigation.
+        await supabase.auth.signOut({ scope: 'local' });
       } catch {
         // ignore — the server-side account is already deleted
       }

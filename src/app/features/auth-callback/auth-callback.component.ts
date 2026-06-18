@@ -2,6 +2,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { TranslationService, AUTH_COPY_BY_LANGUAGE } from '../../i18n';
 
 @Component({
   selector: 'app-auth-callback',
@@ -56,9 +57,12 @@ export class AuthCallbackComponent implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly translationService = inject(TranslationService);
 
-  protected title = 'Finishing sign in';
-  protected message = 'Connecting your ReadTrack profile...';
+  private readonly copy = AUTH_COPY_BY_LANGUAGE[this.translationService.getCurrentLanguage()];
+
+  protected title = this.copy.callbackFinishing;
+  protected message = this.copy.callbackConnecting;
 
   async ngOnInit(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) {
@@ -79,17 +83,15 @@ export class AuthCallbackComponent implements OnInit {
         await this.supabaseService.syncCurrentUser();
       }
 
-      this.title = 'Account connected';
-      this.message = 'Your ReadTrack profile is ready.';
+      this.title = this.copy.callbackConnected;
+      this.message = this.copy.callbackReady;
 
       window.setTimeout(() => {
         void this.router.navigateByUrl('/home');
       }, 900);
-    } catch (error) {
-      this.title = 'Sign in needs attention';
-      this.message = error instanceof Error
-        ? error.message
-        : 'We could not finish connecting your account.';
+    } catch {
+      this.title = this.copy.callbackErrorTitle;
+      this.message = this.copy.callbackErrorMsg;
     }
   }
 }

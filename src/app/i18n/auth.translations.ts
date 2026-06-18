@@ -42,6 +42,7 @@ export interface AuthCopy {
   resetSent: string;
   connected: string;
   genericError: string;
+  emailSendFailed: string;
   resetError: string;
   googleError: string;
   resetEmailPlaceholder: string;
@@ -50,6 +51,12 @@ export interface AuthCopy {
   authRegionLabel: string;
   altMethodsLabel: string;
   brandHomeLabel: string;
+  callbackFinishing: string;
+  callbackConnecting: string;
+  callbackConnected: string;
+  callbackReady: string;
+  callbackErrorTitle: string;
+  callbackErrorMsg: string;
 }
 
 export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
@@ -95,6 +102,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     resetSent: 'If an account exists for that email, a password reset link is on its way. Check your inbox.',
     connected: 'Logged in. Your ReadTrack account is connected.',
     genericError: 'Something went wrong. Please try again.',
+    emailSendFailed: 'We couldn’t send the verification email right now. Please try again in a moment.',
     resetError: 'Could not send a password reset email.',
     googleError: 'Could not start Google sign-in.',
     resetEmailPlaceholder: 'Email',
@@ -103,6 +111,12 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     authRegionLabel: 'Authentication',
     altMethodsLabel: 'Alternative login methods',
     brandHomeLabel: 'ReadTrack home',
+    callbackFinishing: 'Finishing sign in',
+    callbackConnecting: 'Connecting your ReadTrack profile…',
+    callbackConnected: 'Account connected',
+    callbackReady: 'Your ReadTrack profile is ready.',
+    callbackErrorTitle: 'Sign in needs attention',
+    callbackErrorMsg: 'We could not finish connecting your account.',
   },
   ar: {
     languageLabel: 'تغيير اللغة',
@@ -146,6 +160,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     resetSent: 'إذا كان هناك حساب بهذا البريد، فسيصلك رابط إعادة تعيين كلمة المرور. تحقق من بريدك.',
     connected: 'تم تسجيل الدخول. حساب ReadTrack متصل.',
     genericError: 'حدث خطأ ما. حاول مرة أخرى.',
+    emailSendFailed: 'تعذّر إرسال بريد التحقق الآن. يرجى المحاولة مرة أخرى بعد قليل.',
     resetError: 'تعذر إرسال بريد إعادة تعيين كلمة المرور.',
     googleError: 'تعذر بدء تسجيل الدخول عبر Google.',
     resetEmailPlaceholder: 'البريد الإلكتروني',
@@ -154,6 +169,12 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     authRegionLabel: 'المصادقة',
     altMethodsLabel: 'طرق تسجيل دخول بديلة',
     brandHomeLabel: 'الصفحة الرئيسية لـ ReadTrack',
+    callbackFinishing: 'جارٍ إكمال تسجيل الدخول',
+    callbackConnecting: 'جارٍ ربط ملفك في ReadTrack…',
+    callbackConnected: 'تم ربط الحساب',
+    callbackReady: 'ملفك في ReadTrack جاهز.',
+    callbackErrorTitle: 'تسجيل الدخول يحتاج إلى انتباه',
+    callbackErrorMsg: 'تعذّر إكمال ربط حسابك.',
   },
   fr: {
     languageLabel: 'Changer de langue',
@@ -197,6 +218,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     resetSent: 'Si un compte existe pour cet e-mail, un lien de reinitialisation va arriver. Verifiez votre boite de reception.',
     connected: 'Connexion reussie. Votre compte ReadTrack est connecte.',
     genericError: 'Une erreur est survenue. Veuillez reessayer.',
+    emailSendFailed: 'Impossible d’envoyer l’e-mail de vérification pour le moment. Veuillez réessayer dans un instant.',
     resetError: 'Impossible d envoyer l e-mail de reinitialisation.',
     googleError: 'Impossible de demarrer la connexion Google.',
     resetEmailPlaceholder: 'E-mail',
@@ -205,5 +227,11 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     authRegionLabel: 'Authentification',
     altMethodsLabel: 'Autres methodes de connexion',
     brandHomeLabel: 'Accueil ReadTrack',
+    callbackFinishing: 'Finalisation de la connexion',
+    callbackConnecting: 'Connexion de votre profil ReadTrack…',
+    callbackConnected: 'Compte connecté',
+    callbackReady: 'Votre profil ReadTrack est prêt.',
+    callbackErrorTitle: 'La connexion nécessite votre attention',
+    callbackErrorMsg: 'Nous n\'avons pas pu finaliser la connexion de votre compte.',
   },
 };

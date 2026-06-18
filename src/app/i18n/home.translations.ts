@@ -52,6 +52,8 @@ export interface HomeCopy {
   cancelBtn: string;
   postingBtn: string;
   postBtn: string;
+  contentRejected: string;
+  postFailed: string;
   friendsTab: string;
   trendingTab: string;
   noPostsFriendsMsg: string;
@@ -112,6 +114,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     cancelBtn: 'Cancel',
     postingBtn: 'Posting…',
     postBtn: 'Post',
+    contentRejected: 'Your post was flagged by our community guidelines and can\'t be published.',
+    postFailed: 'Could not post. Please try again.',
     friendsTab: 'Friends',
     trendingTab: 'Trending',
     noPostsFriendsMsg: 'No posts yet. Add friends and start sharing!',
@@ -167,6 +171,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     cancelBtn: 'إلغاء',
     postingBtn: 'جاري النشر…',
     postBtn: 'نشر',
+    contentRejected: 'تم تمييز منشورك بواسطة إرشادات المجتمع ولا يمكن نشره.',
+    postFailed: 'تعذّر النشر. حاول مرة أخرى.',
     friendsTab: 'الأصدقاء',
     trendingTab: 'الأكثر شهرة',
     noPostsFriendsMsg: 'لا توجد منشورات حتى الآن. أضف أصدقاء وابدأ المشاركة!',
@@ -222,6 +228,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     cancelBtn: 'Annuler',
     postingBtn: 'Publication en cours…',
     postBtn: 'Publier',
+    contentRejected: 'Votre message a été signalé par nos règles communautaires et ne peut pas être publié.',
+    postFailed: 'Échec de la publication. Veuillez réessayer.',
     friendsTab: 'Amis',
     trendingTab: 'Tendance',
     noPostsFriendsMsg: 'Aucun message pour le moment. Ajoutez des amis et commencez à partager !',
