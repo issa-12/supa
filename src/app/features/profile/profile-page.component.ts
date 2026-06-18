@@ -610,7 +610,11 @@ export class ProfilePageComponent implements OnInit {
       // the user on a "delete failed" error when their account is already gone.
       try {
         const supabase = await this.supabaseService.getClient();
-        await supabase.auth.signOut();
+        // scope: 'local' clears the cached token WITHOUT a server round-trip.
+        // The account is already gone, so a global sign-out would 401 and could
+        // leave the stale token behind — making the deleted account look like
+        // it still exists on the next guarded navigation.
+        await supabase.auth.signOut({ scope: 'local' });
       } catch {
         // ignore — the server-side account is already deleted
       }

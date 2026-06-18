@@ -331,6 +331,10 @@ export class AuthPageComponent {
           return this.text.emailInvalid;
         case 'EMAIL_DOMAIN_NOT_ALLOWED':
           return this.text.emailDomainNotAllowed;
+        case 'EMAIL_SEND_FAILED':
+          return this.text.emailSendFailed;
+        case 'RATE_LIMITED':
+          return error.message || this.text.genericError;
         case 'MISSING_FIELDS':
           return this.text.requiredFields;
         default:

@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // self-signed cert on localhost
 
 const env = {};
-for (const line of readFileSync(new URL('./.env', import.meta.url), 'utf8').split('\n')) {
+for (const line of readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n')) {
   const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
   if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
 }
@@ -94,6 +94,23 @@ const main = async () => {
   r = await api('/api/community/posts', aria.token);
   const feedHasNoah = (r.body ?? []).some((p) => p.userId === noahId);
   ok('private non-friend hidden from feed', !feedHasNoah);
+
+  console.log('\n=== RLS: PRIVATE ACCOUNT ENFORCED CLIENT-SIDE (noah) ===');
+  // Direct client (RLS-bound) reads of a private non-friend must return nothing.
+  const ubNoah = await anon.from('user_books').select('user_book_id').eq('user_id', noahId);
+  ok('private non-friend user_books hidden via direct API', (ubNoah.data?.length ?? 0) === 0, `rows=${ubNoah.data?.length ?? 0}`);
+  const postsNoah = await anon.from('posts').select('post_id').eq('user_id', noahId).neq('is_deleted', true);
+  ok('private non-friend posts hidden via direct API', (postsNoah.data?.length ?? 0) === 0, `rows=${postsNoah.data?.length ?? 0}`);
+  // Leo IS aria's friend and public — aria should still see leo's books.
+  const ubLeo = await anon.from('user_books').select('user_book_id').eq('user_id', leo.userId);
+  ok('public/friend user_books still visible', (ubLeo.data?.length ?? 0) > 0, `rows=${ubLeo.data?.length ?? 0}`);
+
+  console.log('\n=== NOTES ARE TRULY PRIVATE ===');
+  // The note column must be gone from user_books, and notes table is owner-only.
+  const ubCols = await anon.from('user_books').select('note').eq('user_id', aria.userId).limit(1);
+  ok('user_books.note column removed', !!ubCols.error, `err="${ubCols.error?.message ?? 'none'}"`);
+  const othersNotes = await anon.from('user_book_notes').select('user_book_id').neq('user_id', aria.userId);
+  ok("cannot read other users' notes (owner-only RLS)", (othersNotes.data?.length ?? 0) === 0, `rows=${othersNotes.data?.length ?? 0}`);
 
   console.log(`\n${fail === 0 ? '✅' : '❌'} ${pass} passed, ${fail} failed`);
   process.exit(fail === 0 ? 0 : 1);

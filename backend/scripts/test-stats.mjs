@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 // Load secrets from backend/.env — never hardcode the service-role key in a
 // committed file (it bypasses RLS and grants full DB access).
 const env = {};
-for (const line of readFileSync(new URL('./.env', import.meta.url), 'utf8').split('\n')) {
+for (const line of readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n')) {
   const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
   if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
 }
