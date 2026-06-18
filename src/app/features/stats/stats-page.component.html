@@ -89,7 +89,7 @@
           <div class="genre-list">
             @for (genre of trendingGenres; track genre.name) {
               <div class="genre-row">
-                <span class="genre-name">{{ genre.name }}</span>
+                <span class="genre-name">{{ genre.name | genreName:lang }}</span>
                 <div class="genre-track">
                   <div class="genre-fill" [style.width.%]="genre.percentage"></div>
                 </div>
@@ -168,7 +168,7 @@
                   [style.height.%]="getBarHeight(m.count)"
                 ></div>
               </div>
-              <span class="bar-month">{{ m.month }}</span>
+              <span class="bar-month">{{ monthLabel(m.month) }}</span>
             </div>
           }
         </div>

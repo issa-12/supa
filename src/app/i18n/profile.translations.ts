@@ -44,6 +44,7 @@ export interface ProfileCopy {
   goalPercent: string;
   editGoal: string;
   editGoalBtn: string;
+  goalProgress: string;
   saveGoal: string;
   saveBtn: string;
   cancelGoal: string;
@@ -102,6 +103,10 @@ export interface ProfileCopy {
   savingMsg: string;
   usernameTaken: string;
   saveProfileError: string;
+  friendActionFailed: string;
+  avatarInvalidType: string;
+  avatarTooLarge: string;
+  avatarUploadError: string;
   privacyPolicy: string;
   termsOfService: string;
   copyright: string;
@@ -184,6 +189,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     goalPercent: '{{ n }}% of {{ year }} goal',
     editGoal: 'Edit goal',
     editGoalBtn: 'Edit goal',
+    goalProgress: '{percent}% of {year} goal',
     saveGoal: 'Save',
     saveBtn: 'Save',
     cancelGoal: 'Cancel',
@@ -242,9 +248,13 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     savingMsg: 'Saving…',
     usernameTaken: 'That username is already taken. Please choose another.',
     saveProfileError: 'Could not save your changes. Please try again.',
+    friendActionFailed: 'Could not complete that action. Please try again.',
+    avatarInvalidType: 'Please select an image file.',
+    avatarTooLarge: 'Image must be under 5 MB.',
+    avatarUploadError: 'Could not upload photo. Please try again.',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
-    copyright: '© 2026 ReadTrack. All rights reserved.',
+    copyright: '© {year} ReadTrack. All rights reserved.',
     avatarAlt: 'Change profile photo',
     errorImageFile: 'Please select an image file.',
     errorImageSize: 'Image must be under 5 MB.',
@@ -322,6 +332,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     goalPercent: '{{ n }}% من الهدف {{ year }}',
     editGoal: 'تعديل الهدف',
     editGoalBtn: 'تعديل الهدف',
+    goalProgress: '{percent}٪ من هدف {year}',
     saveGoal: 'حفظ',
     saveBtn: 'حفظ',
     cancelGoal: 'إلغاء',
@@ -380,9 +391,13 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     savingMsg: 'جاري الحفظ…',
     usernameTaken: 'اسم المستخدم هذا مستخدم بالفعل. يرجى اختيار اسم آخر.',
     saveProfileError: 'تعذّر حفظ التغييرات. حاول مرة أخرى.',
+    friendActionFailed: 'تعذّر إتمام هذا الإجراء. حاول مرة أخرى.',
+    avatarInvalidType: 'يرجى اختيار ملف صورة.',
+    avatarTooLarge: 'يجب أن تكون الصورة أقل من 5 ميغابايت.',
+    avatarUploadError: 'تعذّر رفع الصورة. حاول مرة أخرى.',
     privacyPolicy: 'سياسة الخصوصية',
     termsOfService: 'شروط الخدمة',
-    copyright: '© 2026 ReadTrack. جميع الحقوق محفوظة.',
+    copyright: '© {year} ReadTrack. جميع الحقوق محفوظة.',
     avatarAlt: 'تغيير صورة الملف الشخصي',
     errorImageFile: 'يرجى اختيار ملف صورة.',
     errorImageSize: 'يجب أن تكون الصورة أقل من 5 ميجابايت.',
@@ -460,6 +475,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     goalPercent: '{{ n }}% de l\'objectif {{ year }}',
     editGoal: 'Modifier l\'objectif',
     editGoalBtn: 'Modifier l\'objectif',
+    goalProgress: '{percent}% de l\'objectif {year}',
     saveGoal: 'Enregistrer',
     saveBtn: 'Enregistrer',
     cancelGoal: 'Annuler',
@@ -518,9 +534,13 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     savingMsg: 'Enregistrement en cours…',
     usernameTaken: 'Ce nom d utilisateur est deja pris. Veuillez en choisir un autre.',
     saveProfileError: 'Impossible d enregistrer les modifications. Veuillez reessayer.',
+    friendActionFailed: 'Impossible d\'effectuer cette action. Veuillez réessayer.',
+    avatarInvalidType: 'Veuillez sélectionner un fichier image.',
+    avatarTooLarge: 'L\'image doit faire moins de 5 Mo.',
+    avatarUploadError: 'Impossible de téléverser la photo. Veuillez réessayer.',
     privacyPolicy: 'Politique de confidentialité',
     termsOfService: 'Conditions d\'utilisation',
-    copyright: '© 2026 ReadTrack. Tous droits réservés.',
+    copyright: '© {year} ReadTrack. Tous droits réservés.',
     avatarAlt: 'Modifier la photo de profil',
     errorImageFile: 'Veuillez sélectionner un fichier image.',
     errorImageSize: 'L\'image doit faire moins de 5 Mo.',

@@ -5,6 +5,8 @@ export interface BookDetailCopy {
   myShelf: string;
   loadingBook: string;
   goBack: string;
+  bookNotFound: string;
+  loadFailed: string;
   pages: string;
   pagesUnit: string;
   byAuthor: string;
@@ -53,6 +55,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'My Shelf',
     loadingBook: 'Loading book…',
     goBack: 'Go back',
+    bookNotFound: 'Book not found.',
+    loadFailed: 'Failed to load book.',
     pages: '{{ n }} pages',
     pagesUnit: 'pages',
     byAuthor: 'by',
@@ -99,6 +103,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'رفي الخاص',
     loadingBook: 'جاري تحميل الكتاب…',
     goBack: 'العودة',
+    bookNotFound: 'الكتاب غير موجود.',
+    loadFailed: 'فشل تحميل الكتاب.',
     pages: '{{ n }} صفحة',
     pagesUnit: 'صفحة',
     byAuthor: 'بقلم',
@@ -145,6 +151,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'Ma Bibliothèque',
     loadingBook: 'Chargement du livre…',
     goBack: 'Retour',
+    bookNotFound: 'Livre introuvable.',
+    loadFailed: 'Impossible de charger le livre.',
     pages: '{{ n }} pages',
     pagesUnit: 'pages',
     byAuthor: 'par',

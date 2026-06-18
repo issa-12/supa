@@ -18,6 +18,8 @@ export interface OnboardingCopy {
   errorSelectGenre: string;
   errorSave: string;
   couldNotLoadGenresMsg: string;
+  selectAtLeastOne: string;
+  saveGenresFailed: string;
 }
 
 export const ONBOARDING_COPY: Record<LanguageCode, OnboardingCopy> = {
@@ -39,6 +41,8 @@ export const ONBOARDING_COPY: Record<LanguageCode, OnboardingCopy> = {
     errorSelectGenre: 'Please select at least one genre.',
     errorSave: 'Failed to save genres. Please try again.',
     couldNotLoadGenresMsg: 'Could not load genres. Please refresh.',
+    selectAtLeastOne: 'Please select at least one genre.',
+    saveGenresFailed: 'Failed to save genres. Please try again.',
   },
   ar: {
     title: 'ما الذي تحب قراءته؟',
@@ -58,6 +62,8 @@ export const ONBOARDING_COPY: Record<LanguageCode, OnboardingCopy> = {
     errorSelectGenre: 'يرجى تحديد نوع واحد على الأقل.',
     errorSave: 'فشل حفظ الأنواع. حاول مرة أخرى.',
     couldNotLoadGenresMsg: 'تعذر تحميل الأنواع. يرجى تحديث الصفحة.',
+    selectAtLeastOne: 'يرجى اختيار نوع واحد على الأقل.',
+    saveGenresFailed: 'فشل حفظ الأنواع. حاول مرة أخرى.',
   },
   fr: {
     title: 'Qu\'aimez-vous lire ?',
@@ -77,5 +83,7 @@ export const ONBOARDING_COPY: Record<LanguageCode, OnboardingCopy> = {
     errorSelectGenre: 'Veuillez sélectionner au moins un genre.',
     errorSave: 'Impossible d\'enregistrer les genres. Veuillez réessayer.',
     couldNotLoadGenresMsg: 'Impossible de charger les genres. Veuillez actualiser.',
+    selectAtLeastOne: 'Veuillez sélectionner au moins un genre.',
+    saveGenresFailed: 'Échec de l\'enregistrement des genres. Veuillez réessayer.',
   },
 };

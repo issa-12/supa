@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { TranslationService, RESET_COPY, LanguageCode } from '../../i18n';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-reset-password',
@@ -14,6 +16,14 @@ import { SupabaseService } from '../../core/services/supabase.service';
 export class ResetPasswordComponent implements OnInit {
   private readonly supabaseService = inject(SupabaseService);
   protected readonly router = inject(Router);
+  private readonly translationService = inject(TranslationService);
+
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return RESET_COPY[this.lang]; }
+
+  constructor() {
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+  }
 
   protected password = '';
   protected confirmPassword = '';
@@ -48,12 +58,12 @@ export class ResetPasswordComponent implements OnInit {
           this.sessionReady = true;
           return;
         }
-        this.sessionError = 'Invalid or expired reset link. Please request a new one.';
+        this.sessionError = this.copy.invalidLink;
         return;
       }
 
       if (type && type !== 'recovery') {
-        this.sessionError = 'Invalid reset link.';
+        this.sessionError = this.copy.invalidLinkType;
         return;
       }
 
@@ -64,16 +74,15 @@ export class ResetPasswordComponent implements OnInit {
       });
 
       if (error) {
-        this.sessionError = error.message || 'Could not validate reset link.';
+        this.sessionError = this.copy.validateError;
         return;
       }
 
       this.sessionReady = true;
 
       history.replaceState(null, '', window.location.pathname + window.location.search);
-    } catch (error) {
-      this.sessionError =
-        error instanceof Error ? error.message : 'Could not validate reset link.';
+    } catch {
+      this.sessionError = this.copy.validateError;
     }
   }
 
@@ -90,12 +99,12 @@ export class ResetPasswordComponent implements OnInit {
     this.successMessage = '';
 
     if (!this.password || this.password.length < 6) {
-      this.errorMessage = 'Password must be at least 6 characters.';
+      this.errorMessage = this.copy.passwordTooShort;
       return;
     }
 
     if (this.password !== this.confirmPassword) {
-      this.errorMessage = 'Passwords do not match.';
+      this.errorMessage = this.copy.passwordsDontMatch;
       return;
     }
 
@@ -106,11 +115,11 @@ export class ResetPasswordComponent implements OnInit {
       const { error } = await supabase.auth.updateUser({ password: this.password });
 
       if (error) {
-        this.errorMessage = error.message || 'Could not update password.';
+        this.errorMessage = this.copy.updateError;
         return;
       }
 
-      this.successMessage = 'Password updated successfully. Redirecting to login…';
+      this.successMessage = this.copy.updateSuccess;
       this.password = '';
       this.confirmPassword = '';
 
@@ -119,9 +128,8 @@ export class ResetPasswordComponent implements OnInit {
       window.setTimeout(() => {
         void this.router.navigateByUrl('/');
       }, 1800);
-    } catch (error) {
-      this.errorMessage =
-        error instanceof Error ? error.message : 'Could not update password.';
+    } catch {
+      this.errorMessage = this.copy.updateError;
     } finally {
       this.submitting = false;
     }

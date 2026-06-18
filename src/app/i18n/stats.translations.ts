@@ -18,6 +18,7 @@ export interface StatsCopy {
   errorNotAuthenticated: string;
   errorLoadStats: string;
   errorLoadPace: string;
+  months: string[]; // 12 short month labels, Jan..Dec order
 }
 
 export const STATS_COPY: Record<LanguageCode, StatsCopy> = {
@@ -39,6 +40,7 @@ export const STATS_COPY: Record<LanguageCode, StatsCopy> = {
     errorNotAuthenticated: 'Not authenticated.',
     errorLoadStats: 'Failed to load stats. Try again.',
     errorLoadPace: 'Failed to load reading pace.',
+    months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
   },
   ar: {
     title: 'إحصائيات القراءة',
@@ -58,6 +60,7 @@ export const STATS_COPY: Record<LanguageCode, StatsCopy> = {
     errorNotAuthenticated: 'لم يتم المصادقة.',
     errorLoadStats: 'فشل تحميل الإحصائيات. حاول مرة أخرى.',
     errorLoadPace: 'فشل تحميل وتيرة القراءة.',
+    months: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
   },
   fr: {
     title: 'Statistiques de lecture',
@@ -77,5 +80,6 @@ export const STATS_COPY: Record<LanguageCode, StatsCopy> = {
     errorNotAuthenticated: 'Non authentifié.',
     errorLoadStats: 'Impossible de charger les statistiques. Réessayez.',
     errorLoadPace: 'Impossible de charger la vitesse de lecture.',
+    months: ['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'],
   },
 };

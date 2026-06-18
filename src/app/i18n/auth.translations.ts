@@ -50,6 +50,12 @@ export interface AuthCopy {
   authRegionLabel: string;
   altMethodsLabel: string;
   brandHomeLabel: string;
+  callbackFinishing: string;
+  callbackConnecting: string;
+  callbackConnected: string;
+  callbackReady: string;
+  callbackErrorTitle: string;
+  callbackErrorMsg: string;
 }
 
 export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
@@ -103,6 +109,12 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     authRegionLabel: 'Authentication',
     altMethodsLabel: 'Alternative login methods',
     brandHomeLabel: 'ReadTrack home',
+    callbackFinishing: 'Finishing sign in',
+    callbackConnecting: 'Connecting your ReadTrack profile…',
+    callbackConnected: 'Account connected',
+    callbackReady: 'Your ReadTrack profile is ready.',
+    callbackErrorTitle: 'Sign in needs attention',
+    callbackErrorMsg: 'We could not finish connecting your account.',
   },
   ar: {
     languageLabel: 'تغيير اللغة',
@@ -154,6 +166,12 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     authRegionLabel: 'المصادقة',
     altMethodsLabel: 'طرق تسجيل دخول بديلة',
     brandHomeLabel: 'الصفحة الرئيسية لـ ReadTrack',
+    callbackFinishing: 'جارٍ إكمال تسجيل الدخول',
+    callbackConnecting: 'جارٍ ربط ملفك في ReadTrack…',
+    callbackConnected: 'تم ربط الحساب',
+    callbackReady: 'ملفك في ReadTrack جاهز.',
+    callbackErrorTitle: 'تسجيل الدخول يحتاج إلى انتباه',
+    callbackErrorMsg: 'تعذّر إكمال ربط حسابك.',
   },
   fr: {
     languageLabel: 'Changer de langue',
@@ -205,5 +223,11 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     authRegionLabel: 'Authentification',
     altMethodsLabel: 'Autres methodes de connexion',
     brandHomeLabel: 'Accueil ReadTrack',
+    callbackFinishing: 'Finalisation de la connexion',
+    callbackConnecting: 'Connexion de votre profil ReadTrack…',
+    callbackConnected: 'Compte connecté',
+    callbackReady: 'Votre profil ReadTrack est prêt.',
+    callbackErrorTitle: 'La connexion nécessite votre attention',
+    callbackErrorMsg: 'Nous n\'avons pas pu finaliser la connexion de votre compte.',
   },
 };

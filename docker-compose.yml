@@ -21,7 +21,10 @@ services:
       # generates a self-signed fallback at startup.
       - ./certs:/certs:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/healthz > /dev/null 2>&1 || exit 1"]
+      # Use 127.0.0.1 (not localhost): nginx listens IPv4-only, but `localhost`
+      # resolves to IPv6 ::1 first in the container, which would refuse → the
+      # container would wrongly report "unhealthy" even though it serves fine.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz > /dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

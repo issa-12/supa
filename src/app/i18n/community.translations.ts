@@ -25,6 +25,12 @@ export interface CommunityCopy {
   ariaRemoveBook: string;
   ariaFilterClear: string;
   confirmDelete: string;
+  sentimentPositive: string;
+  sentimentNegative: string;
+  sentimentNeutral: string;
+  sentimentMixed: string;
+  contentRejected: string;
+  postFailed: string;
 }
 
 export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
@@ -53,6 +59,12 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     ariaRemoveBook: 'Remove book',
     ariaFilterClear: 'Clear filter',
     confirmDelete: 'Delete this post?',
+    sentimentPositive: 'positive',
+    sentimentNegative: 'negative',
+    sentimentNeutral: 'neutral',
+    sentimentMixed: 'mixed',
+    contentRejected: 'Your post was flagged by our community guidelines and can\'t be published.',
+    postFailed: 'Could not post. Please try again.',
   },
   ar: {
     title: 'المجتمع',
@@ -79,6 +91,12 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     ariaRemoveBook: 'إزالة الكتاب',
     ariaFilterClear: 'مسح المرشح',
     confirmDelete: 'حذف هذا المنشور؟',
+    sentimentPositive: 'إيجابي',
+    sentimentNegative: 'سلبي',
+    sentimentNeutral: 'محايد',
+    sentimentMixed: 'مختلط',
+    contentRejected: 'تم تمييز منشورك بواسطة إرشادات المجتمع ولا يمكن نشره.',
+    postFailed: 'تعذّر النشر. حاول مرة أخرى.',
   },
   fr: {
     title: 'Communauté',
@@ -105,5 +123,11 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     ariaRemoveBook: 'Supprimer le livre',
     ariaFilterClear: 'Effacer le filtre',
     confirmDelete: 'Supprimer ce message ?',
+    sentimentPositive: 'positif',
+    sentimentNegative: 'négatif',
+    sentimentNeutral: 'neutre',
+    sentimentMixed: 'mitigé',
+    contentRejected: 'Votre message a été signalé par nos règles communautaires et ne peut pas être publié.',
+    postFailed: 'Échec de la publication. Veuillez réessayer.',
   },
 };

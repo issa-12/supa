@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
-import { TranslationService, ONBOARDING_COPY, LanguageCode } from '../../i18n';
+import { TranslationService, ONBOARDING_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Genre {
@@ -12,6 +12,7 @@ interface Genre {
 @Component({
   selector: 'app-genre-onboarding',
   standalone: true,
+  imports: [GenreNamePipe],
   template: `
     <main class="onboarding-page">
       <div class="onboarding-card">
@@ -53,7 +54,7 @@ interface Genre {
                     <path d="M20 6 9 17l-5-5"/>
                   </svg>
                 }
-                {{ genre.genre_name }}
+                {{ genre.genre_name | genreName:lang }}
               </button>
             }
           </div>
@@ -342,7 +343,7 @@ export class GenreOnboardingComponent implements OnInit {
   async saveGenres(): Promise<void> {
     if (this.isSaving) return;
     if (this.selectedGenreIds.size === 0) {
-      this.submitError = 'Please select at least one genre.';
+      this.submitError = this.copy.selectAtLeastOne;
       return;
     }
 
@@ -377,7 +378,7 @@ export class GenreOnboardingComponent implements OnInit {
 
       await this.router.navigateByUrl('/home');
     } catch (err) {
-      this.submitError = err instanceof Error ? err.message : 'Failed to save genres. Please try again.';
+      this.submitError = this.copy.saveGenresFailed;
     } finally {
       this.isSaving = false;
     }
