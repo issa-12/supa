@@ -165,7 +165,20 @@ export class RecommendationsService {
       ),
     );
 
-    await this.cacheRecommendations(userId, enriched);
+    // Only keep books we could resolve to a real Google volume — a null
+    // googleBooksId means a coverless, un-openable card (happens when Google
+    // Books is rate-limited/503 during enrichment). Show only openable ones.
+    const openable = enriched.filter((b) => b.googleBooksId);
+
+    if (openable.length > 0) {
+      // Cache the good set for 24h.
+      await this.cacheRecommendations(userId, openable);
+      return openable;
+    }
+
+    // Enrichment fully failed (Google Books outage) — DO NOT cache the degraded
+    // result, so the next request retries once Google recovers instead of
+    // serving broken cards for 24h.
     return enriched;
   }
 

@@ -301,7 +301,11 @@ export class BookService {
           }>;
         };
 
-        return (payload.books ?? []).slice(0, limit).map((b) => ({
+        return (payload.books ?? [])
+          // Skip any recommendation without a Google id — those render as
+          // coverless, un-openable cards (only happens on a Google Books outage).
+          .filter((b) => !!b.googleBooksId)
+          .slice(0, limit).map((b) => ({
           id: b.dbBookId ?? 0,
           googleBooksId: b.googleBooksId,
           title: b.title,
