@@ -165,6 +165,7 @@ export class RecommendationsService {
       ),
     );
 
+<<<<<<< HEAD
     // Only keep books we could resolve to a real Google volume — a null
     // googleBooksId means a coverless, un-openable card (happens when Google
     // Books is rate-limited/503 during enrichment). Show only openable ones.
@@ -179,6 +180,9 @@ export class RecommendationsService {
     // Enrichment fully failed (Google Books outage) — DO NOT cache the degraded
     // result, so the next request retries once Google recovers instead of
     // serving broken cards for 24h.
+=======
+    await this.cacheRecommendations(userId, enriched);
+>>>>>>> origin/issabr
     return enriched;
   }
 

@@ -67,9 +67,13 @@
       "PowerShell(docker system df *)",
       "PowerShell(node_modules\\\\.bin\\\\ng build --configuration production 2>&1 | Select-Object -Last 20)",
       "PowerShell(curl.exe -sk https://localhost:8443/api/health; Write-Output \"\"; curl.exe -sk -o NUL -w \"books-search HTTP %{http_code}\\\\n\" \"https://localhost:8443/api/books/search?q=dune&maxResults=2\")",
+<<<<<<< HEAD
       "PowerShell(docker ps --format \"{{.Names}} {{.Status}}\"; Write-Output \"---\"; curl.exe -sk https://localhost:8443/api/health)",
       "PowerShell($logs = docker logs readtrack-backend --tail 120 2>&1 | Out-String; $lines = $logs -split \"`n\"; for \\($i=0; $i -lt $lines.Count; $i++\\) { if \\($lines[$i] -match '\"error\"|errors\\\\[|RATE_LIMITED|issueVerification|Could not send|magic link'\\) { Write-Output \\(\"[{0}] {1}\" -f $i, $lines[$i].Trim\\(\\)\\) } }; Write-Output \"\\(end\\)\")",
       "PowerShell($logs = docker logs readtrack-backend --tail 120 2>&1 | Out-String; $lines = $logs -split \"`n\"; $lines[55..90] | ForEach-Object { $_.Trim\\(\\) })"
+=======
+      "PowerShell(docker ps --format \"{{.Names}} {{.Status}}\"; Write-Output \"---\"; curl.exe -sk https://localhost:8443/api/health)"
+>>>>>>> origin/issabr
     ]
   }
 }
