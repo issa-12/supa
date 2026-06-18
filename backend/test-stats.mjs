@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import { readFileSync } from 'node:fs';
 
-const SUPABASE_URL = 'https://qgoermeodyyfrfoyvnvo.supabase.co';
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnb2VybWVvZHl5ZnJmb3l2bnZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTY2ODA0NiwiZXhwIjoyMDg3MjQ0MDQ2fQ.nhxs5UCjJJCYg20-eFBTqS2cadYLmPgpNY7HP2mR1Ms';
+// Load secrets from backend/.env — never hardcode the service-role key in a
+// committed file (it bypasses RLS and grants full DB access).
+const env = {};
+for (const line of readFileSync(new URL('./.env', import.meta.url), 'utf8').split('\n')) {
+  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+  if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+}
+const SUPABASE_URL = env.SUPABASE_URL;
+const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 const USER_EMAIL = 'chatgptplusmoons@gmail.com';
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
