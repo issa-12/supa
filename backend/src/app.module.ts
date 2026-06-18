@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { RateLimitMiddleware } from './common/rate-limit.middleware';
 import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
 import { BooksModule } from './books/books.module';
@@ -14,4 +15,13 @@ import { HealthController } from './health/health.controller';
   imports: [SupabaseModule, AuthModule, BooksModule, FriendsModule, NotificationsModule, RecommendationsModule, StatsModule, CommunityModule, ReportsModule],
   controllers: [HealthController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Throttle the abuse-prone auth endpoints (OTP send / signup / verify).
+    consumer.apply(RateLimitMiddleware).forRoutes(
+      { path: 'auth/request-signup', method: RequestMethod.POST },
+      { path: 'auth/resend-verification', method: RequestMethod.POST },
+      { path: 'auth/verify-email', method: RequestMethod.POST },
+    );
+  }
+}

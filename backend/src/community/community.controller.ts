@@ -12,9 +12,8 @@ export class CommunityController {
 
   private async getUserId(req: Request): Promise<string | null> {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return null;
-    const { data } = await this.supabaseService.getAdmin().auth.getUser(token);
-    return data.user?.id ?? null;
+    // Enforces a verified email — a raw (unverified) Supabase JWT is rejected.
+    return this.supabaseService.getVerifiedUserId(token);
   }
 
   @Get('posts')
@@ -91,6 +90,9 @@ export class CommunityController {
       if (err.statusCode === 422) {
         return res.status(422).json({ message: err.message });
       }
+      if (err.statusCode === 503) {
+        return res.status(503).json({ message: err.message });
+      }
       if (err?.code === '23503') {
         return res.status(400).json({ message: 'That book could not be found.' });
       }
@@ -130,6 +132,7 @@ export class CommunityController {
       return res.status(201).json(comment);
     } catch (err: any) {
       if (err.statusCode === 422) return res.status(422).json({ message: err.message });
+      if (err.statusCode === 503) return res.status(503).json({ message: err.message });
       if (err.statusCode === 400) return res.status(400).json({ message: err.message });
       if (err?.code === '23503') return res.status(400).json({ message: 'That post could not be found.' });
       console.error('[Community] createComment error:', err);

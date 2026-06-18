@@ -30,8 +30,8 @@ export class BooksController {
     if (!authHeader?.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing authorization token.');
     }
-    const { data } = await this.supabaseService.getAdmin().auth.getUser(authHeader.slice(7));
-    if (!data.user) {
+    const userId = await this.supabaseService.getVerifiedUserId(authHeader.slice(7));
+    if (!userId) {
       throw new UnauthorizedException('Invalid or expired session.');
     }
     return this.booksService.ensureBook(body ?? {});

@@ -19,6 +19,17 @@ interface ModerationResult {
   sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+
+// Normalize a tag filter to the same charset tags are stored in. Prevents a
+// malformed `?tag=` value (special chars) from reaching PostgREST and 500-ing.
+const sanitizeTag = (tag: string | undefined): string | undefined => {
+  if (!tag) return undefined;
+  const clean = tag.replace(/[^a-z0-9_-]/gi, '').toLowerCase().slice(0, 30);
+  return clean.length ? clean : undefined;
+};
+
 @Injectable()
 export class CommunityService {
   private readonly anthropic: Anthropic | null;
@@ -157,7 +168,9 @@ export class CommunityService {
     const hiddenPrivate = (privateRows.data ?? [])
       .map((r) => r['id'] as string)
       .filter((id) => id !== userId && !friendSet.has(id));
-    return [...new Set([...blocked, ...hiddenPrivate])];
+    // Only ever interpolate well-formed UUIDs into the PostgREST `in` filter
+    // (defense-in-depth against any future non-UUID value reaching this list).
+    return [...new Set([...blocked, ...hiddenPrivate])].filter(isUuid);
   }
 
   async getAllPosts(userId: string, tag?: string, page = 0, limit = 20) {
@@ -174,9 +187,10 @@ export class CommunityService {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (tag) {
+    const safeTag = sanitizeTag(tag);
+    if (safeTag) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      query = (query as any).contains('tags', [tag]);
+      query = (query as any).contains('tags', [safeTag]);
     }
 
     if (blocked.length) {
@@ -268,7 +282,14 @@ Default to "approved". Only choose flagged or rejected when the text clearly mat
           : 'neutral';
       return { status, reason: parsed.reason, sentiment };
     } catch {
-      return { status: 'approved', sentiment: 'neutral' };
+      // FAIL CLOSED. If moderation can't run (Anthropic outage, rate limit,
+      // invalid key, or an unparseable response) we must NOT silently approve
+      // unmoderated content. Reject the submission so harmful content can never
+      // slip through during an AI failure. (When NO key is configured at all,
+      // we returned 'approved' above — that's an explicit dev/offline choice.)
+      const err = new Error('Content check is temporarily unavailable. Please try again in a moment.');
+      (err as Error & { statusCode?: number }).statusCode = 503;
+      throw err;
     }
   }
 
