@@ -36,9 +36,9 @@ export class StatsService {
   constructor(private readonly supabase: SupabaseService) {}
 
   async verifyUser(token: string): Promise<string> {
-    const { data, error } = await this.supabase.getAdmin().auth.getUser(token);
-    if (error || !data.user) throw new UnauthorizedException('Invalid or expired session.');
-    return data.user.id;
+    const userId = await this.supabase.getVerifiedUserId(token);
+    if (!userId) throw new UnauthorizedException('Invalid or expired session.');
+    return userId;
   }
 
   private async getReadStatusId(): Promise<number> {

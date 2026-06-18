@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { genreOnboardingGuard } from './core/guards/genre-onboarding.guard';
+import { onboardingRedirectGuard } from './core/guards/onboarding-redirect.guard';
 import { AuthCallbackComponent } from './features/auth-callback/auth-callback.component';
 import { AuthPageComponent } from './features/auth/auth-page.component';
 import { EmailVerificationComponent } from './features/email-verification/email-verification.component';
@@ -39,7 +40,7 @@ export const routes: Routes = [
   // ── Onboarding (auth required, not guarded by genre check) ────
   {
     path: 'onboarding/genres',
-    canActivate: [authGuard],
+    canActivate: [authGuard, onboardingRedirectGuard],
     loadComponent: () =>
       import('./features/onboarding/genre-onboarding.component').then(
         (m) => m.GenreOnboardingComponent,

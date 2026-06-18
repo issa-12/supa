@@ -1,9 +1,41 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { BooksService } from './books.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Controller('books')
 export class BooksController {
-  constructor(private readonly booksService: BooksService) {}
+  constructor(
+    private readonly booksService: BooksService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
+
+  // Server-side find-or-create for the shared catalog. Requires a valid session
+  // (any authenticated user may contribute Google books), but the actual write
+  // happens with the service-role client — the browser has no write access to
+  // public.books, which closes the "edit any book" vulnerability.
+  @Post('ensure')
+  async ensure(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { googleId?: string; title?: string; author?: string; coverUrl?: string | null; description?: string | null },
+  ) {
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Missing authorization token.');
+    }
+    const userId = await this.supabaseService.getVerifiedUserId(authHeader.slice(7));
+    if (!userId) {
+      throw new UnauthorizedException('Invalid or expired session.');
+    }
+    return this.booksService.ensureBook(body ?? {});
+  }
 
   @Get('search')
   async search(

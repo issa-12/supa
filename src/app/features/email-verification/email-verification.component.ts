@@ -111,7 +111,8 @@ export class EmailVerificationComponent {
       this.statusMessage = this.copy.verifiedRedirect;
 
       window.setTimeout(() => {
-        void this.router.navigateByUrl('/home');
+        // replaceUrl so the verify-email page leaves history after success.
+        void this.router.navigateByUrl('/home', { replaceUrl: true });
       }, 900);
     } catch (error) {
       this.errorMessage = error instanceof Error

@@ -220,6 +220,80 @@ export class BooksService {
     };
   }
 
+  // Find-or-create a catalog book, SERVER-SIDE only. The browser is no longer
+  // allowed to write to public.books (RLS), so adding a Google book to a shelf
+  // or posting about it routes through here. Authoritative metadata comes from
+  // Google Books; the client-supplied fields are only a fallback when Google is
+  // unreachable. Runs with the admin client (bypasses RLS).
+  async ensureBook(input: {
+    googleId?: string;
+    title?: string;
+    author?: string;
+    coverUrl?: string | null;
+    description?: string | null;
+  }): Promise<{ bookId: number }> {
+    const admin = this.supabase.getAdmin();
+    const googleId = (input.googleId ?? '').trim();
+    if (!googleId) {
+      throw new NotFoundException('googleId is required.');
+    }
+
+    const { data: existing } = await admin
+      .from('books')
+      .select('book_id')
+      .eq('google_books_id', googleId)
+      .maybeSingle();
+    if (existing) return { bookId: existing['book_id'] as number };
+
+    // Prefer authoritative Google data; fall back to whatever the client sent.
+    let title = input.title?.trim() || '';
+    let author = input.author?.trim() || '';
+    let description = input.description ?? null;
+    let coverUrl = input.coverUrl ?? null;
+    let publishedDate: string | null = null;
+    try {
+      const key = process.env['GOOGLE_BOOKS_API_KEY'];
+      const url = `https://www.googleapis.com/books/v1/volumes/${googleId}${key ? `?key=${key}` : ''}`;
+      const res = await fetchWithTimeout(url, 10_000);
+      if (res.ok) {
+        const mapped = this.mapItem((await res.json()) as GoogleBookItem);
+        title = mapped.title || title;
+        author = mapped.author || author;
+        description = mapped.description ?? description;
+        coverUrl = mapped.coverUrl ?? coverUrl;
+        publishedDate = mapped.publishedDate;
+      }
+    } catch {
+      // Google unreachable — use the client-provided fallback fields.
+    }
+
+    const { data: inserted, error } = await admin
+      .from('books')
+      .insert({
+        title: title || 'Untitled',
+        author_name: author || 'Unknown Author',
+        description,
+        cover_image_url: coverUrl,
+        google_books_id: googleId,
+        publish_date: normalizePublishedDate(publishedDate),
+      })
+      .select('book_id')
+      .single();
+
+    if (error) {
+      // Unique-violation race: another request inserted it first.
+      const { data: again } = await admin
+        .from('books')
+        .select('book_id')
+        .eq('google_books_id', googleId)
+        .maybeSingle();
+      if (again) return { bookId: again['book_id'] as number };
+      throw error;
+    }
+
+    return { bookId: inserted['book_id'] as number };
+  }
+
   private mapItem(item: GoogleBookItem): SearchedBook {
     const v = item.volumeInfo;
     const thumbnail = v.imageLinks?.thumbnail ?? null;
@@ -234,6 +308,16 @@ export class BooksService {
       categories: v.categories ?? [],
     };
   }
+}
+
+// Google Books returns publishedDate as 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'.
+// Normalize to a Postgres DATE ('YYYY-MM-DD') or null so the insert never fails.
+function normalizePublishedDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
+  if (/^\d{4}$/.test(value)) return `${value}-01-01`;
+  return null;
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
