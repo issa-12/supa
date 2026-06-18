@@ -13,6 +13,16 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  // Baseline security headers directly on the backend (defense-in-depth — nginx
+  // also sets these on the public surface, but port 3000 shouldn't be bare).
+  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-XSS-Protection', '0');
+    next();
+  });
+
   app.enableCors({
     origin: process.env['FRONTEND_URL'] || 'http://localhost:4200',
     credentials: true,

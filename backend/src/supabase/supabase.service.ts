@@ -40,4 +40,29 @@ export class SupabaseService implements OnModuleInit {
   getAnon(): SupabaseClient {
     return this.anonClient;
   }
+
+  // Resolve the user id from a Bearer token AND enforce app-level email
+  // verification. A legitimate Supabase JWT is not enough: email/password
+  // accounts must have completed the OTP step (user_metadata.app_email_verified
+  // === true). OAuth accounts (e.g. Google) are inherently verified by the
+  // provider. Returns null when the token is missing/invalid or the email is
+  // not verified — callers treat null as 401. This closes the "sign in directly
+  // via Supabase and skip OTP" bypass.
+  async getVerifiedUserId(token: string | undefined | null): Promise<string | null> {
+    if (!token) return null;
+    const { data, error } = await this.adminClient.auth.getUser(token);
+    if (error || !data.user) return null;
+
+    const u = data.user;
+    const appVerified = u.user_metadata?.['app_email_verified'] === true;
+    const provider = u.app_metadata?.['provider'];
+    const providers = u.app_metadata?.['providers'];
+    const isOAuth =
+      (typeof provider === 'string' && provider !== 'email') ||
+      (Array.isArray(providers) && providers.some((p) => p !== 'email')) ||
+      (u.identities ?? []).some((i) => i.provider && i.provider !== 'email');
+
+    if (!appVerified && !isOAuth) return null;
+    return u.id;
+  }
 }
