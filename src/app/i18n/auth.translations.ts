@@ -42,6 +42,7 @@ export interface AuthCopy {
   resetSent: string;
   connected: string;
   genericError: string;
+  emailSendFailed: string;
   resetError: string;
   googleError: string;
   resetEmailPlaceholder: string;
@@ -101,6 +102,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     resetSent: 'If an account exists for that email, a password reset link is on its way. Check your inbox.',
     connected: 'Logged in. Your ReadTrack account is connected.',
     genericError: 'Something went wrong. Please try again.',
+    emailSendFailed: 'We couldn’t send the verification email right now. Please try again in a moment.',
     resetError: 'Could not send a password reset email.',
     googleError: 'Could not start Google sign-in.',
     resetEmailPlaceholder: 'Email',
@@ -158,6 +160,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     resetSent: 'إذا كان هناك حساب بهذا البريد، فسيصلك رابط إعادة تعيين كلمة المرور. تحقق من بريدك.',
     connected: 'تم تسجيل الدخول. حساب ReadTrack متصل.',
     genericError: 'حدث خطأ ما. حاول مرة أخرى.',
+    emailSendFailed: 'تعذّر إرسال بريد التحقق الآن. يرجى المحاولة مرة أخرى بعد قليل.',
     resetError: 'تعذر إرسال بريد إعادة تعيين كلمة المرور.',
     googleError: 'تعذر بدء تسجيل الدخول عبر Google.',
     resetEmailPlaceholder: 'البريد الإلكتروني',
@@ -215,6 +218,7 @@ export const AUTH_COPY_BY_LANGUAGE: Record<LanguageCode, AuthCopy> = {
     resetSent: 'Si un compte existe pour cet e-mail, un lien de reinitialisation va arriver. Verifiez votre boite de reception.',
     connected: 'Connexion reussie. Votre compte ReadTrack est connecte.',
     genericError: 'Une erreur est survenue. Veuillez reessayer.',
+    emailSendFailed: 'Impossible d’envoyer l’e-mail de vérification pour le moment. Veuillez réessayer dans un instant.',
     resetError: 'Impossible d envoyer l e-mail de reinitialisation.',
     googleError: 'Impossible de demarrer la connexion Google.',
     resetEmailPlaceholder: 'E-mail',

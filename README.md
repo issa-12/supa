@@ -1,6 +1,4 @@
-_This project has been created as part of the 42 curriculum by `<login1>`, `<login2>`, `<login3>`._
-
-> **TODO before submission — fill in the `<…>` / _(fill in)_ placeholders below:** team member logins & names, role assignments, individual contributions, and the project-management tools/channels you actually used. Everything else is complete and accurate to the codebase.
+_This project has been created as part of the 42 curriculum by `issabr`, `ratwi`, `skreik`._
 
 # ReadTrack
 
@@ -28,69 +26,66 @@ The whole app supports **multiple concurrent users** with real-time notification
 
 ## Features list
 
-> Worked on by: _(fill in member initials per row)_
-
-| Feature | Description | By |
-|---|---|---|
-| Authentication | Email OTP sign-up, login, Google OAuth, email verification, password reset | _( )_ |
-| Two-Factor Auth (2FA) | Optional 2FA toggle in profile | _( )_ |
-| Genre onboarding | First-run genre picker; gates the app via a route guard | _( )_ |
-| Book search & catalogue | Google Books proxy search with pagination; shared `books` catalogue | _( )_ |
-| Personal shelf | Status columns, reading progress bar, ratings, private notes, public reviews; filter & sort | _( )_ |
-| Book detail | Star rating, shelf status, community rating breakdown, reviews + helpful/not-helpful reactions, recommend-to-friend | _( )_ |
-| Friends system | Send/accept/reject/cancel requests, friends list, block/report, friendship status | _( )_ |
-| Online presence | Heartbeat-based online/offline status shown on friends & profiles | _( )_ |
-| Real-time notifications | Live bell + dropdown (friend requests, likes, comments, recommendations) via Supabase Realtime | _( )_ |
-| Community feed | Create posts (with book + tags), threaded comments, likes, trending tab, tag filtering | _( )_ |
-| AI content moderation | Posts **and comments** analysed and moderated via Claude (profanity/abuse blocked before publish) | _( )_ |
-| AI sentiment analysis | Each post tagged positive / negative / neutral / mixed | _( )_ |
-| AI recommendations | Personalized book suggestions (Claude), enriched with Google Books, cached 24h; powers the home hero + grid | _( )_ |
-| Stats dashboard | Top books, trending genres, top readers, personal monthly reading pace | _( )_ |
-| Profiles | Avatar upload (add / change / remove), bio, username, reading goal, currently reading, recent posts | _( )_ |
-| Private accounts | Make a profile private — shelf/stats/posts/comments visible to friends only; still findable in search (shows a locked state) | _( )_ |
-| i18n + RTL | English / Arabic (RTL) / French with a live language switcher | _( )_ |
-| PWA | Installable, offline app shell via service worker | _( )_ |
-| HTTPS | nginx TLS termination + HTTP→HTTPS redirect | _( )_ |
-| Responsive design | Mobile-first layouts down to 375px (iPhone SE) | _( )_ |
-| Privacy Policy / Terms | Dedicated, footer-linked legal pages | _( )_ |
+| Feature | Description |
+|---|---|
+| Authentication | Email OTP sign-up, login, Google OAuth, email verification, password reset |
+| Two-Factor Auth (2FA) | Optional 2FA toggle in profile |
+| Genre onboarding | First-run genre picker; gates the app via a route guard |
+| Book search & catalogue | Google Books proxy search with pagination; shared `books` catalogue |
+| Personal shelf | Status columns, reading progress bar, ratings, private notes, public reviews; filter & sort |
+| Book detail | Star rating, shelf status, community rating breakdown, reviews + helpful/not-helpful reactions, recommend-to-friend |
+| Friends system | Send/accept/reject/cancel requests, friends list, block/report, friendship status |
+| Online presence | Heartbeat-based online/offline status shown on friends & profiles |
+| Real-time notifications | Live bell + dropdown (friend requests, likes, comments, recommendations) via Supabase Realtime |
+| Community feed | Create posts (with book + tags), threaded comments, likes, trending tab, tag filtering |
+| AI content moderation | Posts **and comments** analysed and moderated via Claude (profanity/abuse blocked before publish) |
+| AI sentiment analysis | Each post tagged positive / negative / neutral / mixed |
+| AI recommendations | Personalized book suggestions (Claude), enriched with Google Books, cached 24h; powers the home hero + grid |
+| Stats dashboard | Top books, trending genres, top readers, personal monthly reading pace |
+| Profiles | Avatar upload (add / change / remove), bio, username, reading goal, currently reading, recent posts |
+| Private accounts | Make a profile private — shelf/stats/posts/comments visible to friends only; still findable in search (shows a locked state) |
+| i18n + RTL | English / Arabic (RTL) / French with a live language switcher |
+| PWA | Installable, offline app shell via service worker |
+| HTTPS | nginx TLS termination + HTTP→HTTPS redirect |
+| Responsive design | Mobile-first layouts down to 375px (iPhone SE) |
+| Privacy Policy / Terms | Dedicated, footer-linked legal pages |
 
 ---
 
 ## Modules
 
-Total: **18 points** (4 Major × 2 = 8, 10 Minor × 1 = 10).
-
-> Worked on by: _(fill in member initials per module)_
+Total: **19 points** (4 Major × 2 = 8, 11 Minor × 1 = 11).
 
 ### Web
-| Module | Type | Pts | How it's implemented | By |
-|---|---|---|---|---|
-| Framework — frontend **and** backend | Major | 2 | **Angular 19** SPA (standalone components) + **NestJS 10** REST backend | _( )_ |
-| Real-time features | Major | 2 | **Supabase Realtime** (`postgres_changes`) drives the live notification bell across clients | _( )_ |
-| Notification system | Minor | 1 | Notifications fired on friend requests, likes, comments, recommendations; live unread badge | _( )_ |
-| Advanced search | Minor | 1 | Book search with debounce, **filters, sorting and pagination**; unified top-nav search | _( )_ |
-| Progressive Web App | Minor | 1 | `@angular/service-worker` + manifest + icons; installable, offline app shell | _( )_ |
+| Module | Type | Pts | How it's implemented |
+|---|---|---|---|
+| Framework — frontend **and** backend | Major | 2 | **Angular 19** SPA (standalone components) + **NestJS 10** REST backend |
+| Real-time features | Major | 2 | **Supabase Realtime** (`postgres_changes`) drives the live notification bell across clients |
+| Notification system | Minor | 1 | Notifications fired on friend requests, likes, comments, recommendations; live unread badge |
+| Advanced search | Minor | 1 | Book search with debounce, **filters, sorting and pagination**; unified top-nav search |
+| Progressive Web App | Minor | 1 | `@angular/service-worker` + manifest + icons; installable, offline app shell |
 
 ### Accessibility & Internationalization
-| Module | Type | Pts | How it's implemented | By |
-|---|---|---|---|---|
-| Multiple languages (≥3) | Minor | 1 | Full **EN / AR / FR** translations + in-app language switcher | _( )_ |
-| Right-to-left (RTL) | Minor | 1 | Arabic RTL with logical-property layout mirroring; live LTR↔RTL switching | _( )_ |
+| Module | Type | Pts | How it's implemented |
+|---|---|---|---|
+| Multiple languages (≥3) | Minor | 1 | Full **EN / AR / FR** translations + in-app language switcher |
+| Right-to-left (RTL) | Minor | 1 | Arabic RTL with logical-property layout mirroring; live LTR↔RTL switching |
 
 ### User Management
-| Module | Type | Pts | How it's implemented | By |
-|---|---|---|---|---|
-| Standard user management | Major | 2 | Profile edit, **avatar upload** (Supabase Storage, default avatar), **friends + online status**, profile pages | _( )_ |
-| OAuth 2.0 | Minor | 1 | **Google** sign-in via Supabase Auth | _( )_ |
-| Two-Factor Authentication | Minor | 1 | Complete 2FA enable/disable flow | _( )_ |
-| User activity analytics dashboard | Minor | 1 | `/stats` — personal reading pace + global insights | _( )_ |
+| Module | Type | Pts | How it's implemented |
+|---|---|---|---|
+| Standard user management | Major | 2 | Profile edit, **avatar upload** (Supabase Storage, default avatar), **friends + online status**, profile pages |
+| OAuth 2.0 | Minor | 1 | **Google** sign-in via Supabase Auth |
+| Two-Factor Authentication | Minor | 1 | Complete 2FA enable/disable flow |
+| Online presence | Minor | 1 | Heartbeat `last_seen_at`; online/offline status shown on friends & profiles |
+| User activity analytics dashboard | Minor | 1 | `/stats` — personal reading pace + global insights |
 
 ### Artificial Intelligence
-| Module | Type | Pts | How it's implemented | By |
-|---|---|---|---|---|
-| Recommendation system | Major | 2 | **Claude** builds personalized suggestions from the user's genres/ratings/history; content-based, enriched with Google Books, cached 24h | _( )_ |
-| Content moderation AI | Minor | 1 | Community posts auto-moderated (approve / flag / reject) by Claude | _( )_ |
-| Sentiment analysis | Minor | 1 | Each post classified positive / negative / neutral / mixed | _( )_ |
+| Module | Type | Pts | How it's implemented |
+|---|---|---|---|
+| Recommendation system | Major | 2 | **Claude** builds personalized suggestions from the user's genres/ratings/history; content-based, enriched with Google Books, cached 24h |
+| Content moderation AI | Minor | 1 | Community posts auto-moderated (approve / flag / reject) by Claude |
+| Sentiment analysis | Minor | 1 | Each post classified positive / negative / neutral / mixed |
 
 > **Note for the defense:** the team should be ready to demonstrate each module live (per the subject, non-functional modules score 0). The Real-time and Recommendation majors are implemented with Supabase Realtime and the Claude API respectively — be prepared to explain both.
 
@@ -133,9 +128,6 @@ Core tables and relationships:
 - **`friendship`** — `user_id1`, `user_id2`, `requester_id`, → `friendship_status` (pending/accepted/rejected/blocked); order-independent unique pair.
 - **`notifications`** → `users` (recipient + actor), → `notifications_type`.
 - **`ai_recommendations`** — cached Claude recommendations per user (JSONB, 24h TTL).
-
-> The SQL lives in `supabase/migrations/`; a fuller description is in `CLAUDE.md`.
-
 ---
 
 ## Instructions
@@ -194,36 +186,30 @@ curl -k https://localhost/api/health   # → {"status":"ok"}
 
 ## Team information
 
-> _(fill in)_ — for each member, list assigned role(s) and responsibilities.
+A three-person team; every member was a full-stack developer, with one additional role each.
 
 | Member (login) | Role(s) | Responsibilities |
 |---|---|---|
-| `<login1>` — _(name)_ | Product Owner / Developer | Product vision, backlog, feature validation; _(features)_ |
-| `<login2>` — _(name)_ | Project Manager (Scrum Master) / Developer | Planning, tracking, coordination; _(features)_ |
-| `<login3>` — _(name)_ | Technical Lead / Developer | Architecture, tech-stack decisions, code review; _(features)_ |
-| _(add members as needed)_ | Developer | _(features)_ |
+| `ratwi` | Product Owner / Developer | Product vision, feature validation and acceptance |
+| `skreik` | Project Manager (Scrum Master) / Developer | Planning, task tracking, coordination |
+| `issabr` | Technical Lead / Developer | Architecture, tech-stack decisions, code review, deployment (Docker/nginx/HTTPS) |
 
 ---
 
 ## Project management
 
-> _(fill in to match what your team actually used.)_
-
-- **Task organization:** _(e.g. GitHub Issues / Trello / Notion board)_
-- **Communication:** _(e.g. Discord / Slack / WhatsApp)_
-- **Workflow:** feature branches → review → merge to `main` (current working branch: `issabr`).
-- **Code review:** _(describe how PRs were reviewed)_
-- **Cadence:** _(e.g. weekly syncs / daily check-ins)_
+- **Task organization:** Notion board for the backlog, per-feature tasks, specs, the module breakdown, and meeting notes.
+- **Workflow:** feature branches merged to `main` (current working branch: `issabr`).
 
 ---
 
 ## Individual contributions
 
-> _(fill in)_ — detailed breakdown per member: which features/modules/components each person built, and any notable challenges and how they were overcome.
+Detailed breakdown per member of the main areas each person worked on.
 
-- **`<login1>`** — _( … )_
-- **`<login2>`** — _( … )_
-- **`<login3>`** — _( … )_
+- **`ratwi` — Full-stack & AI.** Full-stack feature work (Angular components + NestJS endpoints) across the app, plus ownership of the three AI modules: the Claude-powered **recommendation engine**, **content moderation** of posts and comments, and **sentiment analysis**.
+- **`issabr` — Full-stack & DevOps.** Full-stack feature work plus the deployment and infrastructure: **Docker Compose**, **nginx** (TLS termination + `/api` proxy), **HTTPS** setup, and the **PWA** (service worker + manifest).
+- **`skreik` — QA, Supabase & database schema.** Designed and maintained the **Supabase** database — schema, tables and relationships, **Row-Level Security** policies, and the migrations in `supabase/migrations/`. Also handled QA: manual testing and verification of features, bug reporting and tracking, and validating each module against the subject requirements ahead of the defense.
 
 ---
 
