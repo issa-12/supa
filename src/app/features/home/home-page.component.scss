@@ -11,217 +11,180 @@
   overflow: hidden;
   color: var(--foreground);
   background: var(--background);
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--background);
-    z-index: 0;
-  }
 }
 
+// The viewport fills below the 62px nav; the two columns inside scroll
+// independently (app-style layout) so the feed never stretches the page.
 .scroll-area {
   flex: 1;
-  overflow-y: auto;
-  // Without this, setting overflow-y makes overflow-x compute to `auto`, which
-  // let the page scroll sideways whenever a section was a touch too wide.
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   z-index: 1;
-  padding-bottom: 120px;
+}
 
-  // Custom scrollbar styling
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
+// Two-column shell: flexible main content + fixed 340px community sidebar that
+// sits flush to the right edge (no max-width cap, no column gap).
+.page-shell {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  // minmax(0, 1fr) — NOT plain `1fr`. A `1fr` track has min-width:auto, so the
+  // column would expand to its content's intrinsic width (a long post / the
+  // trending carousel row) and overflow. min-width:0 keeps it at the available
+  // width so inner rows scroll/wrap themselves.
+  grid-template-columns: minmax(0, 1fr) 400px;
+  overflow: hidden;
+}
 
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+// Shared independent-scroll behaviour for both columns. min-height:0 is required
+// on a grid item for overflow-y:auto to actually clip (auto min-height would let
+// the column grow to its content instead of scrolling).
+.main-col,
+.side-col {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 4px;
-
-    &:hover {
-      background: rgba(126, 107, 93, 0.4);
-    }
+    &:hover { background: var(--border-strong); }
   }
-}
-
-.page-shell {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 32px 40px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 56px;
-}
-
-.home-bottom-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 64px;
 }
 
 .main-col {
   display: flex;
   flex-direction: column;
-  gap: 56px;
+  gap: 44px;
+  padding: 28px 40px 64px;
 }
 
 .side-col {
+  // Exactly the 340px grid track, flush to the right edge, scrolling on its own.
+  height: calc(100vh - 62px);
+  border-inline-start: 1px solid var(--border);
+  background: var(--surface);
+  padding: 24px 20px 32px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 
-.fab-btn {
-  position: absolute;
-  bottom: 48px;
-  right: 48px;
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-   z-index: 100;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+// ── Skeleton sections ──────────────────────────────────────────
+.skeleton { border-radius: var(--radius-sm); }
 
-  &:hover {
-    transform: scale(1.05);
-     }
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-// ── Skeleton sections ────────────────────────────────────────────
 .home-section-skeleton {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.skel-h2 {
-  height: 26px;
-  width: 220px;
-  border-radius: var(--radius-sm);
+.skel-h1 { height: 40px; width: 70%; }
+.skel-h2 { height: 26px; width: 220px; }
+.skel-line { height: 13px; width: 90%; }
+.skel-line-short { height: 12px; width: 55%; }
+.skel-pill { height: 18px; width: 80px; border-radius: 999px; }
+
+// Hero skeleton
+.hero-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 36px 40px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
 }
 
-.skel-book-row {
-  display: flex;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.skel-continue-card {
-  display: flex;
-  gap: 12px;
-  min-width: 220px;
+.hero-skel-content {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 420px;
 }
 
-.skel-continue-cover {
-  width: 64px;
-  height: 90px;
-  border-radius: 6px;
+.skel-actions { display: flex; gap: 12px; margin-top: 10px; }
+.skel-btn { height: 44px; width: 140px; border-radius: var(--radius-md); }
+
+.skel-hero-cover {
+  width: 110px;
+  height: 158px;
+  border-radius: 8px;
   flex-shrink: 0;
 }
 
-.skel-continue-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-  padding-top: 4px;
-}
-
-.skel-line {
-  height: 14px;
-  width: 85%;
-  border-radius: var(--radius-sm);
-}
-
-.skel-line-short {
-  height: 12px;
-  width: 60%;
-  border-radius: var(--radius-sm);
-}
-
-.skel-progress-bar {
-  height: 6px;
-  width: 100%;
-  border-radius: 999px;
-  margin-top: 4px;
-}
-
-.skel-cards-grid {
+// Recommended skeleton — mirrors the 3-col card grid
+.skel-rec-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.skel-book-tile {
+.skel-rec-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.skel-rec-cover { width: 48px; height: 66px; border-radius: 5px; flex-shrink: 0; }
+
+.skel-rec-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-top: 2px;
 }
 
-.skel-tile-cover {
-  width: 100%;
-  aspect-ratio: 2/3;
-  border-radius: 8px;
+// Trending skeleton — horizontal row
+.skel-trending-row { display: flex; gap: 16px; overflow: hidden; }
+
+.skel-trending-card {
+  flex-shrink: 0;
+  width: 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 }
 
-.skel-tile-title {
-  height: 13px;
-  width: 85%;
-  border-radius: var(--radius-sm);
-}
+.skel-trending-cover { width: 112px; height: 158px; border-radius: 9px; }
 
-.skel-tile-author {
-  height: 11px;
-  width: 60%;
-  border-radius: var(--radius-sm);
-}
-
-// Responsive design
+// ── Responsive ─────────────────────────────────────────────────
+// Below 1024px the columns stack, so independent scrolling no longer applies —
+// the whole page scrolls normally again.
 @media (max-width: 1024px) {
+  .scroll-area { overflow-y: auto; overflow-x: hidden; }
   .page-shell {
-    padding: 24px 32px 48px;
-    gap: 40px;
-  }
-
-  .home-bottom-grid {
-    // minmax(0, 1fr) — NOT plain `1fr`. A `1fr` track has min-width:auto, so the
-    // column expands to its content's width (the full carousel row / a long post)
-    // and overflows the clipped scroll area: the carousel then can't scroll and
-    // posts get cut off. min-width:0 keeps the column at viewport width so the
-    // carousel overflows ITSELF (scrolls) and posts wrap.
     grid-template-columns: minmax(0, 1fr);
-    gap: 40px;
+    height: auto;
+    overflow: visible;
   }
+  .main-col,
+  .side-col {
+    height: auto;
+    min-height: 0;
+    overflow-y: visible;
+  }
+  .side-col {
+    border-inline-start: none;
+    border-top: 1px solid var(--border);
+  }
+  .main-col { padding: 24px 32px 40px; gap: 36px; }
 }
 
 @media (max-width: 768px) {
-  .page-shell {
-    padding: 16px 20px 48px;
-    gap: 32px;
-  }
+  .main-col { padding: 16px 20px 32px; gap: 28px; }
+  .side-col { padding: 20px 16px 48px; }
 
-  .fab-btn {
-    bottom: 24px;
-    right: 24px;
-    width: 56px;
-    height: 56px;
-  }
+  .skel-rec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-skeleton { padding: 24px 20px; }
 }

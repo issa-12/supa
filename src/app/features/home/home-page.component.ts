@@ -8,7 +8,6 @@ import { BookService } from '../../core/services/book.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
 import { TopNavComponent } from './components/top-nav.component';
 import { HeroSectionComponent } from './components/hero-section.component';
-import { ContinueReadingComponent } from './components/continue-reading.component';
 import { RecommendedBooksComponent } from './components/recommended-books.component';
 import { TrendingBooksComponent } from './components/trending-books.component';
 import { PostsFeedComponent } from './components/posts-feed.component';
@@ -38,7 +37,6 @@ interface ContinueReadingBook extends Book {
     CommonModule,
     TopNavComponent,
     HeroSectionComponent,
-    ContinueReadingComponent,
     RecommendedBooksComponent,
     TrendingBooksComponent,
     PostsFeedComponent,

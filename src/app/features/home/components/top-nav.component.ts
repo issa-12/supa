@@ -1,6 +1,6 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -20,7 +20,7 @@ interface NavSearchBook {
 @Component({
   selector: 'app-top-nav',
   standalone: true,
-  imports: [CommonModule, RouterLink, AsyncPipe, NotificationsPanelComponent, FormsModule, LanguageSelectorComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, AsyncPipe, NotificationsPanelComponent, FormsModule, LanguageSelectorComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <header class="top-nav">
@@ -114,15 +114,15 @@ interface NavSearchBook {
       </div>
 
       <div class="nav-actions">
-        <a routerLink="/shelf" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
+        <a routerLink="/shelf" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/community" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel">
+        <a routerLink="/community" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel">
           <iconify-icon icon="lucide:users" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/stats" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel">
+        <a routerLink="/stats" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel">
           <iconify-icon icon="lucide:bar-chart-2" style="font-size: 20px"></iconify-icon>
         </a>
 
@@ -151,7 +151,7 @@ interface NavSearchBook {
           class="nav-language-selector"
           [languages]="languages"
           [selectedLanguage]="selectedLanguage"
-          [compact]="true"
+          [compact]="false"
         />
 
         <div class="avatar-wrap" (click)="$event.stopPropagation()">
@@ -188,24 +188,30 @@ interface NavSearchBook {
   styles: [`
     :host {
       display: contents;
+      --ui-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
     .top-nav {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 16px 40px;
-      background: var(--background);
+      gap: 20px;
+      padding: 0 40px;
+      height: 62px;
+      // Frosted glass: translucent cream + blur. rgb of --background (#f4ede5).
+      background: rgba(244, 237, 229, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 50;
+      font-family: var(--ui-sans);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
       white-space: nowrap;
       cursor: pointer;
       text-decoration: none;
@@ -215,54 +221,55 @@ interface NavSearchBook {
     }
 
     .brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-lg);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       background: var(--primary);
       color: var(--primary-foreground);
       display: flex;
       align-items: center;
       justify-content: center;
-       }
+    }
 
     .brand-text {
-      font-size: 28px;
-      font-weight: 700;
+      font-size: 18px;
+      font-weight: 600;
       color: var(--foreground);
-      letter-spacing: -0.5px;
+      letter-spacing: -0.3px;
     }
 
     .search-wrap {
       position: relative;
       flex: 1;
-      max-width: 500px;
-      margin: 0 40px;
+      max-width: 420px;
+      margin: 0 auto;
     }
 
     .search-bar-container {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 10px 20px;
-       transition: border-color 0.2s;
+      border-radius: 24px;
+      padding: 8px 18px;
+      box-shadow: 0 1px 4px rgba(60, 30, 10, 0.06);
+      transition: border-color 0.2s;
 
       &.focused, &:focus-within {
         border-color: rgba(217, 119, 87, 0.4);
-         }
+      }
     }
 
     .search-icon {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       color: var(--muted-foreground);
       flex-shrink: 0;
     }
 
     .search-input {
-      font-size: 15px;
+      font-size: 14px;
       color: var(--foreground);
       font-weight: 500;
       flex: 1;
@@ -272,7 +279,7 @@ interface NavSearchBook {
       font-family: inherit;
       min-width: 0;
 
-      &::placeholder { color: var(--muted-foreground); font-weight: 500; }
+      &::placeholder { color: var(--muted-foreground); font-weight: 400; }
     }
 
     .nav-spinner {
@@ -420,25 +427,44 @@ interface NavSearchBook {
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 6px;
+      margin-inline-start: auto;
     }
 
     .nav-icon-btn {
       position: relative;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--foreground);
+      background: transparent;
+      border: none;
+      color: var(--muted-foreground);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background 0.15s, color 0.15s;
+      text-decoration: none;
 
-      &:hover { background: var(--surface); }
+      &:hover { background: var(--surface-alt); color: var(--foreground); }
       &:active { transform: scale(0.95); }
+
+      // Active route: terracotta icon + a small dot underneath.
+      &--active {
+        color: var(--primary);
+        background: var(--primary-soft);
+      }
+      &--active::after {
+        content: '';
+        position: absolute;
+        bottom: 3px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--primary);
+      }
     }
 
     .bell-wrapper {
@@ -447,12 +473,12 @@ interface NavSearchBook {
 
     .notification-badge {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 4px;
+      inset-inline-end: 4px;
       min-width: 16px;
       height: 16px;
       padding: 0 4px;
-      background: var(--destructive);
+      background: var(--primary);
       border-radius: 999px;
       border: 2px solid var(--background);
       font-size: 10px;
@@ -469,16 +495,17 @@ interface NavSearchBook {
     }
 
     .nav-avatar {
-      width: 44px;
-      height: 44px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid var(--surface);
-       cursor: pointer;
-      transition: all 0.2s ease;
+      border: 2px solid var(--surface-alt);
+      cursor: pointer;
+      transition: transform 0.2s ease;
       display: block;
+      margin-inline-start: 6px;
 
-      &:hover { transform: scale(1.05);  }
+      &:hover { transform: scale(1.05); }
     }
 
     .user-menu {
@@ -523,14 +550,28 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
 
+      // The shared selector defaults to --auth-foreground (only defined on the
+      // auth pages) and a 46px tall, 162px wide control. Re-shape it to a compact
+      // pill that fits the nav and turns terracotta on hover.
       ::ng-deep .language-button {
+        height: 38px;
+        min-width: auto;
+        padding: 0 14px;
+        gap: 6px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
         background: var(--surface);
+        color: var(--muted-foreground);
+        font-size: 12px;
+        font-weight: 500;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+
         &:hover {
-          background: var(--surface);
+          background: var(--primary-soft);
+          color: var(--primary);
+          border-color: rgba(217, 119, 87, 0.4);
         }
-        &:active {
-          transform: scale(0.95);
-        }
+        &:active { transform: scale(0.95); }
       }
     }
 
@@ -540,12 +581,15 @@ interface NavSearchBook {
     @media (max-width: 768px) {
       .top-nav {
         flex-wrap: wrap;
-        padding: 12px 16px;
+        height: auto;
+        padding: 10px 16px;
         gap: 10px;
       }
       /* logo mark only — the word-mark eats too much width on phones */
       .brand-text { display: none; }
-      .nav-actions { gap: 10px; }
+      .nav-actions { gap: 4px; }
+      /* the full language name is too wide on phones — hide its label, keep globe */
+      .nav-language-selector ::ng-deep .language-button span:not([class]) { display: none; }
       /* search drops onto its own full-width row so the action icons fit */
       .search-wrap {
         order: 3;
@@ -556,11 +600,8 @@ interface NavSearchBook {
     }
 
     @media (max-width: 420px) {
-      .top-nav { padding: 10px 12px; }
-      .nav-actions { gap: 6px; }
-      .nav-icon-btn,
-      .nav-avatar,
-      .brand-icon { width: 38px; height: 38px; }
+      .top-nav { padding: 8px 12px; }
+      .nav-icon-btn { width: 34px; height: 34px; }
     }
   `],
 })

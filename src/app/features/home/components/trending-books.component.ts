@@ -20,24 +20,18 @@ interface Book {
   template: `
     <section class="trending-section">
       <div class="section-header">
-        <div class="section-title-wrap">
-          <h2 class="text-h2">{{ copy.trendingTitle }}</h2>
-        </div>
-        <div class="tag-list">
-          <span class="small-tag">{{ copy.trendingTagPopular }}</span>
-          <span class="small-tag">{{ copy.trendingTagTopRated }}</span>
-        </div>
+        <h2 class="section-title">{{ copy.trendingTitle }}</h2>
       </div>
 
       <div class="horizontal-scroll">
-        <div *ngFor="let book of books" class="book-card-clean"
+        <div *ngFor="let book of books" class="trending-card"
           (click)="onCardClick(book)"
           [style.cursor]="book.googleBooksId ? 'pointer' : 'default'">
-          <img *ngIf="book.coverUrl" class="book-cover-clean" [src]="book.coverUrl" [alt]="book.title + ' Cover'" loading="lazy" (error)="book.coverUrl = null" />
-          <div *ngIf="!book.coverUrl" class="book-cover-clean book-cover--empty"></div>
-          <div class="book-info-minimal">
-            <div class="book-title-min">{{ book.title }}</div>
-            <div class="book-author-min">{{ book.author }}</div>
+          <img *ngIf="book.coverUrl" class="trending-cover" [src]="book.coverUrl" [alt]="book.title + ' Cover'" loading="lazy" (error)="book.coverUrl = null" />
+          <div *ngIf="!book.coverUrl" class="trending-cover trending-cover--empty"></div>
+          <div class="trending-info">
+            <div class="trending-title">{{ book.title }}</div>
+            <div class="trending-author">{{ book.author }}</div>
           </div>
         </div>
       </div>
@@ -46,153 +40,90 @@ interface Book {
   styles: [`
     :host {
       display: contents;
+      --ui-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
     .trending-section {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
+      font-family: var(--ui-sans);
     }
 
     .section-header {
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: space-between;
       gap: 16px;
     }
 
-    .section-title-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .text-h2 {
-      font-size: 26px;
+    .section-title {
+      font-size: 20px;
       line-height: 1.2;
       font-weight: 700;
       color: var(--foreground);
-      letter-spacing: -0.4px;
+      letter-spacing: -0.2px;
       margin: 0;
-    }
-
-    .tag-list {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .small-tag {
-      padding: 4px 10px;
-      border-radius: 4px;
-      background: var(--border);
-      color: var(--secondary-foreground);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     .horizontal-scroll {
       display: flex;
-      gap: 24px;
+      gap: 16px;
       overflow-x: auto;
-      padding: 10px 0 30px;
-      margin: -10px 0 -30px;
+      padding-bottom: 24px;
 
-      &::-webkit-scrollbar {
-        height: 6px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
+      &::-webkit-scrollbar { height: 6px; }
+      &::-webkit-scrollbar-track { background: transparent; }
       &::-webkit-scrollbar-thumb {
         background: var(--border);
         border-radius: 3px;
-
-        &:hover {
-          background: rgba(126, 107, 93, 0.4);
-        }
+        &:hover { background: var(--border-strong); }
       }
     }
 
-    .book-card-clean {
-      width: 150px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+    .trending-card {
+      width: 140px;
       flex-shrink: 0;
       cursor: pointer;
       transition: transform 0.2s ease;
 
-      &:hover {
-        transform: translateY(-4px);
-      }
+      &:hover { transform: translateY(-4px); }
     }
 
-    .book-cover-clean {
-      width: 150px;
-      height: 225px;
-      border-radius: 6px 10px 10px 6px;
+    .trending-cover {
+      width: 140px;
+      height: 196px;
+      border-radius: 10px;
       object-fit: cover;
-       display: block;
+      display: block;
+      margin-bottom: 9px;
 
-      .book-card-clean:hover & {
-         }
-
-      &.book-cover--empty {
-        background: var(--border);
-      }
+      &--empty { background: var(--border); }
     }
 
-    .book-info-minimal {
+    .trending-info {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
-    .book-title-min {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--foreground);
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .book-author-min {
+    .trending-title {
       font-size: 13px;
       font-weight: 500;
+      color: var(--foreground);
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .trending-author {
+      font-size: 12px;
       color: var(--muted-foreground);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    @media (max-width: 768px) {
-      .horizontal-scroll {
-        gap: 16px;
-      }
-
-      .book-card-clean {
-        width: 130px;
-      }
-
-      .book-cover-clean {
-        width: 130px;
-        height: 195px;
-      }
-
-      .text-h2 {
-        font-size: 22px;
-      }
-
-      .tag-list {
-        display: none;
-      }
     }
   `],
 })
