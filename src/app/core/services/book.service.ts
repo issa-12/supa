@@ -418,7 +418,7 @@ export class BookService {
     nextStartIndex: number;
     hasMore: boolean;
   }> {
-    const params = new URLSearchParams({ q: query, maxResults: '20', startIndex: String(startIndex) });
+    const params = new URLSearchParams({ q: query, maxResults: '12', startIndex: String(startIndex) });
     if (options.author?.trim()) params.set('author', options.author.trim());
     if (options.isbn?.trim()) params.set('isbn', options.isbn.trim());
     if (options.language) params.set('language', options.language);

@@ -101,20 +101,28 @@ export class BooksService {
     startIndex: number,
     options: BookSearchOptions = {},
   ): Promise<BookSearchResult> {
+    const titleQuery = query
+      .trim()
+      .split(/\s+/)
+      .map((term) => `intitle:${term}`)
+      .join(' ');
     const qualifiedQuery = [
-      query,
-      options.author?.trim() ? `inauthor:"${options.author.trim()}"` : '',
+      titleQuery,
       options.isbn?.trim() ? `isbn:${options.isbn.trim()}` : '',
     ].filter(Boolean).join(' ');
     const apiKey = process.env['GOOGLE_BOOKS_API_KEY'];
+    const author = options.author?.trim().toLocaleLowerCase() ?? '';
     const language = options.language?.trim().toLowerCase() ?? '';
-    const scanLimit = language ? 5 : 1;
-    const providerPageSize = language ? 40 : Math.min(Math.max(maxResults, 20), 40);
+    const scanLimit = author || language ? 8 : 1;
+    const providerPageSize = author || language
+      ? 40
+      : Math.min(Math.max(maxResults, 12), 40);
     const books: SearchedBook[] = [];
     const seenIds = new Set<string>();
     let cursor = startIndex;
     let totalItems = 0;
     let pagesScanned = 0;
+    let exhausted = false;
 
     try {
       while (books.length < maxResults && pagesScanned < scanLimit) {
@@ -143,16 +151,26 @@ export class BooksService {
         totalItems = data.totalItems ?? totalItems;
         pagesScanned++;
 
+        if (items.length === 0) {
+          exhausted = true;
+          break;
+        }
+
         for (const item of items) {
+          cursor++;
           const book = this.mapItem(item);
+          if (author && !book.author.toLocaleLowerCase().includes(author)) continue;
           if (language && !matchesLanguage(book, language)) continue;
           if (seenIds.has(book.googleId)) continue;
           seenIds.add(book.googleId);
           books.push(book);
+          if (books.length >= maxResults) break;
         }
 
-        cursor += items.length;
-        if (items.length === 0 || cursor >= totalItems) break;
+        if (cursor >= totalItems) {
+          exhausted = true;
+          break;
+        }
       }
 
       if (options.sort === 'newest') {
@@ -165,7 +183,7 @@ export class BooksService {
         books,
         totalItems,
         nextStartIndex: cursor,
-        hasMore: cursor < totalItems,
+        hasMore: books.length === maxResults && !exhausted && cursor < totalItems,
       };
     } catch (err) {
       console.error('[BooksService] Google Books network error:', err);

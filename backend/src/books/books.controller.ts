@@ -52,9 +52,7 @@ export class BooksController {
     // Search-as-you-type clients fire on every keystroke; a 1-char query is
     // not an error, just "too short to search yet" — return empty instead of a
     // 400 so the browser console stays clean.
-    const hasQualifiedSearch = [author, isbn]
-      .some((value) => (value?.trim().length ?? 0) >= 2);
-    if (query.length < 2 && !hasQualifiedSearch) {
+    if (query.length < 2) {
       return {
         books: [],
         totalItems: 0,

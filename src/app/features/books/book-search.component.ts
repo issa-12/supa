@@ -52,7 +52,6 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   isbnFilter = '';
   languageFilter = '';
   sortBy = 'relevance';
-  filtersOpen = false;
 
   openDropdownId: string | null = null;
   addingBookId: string | null = null;
@@ -143,7 +142,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
         ...response.books.filter((book) => !existingIds.has(book.googleId)),
       ];
       this.startIndex = response.nextStartIndex;
-      this.moreAvailable = response.hasMore;
+      this.moreAvailable = response.books.length > 0 && response.hasMore;
     } catch {
       // silently ignore — existing results remain
     } finally {
@@ -186,10 +185,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   }
 
   get canSearch(): boolean {
-    return this.query.trim().length >= 2 || [
-      this.authorFilter,
-      this.isbnFilter,
-    ].some((value) => value.trim().length >= 2);
+    return this.query.trim().length >= 2;
   }
 
   onFiltersChange(): void {
@@ -202,8 +198,6 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     this.authorFilter = '';
     this.isbnFilter = '';
     this.languageFilter = '';
-    this.sortBy = 'relevance';
-    this.filtersOpen = false;
     if (this.query.trim().length >= 2) void this.runSearch();
   }
 

@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -31,87 +31,89 @@ interface NavSearchBook {
         <div class="brand-text">ReadTrack</div>
       </div>
 
-      <!-- Live search -->
-      <div class="search-wrap" (click)="$event.stopPropagation()">
-        <div class="search-bar-container" [class.focused]="searchOpen">
-          <iconify-icon icon="lucide:search" class="search-icon"></iconify-icon>
-          <input
-            class="search-input"
-            type="text"
-            [placeholder]="copy.searchPlaceholder"
-            [(ngModel)]="searchQuery"
-            (focus)="onSearchFocus()"
-            (input)="onSearchInput()"
-            (keydown.enter)="onSearchEnter($event)"
-            (keydown.escape)="closeSearch()"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          @if (searchLoading) {
-            <div class="nav-spinner"></div>
-          } @else if (searchQuery) {
-            <button class="search-clear" (click)="clearSearch()">
-              <iconify-icon icon="lucide:x" style="font-size: 13px"></iconify-icon>
-            </button>
-          }
-        </div>
-
-        @if (searchOpen && searchQuery.length >= 2) {
-          <div class="search-dropdown">
+      @if (!hideSearch) {
+        <!-- Live search -->
+        <div class="search-wrap" (click)="$event.stopPropagation()">
+          <div class="search-bar-container" [class.focused]="searchOpen">
+            <iconify-icon icon="lucide:search" class="search-icon"></iconify-icon>
+            <input
+              class="search-input"
+              type="text"
+              [placeholder]="copy.searchPlaceholder"
+              [(ngModel)]="searchQuery"
+              (focus)="onSearchFocus()"
+              (input)="onSearchInput()"
+              (keydown.enter)="onSearchEnter($event)"
+              (keydown.escape)="closeSearch()"
+              autocomplete="off"
+              spellcheck="false"
+            />
             @if (searchLoading) {
-              <p class="search-state">{{ copy.searchingState }}</p>
-            } @else if (searchBookResults.length === 0 && searchUserResults.length === 0) {
-              <p class="search-state">{{ copy.searchNoResults.replace('{{ query }}', searchQuery) }}</p>
-            } @else {
-              @if (searchUserResults.length > 0) {
-                <div class="search-section">
-                  <p class="search-section-label">{{ copy.searchSectionPeople }}</p>
-                  @for (user of searchUserResults; track user.id) {
-                    <button class="search-item" (click)="goToUser(user)">
-                      <img
-                        [src]="user.avatarUrl || 'https://ui-avatars.com/api/?name=' + user.name[0] + '&background=E9783F&color=fff&size=32'"
-                        [alt]="user.name"
-                        class="item-avatar"
-                        loading="lazy"
-                      />
-                      <span class="item-name">{{ user.name }}</span>
-                    </button>
-                  }
-                </div>
-              }
-              @if (searchBookResults.length > 0) {
-                <div class="search-section">
-                  <p class="search-section-label">{{ copy.searchSectionBooks }}</p>
-                  @for (book of searchBookResults; track book.googleId) {
-                    <button class="search-item" (click)="goToBook(book)">
-                      @if (book.coverUrl) {
-                        <img [src]="book.coverUrl" [alt]="book.title" class="item-cover" loading="lazy" />
-                      } @else {
-                        <div class="item-cover item-cover--empty">
-                          <iconify-icon icon="lucide:book" style="font-size: 14px"></iconify-icon>
-                        </div>
-                      }
-                      <div class="item-info">
-                        <span class="item-title">{{ book.title }}</span>
-                        <span class="item-author">{{ book.author }}</span>
-                      </div>
-                    </button>
-                  }
-                </div>
-              }
-              <a
-                class="search-see-all"
-                routerLink="/books/search"
-                [queryParams]="{ q: searchQuery }"
-                (click)="closeSearch()"
-              >
-                {{ copy.searchSeeAll }}
-                <iconify-icon icon="lucide:arrow-right" style="font-size: 13px"></iconify-icon>
-              </a>
+              <div class="nav-spinner"></div>
+            } @else if (searchQuery) {
+              <button class="search-clear" (click)="clearSearch()">
+                <iconify-icon icon="lucide:x" style="font-size: 13px"></iconify-icon>
+              </button>
             }
           </div>
-        }
-      </div>
+
+          @if (searchOpen && searchQuery.length >= 2) {
+            <div class="search-dropdown">
+              @if (searchLoading) {
+                <p class="search-state">{{ copy.searchingState }}</p>
+              } @else if (searchBookResults.length === 0 && searchUserResults.length === 0) {
+                <p class="search-state">{{ copy.searchNoResults.replace('{{ query }}', searchQuery) }}</p>
+              } @else {
+                @if (searchUserResults.length > 0) {
+                  <div class="search-section">
+                    <p class="search-section-label">{{ copy.searchSectionPeople }}</p>
+                    @for (user of searchUserResults; track user.id) {
+                      <button class="search-item" (click)="goToUser(user)">
+                        <img
+                          [src]="user.avatarUrl || 'https://ui-avatars.com/api/?name=' + user.name[0] + '&background=E9783F&color=fff&size=32'"
+                          [alt]="user.name"
+                          class="item-avatar"
+                          loading="lazy"
+                        />
+                        <span class="item-name">{{ user.name }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+                @if (searchBookResults.length > 0) {
+                  <div class="search-section">
+                    <p class="search-section-label">{{ copy.searchSectionBooks }}</p>
+                    @for (book of searchBookResults; track book.googleId) {
+                      <button class="search-item" (click)="goToBook(book)">
+                        @if (book.coverUrl) {
+                          <img [src]="book.coverUrl" [alt]="book.title" class="item-cover" loading="lazy" />
+                        } @else {
+                          <div class="item-cover item-cover--empty">
+                            <iconify-icon icon="lucide:book" style="font-size: 14px"></iconify-icon>
+                          </div>
+                        }
+                        <div class="item-info">
+                          <span class="item-title">{{ book.title }}</span>
+                          <span class="item-author">{{ book.author }}</span>
+                        </div>
+                      </button>
+                    }
+                  </div>
+                }
+                <a
+                  class="search-see-all"
+                  routerLink="/books/search"
+                  [queryParams]="{ q: searchQuery }"
+                  (click)="closeSearch()"
+                >
+                  {{ copy.searchSeeAll }}
+                  <iconify-icon icon="lucide:arrow-right" style="font-size: 13px"></iconify-icon>
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
 
       <div class="nav-actions">
         <a routerLink="/home" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.homeAriaLabel">
@@ -610,6 +612,7 @@ interface NavSearchBook {
   `],
 })
 export class TopNavComponent implements OnInit, OnDestroy {
+  @Input() hideSearch = false;
   private readonly notificationsService = inject(NotificationsService);
   private readonly supabaseService = inject(SupabaseService);
   private readonly userService = inject(UserService);
