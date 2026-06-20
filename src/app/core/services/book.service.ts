@@ -23,6 +23,18 @@ export interface GoogleBook {
   coverUrl: string | null;
   pageCount: number | null;
   categories: string[];
+  language?: string | null;
+  averageRating?: number | null;
+  ratingsCount?: number;
+  availability?: 'full' | 'preview' | 'none';
+  isEbook?: boolean;
+}
+
+export interface BookSearchOptions {
+  author?: string;
+  isbn?: string;
+  language?: string;
+  sort?: string;
 }
 
 export interface UserBook {
@@ -396,12 +408,27 @@ export class BookService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
-  async searchBooks(query: string, startIndex = 0): Promise<{ books: GoogleBook[]; totalItems: number }> {
+  async searchBooks(
+    query: string,
+    startIndex = 0,
+    options: BookSearchOptions = {},
+  ): Promise<{
+    books: GoogleBook[];
+    totalItems: number;
+    nextStartIndex: number;
+    hasMore: boolean;
+  }> {
     const params = new URLSearchParams({ q: query, maxResults: '20', startIndex: String(startIndex) });
+    if (options.author?.trim()) params.set('author', options.author.trim());
+    if (options.isbn?.trim()) params.set('isbn', options.isbn.trim());
+    if (options.language) params.set('language', options.language);
+    if (options.sort) params.set('sort', options.sort);
     const res = await fetch(`/api/books/search?${params}`);
     const payload = (await res.json().catch(() => ({}))) as {
       books?: GoogleBook[];
       totalItems?: number;
+      nextStartIndex?: number;
+      hasMore?: boolean;
       message?: string;
     };
 
@@ -409,7 +436,12 @@ export class BookService {
       throw new Error(payload.message ?? 'Search failed.');
     }
 
-    return { books: payload.books ?? [], totalItems: payload.totalItems ?? 0 };
+    return {
+      books: payload.books ?? [],
+      totalItems: payload.totalItems ?? 0,
+      nextStartIndex: payload.nextStartIndex ?? startIndex,
+      hasMore: payload.hasMore ?? false,
+    };
   }
 
   // Find-or-create a catalog book via the backend (service-role). The browser

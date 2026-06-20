@@ -42,20 +42,36 @@ export class BooksController {
     @Query('q') q: string,
     @Query('maxResults') maxResults = '20',
     @Query('startIndex') startIndex = '0',
+    @Query('author') author?: string,
+    @Query('isbn') isbn?: string,
+    @Query('language') language?: string,
+    @Query('sort') sort?: string,
   ) {
     const query = q?.trim() ?? '';
 
     // Search-as-you-type clients fire on every keystroke; a 1-char query is
     // not an error, just "too short to search yet" — return empty instead of a
     // 400 so the browser console stays clean.
-    if (query.length < 2) {
-      return { books: [], totalItems: 0 };
+    const hasQualifiedSearch = [author, isbn]
+      .some((value) => (value?.trim().length ?? 0) >= 2);
+    if (query.length < 2 && !hasQualifiedSearch) {
+      return {
+        books: [],
+        totalItems: 0,
+        nextStartIndex: 0,
+        hasMore: false,
+      };
     }
 
     const max = Math.min(Number(maxResults) || 20, 40);
     const offset = Number(startIndex) || 0;
 
-    return this.booksService.searchGoogleBooks(query, max, offset);
+    return this.booksService.searchGoogleBooks(query, max, offset, {
+      author,
+      isbn,
+      language,
+      sort,
+    });
   }
 
   @Get(':googleId')

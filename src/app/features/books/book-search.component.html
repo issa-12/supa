@@ -1,8 +1,6 @@
 <div class="search-viewport" (click)="closeDropdown()">
-
   <app-top-nav />
 
-  <!-- Header -->
   <header class="search-header">
     <div class="header-content">
       <a class="back-btn" routerLink="/home" aria-label="Go home">
@@ -15,7 +13,6 @@
     </div>
   </header>
 
-  <!-- Search bar -->
   <div class="search-bar-wrapper">
     <form class="search-form" (ngSubmit)="onSubmit()" (click)="$event.stopPropagation()">
       <div class="search-input-wrap">
@@ -38,21 +35,95 @@
           <div class="input-spinner"></div>
         }
       </div>
-      <button class="search-btn" type="submit" [disabled]="isSearching || query.trim().length < 2">
+      <button class="search-btn" type="submit" [disabled]="isSearching || !canSearch">
         {{ copy.searchButton }}
       </button>
     </form>
   </div>
 
-  <!-- Error toast -->
+  <section class="search-tools" aria-label="Search filters and sorting">
+    <div class="search-tools__top">
+      <div class="filter-summary">
+        <button
+          class="filters-toggle"
+          type="button"
+          (click)="filtersOpen = !filtersOpen"
+          [class.active]="filtersOpen || activeFilterCount > 0"
+          [attr.aria-expanded]="filtersOpen"
+        >
+          <iconify-icon icon="lucide:sliders-horizontal"></iconify-icon>
+          Filters
+          @if (activeFilterCount > 0) {
+            <span>{{ activeFilterCount }}</span>
+          }
+        </button>
+
+        <div class="active-filter-chips" aria-label="Active filters">
+          @if (authorFilter.trim()) {
+            <button type="button" (click)="filtersOpen = true">Author: {{ authorFilter }}</button>
+          }
+          @if (isbnFilter.trim()) {
+            <button type="button" (click)="filtersOpen = true">ISBN: {{ isbnFilter }}</button>
+          }
+          @if (languageFilter) {
+            <button type="button" (click)="filtersOpen = true">
+              Language: {{ languageFilter | uppercase }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <label class="sort-control">
+        <span>Sort by</span>
+        <select [(ngModel)]="sortBy" (ngModelChange)="onFiltersChange()">
+          <option value="relevance">Relevance</option>
+          <option value="newest">Newest</option>
+        </select>
+      </label>
+    </div>
+
+    @if (filtersOpen) {
+      <div class="filters-panel">
+        <label>
+          <span>Author</span>
+          <input type="text" [(ngModel)]="authorFilter" (ngModelChange)="onFiltersChange()" placeholder="Any author" />
+        </label>
+        <label>
+          <span>ISBN</span>
+          <input type="text" [(ngModel)]="isbnFilter" (ngModelChange)="onFiltersChange()" placeholder="ISBN-10 or ISBN-13" />
+        </label>
+        <label>
+          <span>Language</span>
+          <select [(ngModel)]="languageFilter" (ngModelChange)="onFiltersChange()">
+            <option value="">Any language</option>
+            <option value="en">English</option>
+            <option value="ar">Arabic</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+          </select>
+        </label>
+        <div class="filter-panel-actions">
+          <button
+            class="reset-filters"
+            type="button"
+            (click)="resetFilters()"
+            [disabled]="activeFilterCount === 0 && sortBy === 'relevance'"
+          >
+            <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
+            Reset filters
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+
   @if (addError) {
     <div class="toast toast--error">{{ addError }}</div>
   }
 
-  <!-- Content area -->
   <div class="search-content">
-
-    <!-- Search error -->
     @if (searchError) {
       <div class="state-box">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -62,22 +133,16 @@
         </svg>
         <p class="state-text error-text">{{ searchError }}</p>
       </div>
-    }
-
-    <!-- No results -->
-    @else if (hasSearched && !isSearching && results.length === 0) {
+    } @else if (hasSearched && !isSearching && results.length === 0) {
       <div class="state-box">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
-        <p class="state-text">{{ copy.noResults.replace('{{ query }}', query) }}</p>
-        <p class="state-hint">{{ copy.noResultsHint }}</p>
+        <p class="state-text">No books match your search and filters.</p>
+        <p class="state-hint">Try another search or clear one of the filters.</p>
       </div>
-    }
-
-    <!-- Empty / idle state -->
-    @else if (!hasSearched && results.length === 0) {
+    } @else if (!hasSearched && results.length === 0) {
       <div class="state-box idle">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
           <circle cx="11" cy="11" r="8"/>
@@ -88,15 +153,17 @@
       </div>
     }
 
-    <!-- Results grid -->
     @if (results.length > 0) {
-      <p class="results-count">{{ results.length }}{{ totalItems > results.length ? ' / ' + totalItems : '' }}</p>
+      <p class="results-count">
+        {{ results.length }} result{{ results.length === 1 ? '' : 's' }}
+        @if (!languageFilter && totalItems > results.length) {
+          <span>of {{ totalItems }}</span>
+        }
+      </p>
 
       <div class="books-grid">
         @for (book of results; track book.googleId) {
           <div class="book-card" (click)="$event.stopPropagation()">
-
-            <!-- Cover (click → detail page) -->
             <div class="cover-wrap" (click)="goToDetail(book)" style="cursor:pointer">
               @if (book.coverUrl) {
                 <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
@@ -110,15 +177,26 @@
               }
             </div>
 
-            <!-- Info -->
             <div class="book-info">
               <h3 class="book-title" [title]="book.title">{{ book.title }}</h3>
               <p class="book-author">{{ book.author }}</p>
               @if (book.publishedDate) {
                 <p class="book-year">{{ book.publishedDate | slice:0:4 }}</p>
               }
+              <div class="book-meta-tags">
+                @if (book.language) {
+                  <span>{{ book.language | uppercase }}</span>
+                }
+                @if (book.averageRating) {
+                  <span>★ {{ book.averageRating }}</span>
+                }
+                @if (book.availability === 'full') {
+                  <span>Full view</span>
+                } @else if (book.availability === 'preview') {
+                  <span>Preview</span>
+                }
+              </div>
 
-              <!-- Add to shelf -->
               <div class="shelf-action">
                 @if (getAddedLabel(book.googleId); as label) {
                   <span class="added-badge">
@@ -143,7 +221,6 @@
                       </svg>
                       {{ copy.addButton }}
                     </button>
-
                     @if (openDropdownId === book.googleId) {
                       <div class="dropdown">
                         @for (status of statuses; track status.id) {
@@ -158,7 +235,6 @@
                 }
               </div>
             </div>
-
           </div>
         }
       </div>
@@ -176,7 +252,5 @@
         </div>
       }
     }
-
   </div>
-
 </div>

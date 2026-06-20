@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { SlicePipe } from '@angular/common';
+import { SlicePipe, UpperCasePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
-import { BookService, GoogleBook } from '../../core/services/book.service';
+import { BookService, GoogleBook, BookSearchOptions } from '../../core/services/book.service';
 import { TranslationService, BOOK_SEARCH_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TopNavComponent } from '../home/components/top-nav.component';
@@ -24,7 +24,8 @@ const SHELF_STATUS_DEFS: Array<{ name: string; label: string; icon: string }> = 
 @Component({
   selector: 'app-book-search',
   standalone: true,
-  imports: [RouterLink, FormsModule, SlicePipe, TopNavComponent],
+  imports: [RouterLink, FormsModule, SlicePipe, UpperCasePipe, TopNavComponent],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './book-search.component.html',
   styleUrl: './book-search.component.scss',
 })
@@ -47,6 +48,11 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   hasSearched = false;
   searchError: string | null = null;
   totalItems = 0;
+  authorFilter = '';
+  isbnFilter = '';
+  languageFilter = '';
+  sortBy = 'relevance';
+  filtersOpen = false;
 
   openDropdownId: string | null = null;
   addingBookId: string | null = null;
@@ -54,8 +60,9 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   addError: string | null = null;
 
   private startIndex = 0;
-  private readonly pageSize = 20;
+  private moreAvailable = false;
   private searchTimer?: ReturnType<typeof setTimeout>;
+  private filterTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
@@ -72,7 +79,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   }
 
   get hasMore(): boolean {
-    return this.results.length < this.totalItems;
+    return this.moreAvailable;
   }
 
   async ngOnInit(): Promise<void> {
@@ -105,10 +112,11 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     clearTimeout(this.searchTimer);
     this.searchError = null;
 
-    if (!this.query.trim() || this.query.trim().length < 2) {
+    if (!this.canSearch) {
       this.results = [];
       this.hasSearched = false;
       this.totalItems = 0;
+      this.moreAvailable = false;
       return;
     }
 
@@ -124,9 +132,18 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     if (this.isLoadingMore || !this.hasMore) return;
     this.isLoadingMore = true;
     try {
-      const { books } = await this.bookService.searchBooks(this.query.trim(), this.startIndex);
-      this.results = [...this.results, ...books];
-      this.startIndex += books.length;
+      const response = await this.bookService.searchBooks(
+        this.query.trim(),
+        this.startIndex,
+        this.searchOptions,
+      );
+      const existingIds = new Set(this.results.map((book) => book.googleId));
+      this.results = [
+        ...this.results,
+        ...response.books.filter((book) => !existingIds.has(book.googleId)),
+      ];
+      this.startIndex = response.nextStartIndex;
+      this.moreAvailable = response.hasMore;
     } catch {
       // silently ignore — existing results remain
     } finally {
@@ -136,7 +153,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
 
   private async runSearch(): Promise<void> {
     const q = this.query.trim();
-    if (q.length < 2) return;
+    if (!this.canSearch) return;
 
     this.isSearching = true;
     this.searchError = null;
@@ -144,18 +161,59 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     this.openDropdownId = null;
     this.startIndex = 0;
     this.totalItems = 0;
+    this.moreAvailable = false;
 
     try {
-      const { books, totalItems } = await this.bookService.searchBooks(q, 0);
-      this.results = books;
-      this.totalItems = totalItems;
-      this.startIndex = books.length;
+      const response = await this.bookService.searchBooks(q, 0, this.searchOptions);
+      this.results = response.books;
+      this.totalItems = response.totalItems;
+      this.startIndex = response.nextStartIndex;
+      this.moreAvailable = response.hasMore;
     } catch (err) {
       this.searchError = err instanceof Error ? err.message : 'Search failed. Please try again.';
       this.results = [];
     } finally {
       this.isSearching = false;
     }
+  }
+
+  get activeFilterCount(): number {
+    return [
+      this.authorFilter.trim(),
+      this.isbnFilter.trim(),
+      this.languageFilter,
+    ].filter(Boolean).length;
+  }
+
+  get canSearch(): boolean {
+    return this.query.trim().length >= 2 || [
+      this.authorFilter,
+      this.isbnFilter,
+    ].some((value) => value.trim().length >= 2);
+  }
+
+  onFiltersChange(): void {
+    clearTimeout(this.filterTimer);
+    if (!this.canSearch) return;
+    this.filterTimer = setTimeout(() => void this.runSearch(), 350);
+  }
+
+  resetFilters(): void {
+    this.authorFilter = '';
+    this.isbnFilter = '';
+    this.languageFilter = '';
+    this.sortBy = 'relevance';
+    this.filtersOpen = false;
+    if (this.query.trim().length >= 2) void this.runSearch();
+  }
+
+  private get searchOptions(): BookSearchOptions {
+    return {
+      author: this.authorFilter,
+      isbn: this.isbnFilter,
+      language: this.languageFilter,
+      sort: this.sortBy,
+    };
   }
 
   toggleDropdown(googleId: string): void {
@@ -197,5 +255,6 @@ export class BookSearchComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.searchTimer);
+    clearTimeout(this.filterTimer);
   }
 }

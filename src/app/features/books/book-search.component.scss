@@ -133,6 +133,172 @@
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
+// ── Filters and sorting ────────────────────────────────────────
+.search-tools {
+  padding: 0 20px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.search-tools__top {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.filter-summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filters-toggle,
+.reset-filters {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &.active {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  > span {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.active-filter-chips {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+
+  button {
+    max-width: 210px;
+    min-height: 32px;
+    padding: 0 11px;
+    overflow: hidden;
+    border: 1px solid rgba(217, 119, 87, 0.24);
+    border-radius: var(--radius-full);
+    background: var(--primary-soft);
+    color: var(--primary);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+}
+
+.sort-control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+
+  select {
+    min-height: 40px;
+    min-width: 145px;
+    padding: 0 34px 0 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--foreground);
+    font: inherit;
+  }
+}
+
+.filters-panel {
+  max-width: 1160px;
+  margin: 14px auto 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 13px;
+
+  label {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    > span {
+      color: var(--muted-foreground);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  }
+
+  input,
+  select {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    outline: none;
+    background: var(--background);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 13px;
+
+    &:focus { border-color: var(--primary); }
+  }
+}
+
+.filter-panel-actions {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+}
+
+.reset-filters {
+  justify-self: start;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
 // ── Toast ──────────────────────────────────────────────────────
 .toast {
   max-width: 560px;
@@ -193,6 +359,8 @@
   font-size: 13px;
   color: var(--muted-foreground);
   margin: 0 0 20px;
+
+  span { opacity: 0.72; }
 }
 
 // ── Load more ──────────────────────────────────────────────────
@@ -318,6 +486,22 @@
   margin: 0;
 }
 
+.book-meta-tags {
+  min-height: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  span {
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-size: 9px;
+    font-weight: 700;
+  }
+}
+
 // ── Shelf action ───────────────────────────────────────────────
 .shelf-action {
   margin-top: 6px;
@@ -418,11 +602,30 @@
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 20px;
   }
+
+  .filters-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-panel-actions { align-self: end; }
 }
 
 @media (max-width: 480px) {
   .search-bar-wrapper { padding: 16px; }
   .search-content { padding: 20px 16px 48px; }
+  .search-tools { padding: 0 16px 16px; }
+  .search-tools__top {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .filter-summary { width: 100%; }
+  .filters-toggle { flex-shrink: 0; }
+  .active-filter-chips { flex: 1; }
+  .sort-control {
+    width: 100%;
+    justify-content: space-between;
+    select { width: 100%; }
+  }
+  .filters-panel { grid-template-columns: minmax(0, 1fr); }
+  .filter-panel-actions { width: 100%; }
+  .reset-filters { width: 100%; }
 
   .books-grid {
     // minmax(0, …), not plain 1fr — a 1fr track's `auto` minimum equals the

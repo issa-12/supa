@@ -22,6 +22,17 @@ interface GoogleBookItem {
     categories?: string[];
     averageRating?: number;
     ratingsCount?: number;
+    language?: string;
+  };
+  accessInfo?: {
+    viewability?: string;
+    publicDomain?: boolean;
+    epub?: { isAvailable?: boolean };
+    pdf?: { isAvailable?: boolean };
+  };
+  saleInfo?: {
+    isEbook?: boolean;
+    saleability?: string;
   };
 }
 
@@ -59,6 +70,25 @@ export interface SearchedBook {
   coverUrl: string | null;
   pageCount: number | null;
   categories: string[];
+  language: string | null;
+  averageRating: number | null;
+  ratingsCount: number;
+  availability: 'full' | 'preview' | 'none';
+  isEbook: boolean;
+}
+
+interface BookSearchOptions {
+  author?: string;
+  isbn?: string;
+  language?: string;
+  sort?: string;
+}
+
+export interface BookSearchResult {
+  books: SearchedBook[];
+  totalItems: number;
+  nextStartIndex: number;
+  hasMore: boolean;
 }
 
 @Injectable()
@@ -69,53 +99,99 @@ export class BooksService {
     query: string,
     maxResults: number,
     startIndex: number,
-  ): Promise<{ books: SearchedBook[]; totalItems: number }> {
-    const params = new URLSearchParams({
-      q: query,
-      maxResults: String(maxResults),
-      startIndex: String(startIndex),
-      printType: 'books',
-    });
-
+    options: BookSearchOptions = {},
+  ): Promise<BookSearchResult> {
+    const qualifiedQuery = [
+      query,
+      options.author?.trim() ? `inauthor:"${options.author.trim()}"` : '',
+      options.isbn?.trim() ? `isbn:${options.isbn.trim()}` : '',
+    ].filter(Boolean).join(' ');
     const apiKey = process.env['GOOGLE_BOOKS_API_KEY'];
-    if (apiKey) params.set('key', apiKey);
+    const language = options.language?.trim().toLowerCase() ?? '';
+    const scanLimit = language ? 5 : 1;
+    const providerPageSize = language ? 40 : Math.min(Math.max(maxResults, 20), 40);
+    const books: SearchedBook[] = [];
+    const seenIds = new Set<string>();
+    let cursor = startIndex;
+    let totalItems = 0;
+    let pagesScanned = 0;
 
     try {
-      const res = await fetchWithTimeout(
-        `https://www.googleapis.com/books/v1/volumes?${params}`,
-        10_000,
-      );
+      while (books.length < maxResults && pagesScanned < scanLimit) {
+        const params = new URLSearchParams({
+          q: qualifiedQuery,
+          maxResults: String(providerPageSize),
+          startIndex: String(cursor),
+          printType: 'books',
+        });
+        if (language) params.set('langRestrict', language);
+        if (options.sort === 'newest') params.set('orderBy', 'newest');
+        if (apiKey) params.set('key', apiKey);
 
-      if (res.ok) {
+        const res = await fetchWithTimeout(
+          `https://www.googleapis.com/books/v1/volumes?${params}`,
+          10_000,
+        );
+        if (!res.ok) {
+          const body = await res.text().catch(() => '');
+          console.error(`[BooksService] Google Books API ${res.status}:`, body.slice(0, 300));
+          break;
+        }
+
         const data = (await res.json()) as GoogleBooksApiResponse;
-        return {
-          books: (data.items ?? []).map((item) => this.mapItem(item)),
-          totalItems: data.totalItems ?? 0,
-        };
+        const items = data.items ?? [];
+        totalItems = data.totalItems ?? totalItems;
+        pagesScanned++;
+
+        for (const item of items) {
+          const book = this.mapItem(item);
+          if (language && !matchesLanguage(book, language)) continue;
+          if (seenIds.has(book.googleId)) continue;
+          seenIds.add(book.googleId);
+          books.push(book);
+        }
+
+        cursor += items.length;
+        if (items.length === 0 || cursor >= totalItems) break;
       }
 
-      const body = await res.text().catch(() => '');
-      console.error(`[BooksService] Google Books API ${res.status}:`, body.slice(0, 300));
+      if (options.sort === 'newest') {
+        books.sort((a, b) =>
+          publicationYear(b.publishedDate) - publicationYear(a.publishedDate),
+        );
+      }
+
+      return {
+        books,
+        totalItems,
+        nextStartIndex: cursor,
+        hasMore: cursor < totalItems,
+      };
     } catch (err) {
       console.error('[BooksService] Google Books network error:', err);
     }
 
     // Fallback: search local catalog
-    return this.searchLocalBooks(query, maxResults);
+    return this.searchLocalBooks(query, maxResults, options);
   }
 
   private async searchLocalBooks(
     query: string,
     limit: number,
-  ): Promise<{ books: SearchedBook[]; totalItems: number }> {
-    const { data } = await this.supabase
+    options: BookSearchOptions,
+  ): Promise<BookSearchResult> {
+    let localQuery = this.supabase
       .getAdmin()
       .from('books')
       .select('*')
       .ilike('title', `%${query}%`)
       .limit(limit);
+    if (options.author?.trim()) {
+      localQuery = localQuery.ilike('author_name', `%${options.author.trim()}%`);
+    }
+    const { data } = await localQuery;
 
-    const books: SearchedBook[] = (data ?? []).map((b) => ({
+    let books: SearchedBook[] = (data ?? []).map((b) => ({
       googleId: (b['google_books_id'] as string) ?? '',
       title: b['title'] as string,
       author: b['author_name'] as string,
@@ -124,9 +200,27 @@ export class BooksService {
       coverUrl: (b['cover_image_url'] as string) ?? null,
       pageCount: (b['page_count'] as number) ?? null,
       categories: (b['categories'] as string[]) ?? [],
+      language: (b['language'] as string) ?? null,
+      averageRating: null,
+      ratingsCount: 0,
+      availability: 'none',
+      isEbook: false,
     }));
+    if (options.language) {
+      const language = options.language.toLowerCase();
+      books = books.filter((book) => matchesLanguage(book, language));
+    }
+    if (options.isbn?.trim()) books = [];
+    if (options.sort === 'newest') {
+      books.sort((a, b) => publicationYear(b.publishedDate) - publicationYear(a.publishedDate));
+    }
 
-    return { books, totalItems: books.length };
+    return {
+      books,
+      totalItems: books.length,
+      nextStartIndex: books.length,
+      hasMore: false,
+    };
   }
 
   async getBookByGoogleId(googleId: string): Promise<BookDetail> {
@@ -306,8 +400,36 @@ export class BooksService {
       coverUrl: thumbnail ? thumbnail.replace('http://', 'https://') : null,
       pageCount: v.pageCount ?? null,
       categories: v.categories ?? [],
+      language: v.language ?? null,
+      averageRating: v.averageRating ?? null,
+      ratingsCount: v.ratingsCount ?? 0,
+      availability: mapAvailability(item),
+      isEbook:
+        item.saleInfo?.isEbook === true ||
+        item.accessInfo?.epub?.isAvailable === true ||
+        item.accessInfo?.pdf?.isAvailable === true,
     };
   }
+}
+
+function publicationYear(value: string | null): number {
+  const year = Number(value?.slice(0, 4));
+  return Number.isFinite(year) ? year : 0;
+}
+
+function matchesLanguage(book: SearchedBook, language: string): boolean {
+  if (book.language?.toLowerCase() !== language) return false;
+  if (language !== 'ar') return true;
+
+  const searchableText = [book.title, book.author].join(' ');
+  return /[\u0600-\u06ff]/.test(searchableText);
+}
+
+function mapAvailability(item: GoogleBookItem): 'full' | 'preview' | 'none' {
+  const viewability = item.accessInfo?.viewability;
+  if (item.accessInfo?.publicDomain || viewability === 'ALL_PAGES') return 'full';
+  if (viewability === 'PARTIAL' || viewability === 'SAMPLE_PAGES') return 'preview';
+  return 'none';
 }
 
 // Google Books returns publishedDate as 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'.
