@@ -60,10 +60,11 @@ img {
 /* ─── Design tokens — flat solid palette ───────────────────────────────────── */
 :root {
   /* Brand palette */
-  --primary:            #d97757;   /* dusty terracotta */
+  --primary:            #c0603a;   /* terracotta — unified brand accent (app-wide) */
   --primary-foreground: #ffffff;
   --primary-soft:       #f1d8cb;   /* solid tinted background for soft fills */
-  --accent:             #c1633f;   /* darker terracotta — hover */
+  --primary-dark:       #a8502e;   /* darker terracotta — hover/pressed */
+  --accent:             #a8502e;   /* darker terracotta — hover */
   --warning:            #c79a47;   /* muted amber — star ratings */
   --success:            #6e9764;   /* muted green */
   --destructive:        #c14a4a;   /* muted red */

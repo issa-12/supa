@@ -7,6 +7,7 @@ export interface NavCopy {
   searchSectionPeople: string;
   searchSectionBooks: string;
   searchSeeAll: string;
+  homeAriaLabel: string;
   myShelfAriaLabel: string;
   communityAriaLabel: string;
   statsAriaLabel: string;
@@ -24,6 +25,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     searchSectionPeople: 'People',
     searchSectionBooks: 'Books',
     searchSeeAll: 'See all book results',
+    homeAriaLabel: 'Home',
     myShelfAriaLabel: 'My Shelf',
     communityAriaLabel: 'Community',
     statsAriaLabel: 'Stats',
@@ -39,6 +41,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     searchSectionPeople: 'الأشخاص',
     searchSectionBooks: 'الكتب',
     searchSeeAll: 'شاهد جميع نتائج البحث عن الكتب',
+    homeAriaLabel: 'الرئيسية',
     myShelfAriaLabel: 'رفي الخاص',
     communityAriaLabel: 'المجتمع',
     statsAriaLabel: 'الإحصائيات',
@@ -54,6 +57,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     searchSectionPeople: 'Personnes',
     searchSectionBooks: 'Livres',
     searchSeeAll: 'Afficher tous les résultats de livres',
+    homeAriaLabel: 'Accueil',
     myShelfAriaLabel: 'Ma Bibliothèque',
     communityAriaLabel: 'Communauté',
     statsAriaLabel: 'Statistiques',

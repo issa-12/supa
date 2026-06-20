@@ -114,6 +114,10 @@ interface NavSearchBook {
       </div>
 
       <div class="nav-actions">
+        <a routerLink="/home" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.homeAriaLabel">
+          <iconify-icon icon="lucide:home" style="font-size: 20px"></iconify-icon>
+        </a>
+
         <a routerLink="/shelf" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>

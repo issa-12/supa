@@ -2,229 +2,230 @@
 
   <app-top-nav />
 
-  <!-- Header -->
-  <header class="shelf-header">
-    <div class="header-content">
-      <a class="back-btn" routerLink="/home" [attr.aria-label]="copy.ariaGoHome">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-      </a>
-      <div class="header-center">
-        <h1 class="header-title">{{ copy.myLibraryTitle }}</h1>
-        @if (!isLoading && totalBooks > 0) {
-          <span class="book-count">{{ totalBooks }} book{{ totalBooks !== 1 ? 's' : '' }}</span>
+  <!-- Hero -->
+  <header class="shelf-hero">
+    <div class="hero-row">
+      <div class="hero-titles">
+        <h1 class="hero-title">{{ copy.myLibraryTitle }}</h1>
+        @if (!isLoading && sections.length > 0) {
+          <p class="hero-sub">{{ copy.booksAcrossShelves.replace('{count}', totalBooks.toString()) }}</p>
         }
       </div>
-      <a routerLink="/books/search" class="header-add-btn" [attr.aria-label]="copy.ariaFindBooks">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </a>
+      <div class="hero-actions" (click)="$event.stopPropagation()">
+        <div class="sort-wrap">
+          <iconify-icon icon="lucide:arrow-up-down" class="sort-icon"></iconify-icon>
+          <select class="sort-select" [(ngModel)]="sortBy">
+            <option value="date">{{ copy.dateAddedSort }}</option>
+            <option value="title">{{ copy.titleAZSort }}</option>
+            <option value="rating">{{ copy.ratingSort }}</option>
+          </select>
+        </div>
+        <a routerLink="/books/search" class="add-book-btn">
+          <iconify-icon icon="lucide:plus" style="font-size:14px"></iconify-icon>
+          {{ copy.addBookBtn }}
+        </a>
+      </div>
     </div>
+
+    @if (!isLoading && sections.length > 0) {
+      <nav class="shelf-tabs">
+        <button class="shelf-tab" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">{{ copy.allFilter }}</button>
+        @if (hasRecommendations) {
+          <button class="shelf-tab" [class.active]="activeFilter === 'recommended_by_friend'" (click)="activeFilter = 'recommended_by_friend'">
+            {{ copy.recommendationsFilter }} <span class="tab-count">{{ tabCount('recommended_by_friend') }}</span>
+          </button>
+        }
+        @if (tabCount('currently_reading') > 0) {
+          <button class="shelf-tab" [class.active]="activeFilter === 'currently_reading'" (click)="activeFilter = 'currently_reading'">
+            {{ copy.readingFilter }} <span class="tab-count">{{ tabCount('currently_reading') }}</span>
+          </button>
+        }
+        @if (tabCount('want_to_read') > 0) {
+          <button class="shelf-tab" [class.active]="activeFilter === 'want_to_read'" (click)="activeFilter = 'want_to_read'">
+            {{ copy.wantToReadFilter }} <span class="tab-count">{{ tabCount('want_to_read') }}</span>
+          </button>
+        }
+        @if (tabCount('read') > 0) {
+          <button class="shelf-tab" [class.active]="activeFilter === 'read'" (click)="activeFilter = 'read'">
+            {{ copy.readFilter }} <span class="tab-count">{{ tabCount('read') }}</span>
+          </button>
+        }
+      </nav>
+    }
   </header>
 
-  <!-- Loading skeleton -->
-  @if (isLoading) {
-    <div class="shelf-skeleton">
-      <div class="skel-filter-bar">
-        @for (i of [1,2,3,4]; track i) { <div class="skel-pill skeleton"></div> }
-        <div class="skel-select skeleton"></div>
-      </div>
-      <div class="shelf-content">
-        <div class="shelf-section">
-          <div class="section-header">
+  <div class="shelf-content">
+
+    <!-- Loading skeleton -->
+    @if (isLoading) {
+      <div class="shelf-skeleton">
+        @for (s of [1,2]; track s) {
+          <div class="shelf-section">
             <div class="skel-section-title skeleton"></div>
-            <div class="skel-section-badge skeleton"></div>
+            <div class="books-grid">
+              @for (i of [1,2,3,4,5,6]; track i) {
+                <div class="bcard">
+                  <div class="skel-cover skeleton"></div>
+                  <div class="binfo">
+                    <div class="skel-title skeleton"></div>
+                    <div class="skel-author skeleton"></div>
+                  </div>
+                </div>
+              }
+            </div>
           </div>
-          <div class="books-grid">
-            @for (i of [1,2,3,4,5,6]; track i) {
-              <div class="book-card">
-                <div class="skel-cover skeleton"></div>
-                <div class="skel-title skeleton"></div>
-                <div class="skel-author skeleton"></div>
+        }
+      </div>
+    }
+
+    <!-- Error -->
+    @else if (error) {
+      <div class="page-state">
+        <p class="error-text">{{ error }}</p>
+      </div>
+    }
+
+    <!-- Empty library -->
+    @else if (sections.length === 0) {
+      <div class="page-state empty">
+        <iconify-icon icon="lucide:book-open" style="font-size:52px;color:var(--primary);opacity:0.5"></iconify-icon>
+        <p class="state-title">{{ copy.emptyLibraryTitle }}</p>
+        <p class="state-hint">{{ copy.emptyLibraryHint }}</p>
+        <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooksBtn }}</a>
+      </div>
+    }
+
+    @else {
+
+      <!-- Recommendations banner -->
+      @if (showRecBanner) {
+        <div class="rec-banner">
+          <div class="rec-thumbs">
+            @for (b of recommendations.slice(0, 3); track b.id) {
+              <div class="rec-thumb">
+                @if (b.book?.coverUrl) {
+                  <img [src]="b.book!.coverUrl" [alt]="b.book!.title" loading="lazy" />
+                } @else {
+                  <iconify-icon icon="lucide:book" style="font-size:15px;color:#fff"></iconify-icon>
+                }
               </div>
             }
           </div>
+          <div class="rec-info">
+            <div class="rec-label">{{ copy.friendRecommendationsLabel }}</div>
+            <div class="rec-text">{{ copy.pendingRecommendations.replace('{count}', recommendations.length.toString()) }}</div>
+            @if (recommenderSummary) {
+              <div class="rec-sub">{{ copy.fromPrefix }} {{ recommenderSummary }}</div>
+            }
+          </div>
+          <div class="rec-btns">
+            <button class="rec-view" (click)="activeFilter = 'recommended_by_friend'">{{ copy.viewAllBtn }}</button>
+            <button class="rec-dismiss" (click)="dismissRecBanner()">{{ copy.dismissBtn }}</button>
+          </div>
         </div>
-      </div>
-    </div>
-  }
+      }
 
-  <!-- Error -->
-  @else if (error) {
-    <div class="page-state">
-      <p class="error-text">{{ error }}</p>
-    </div>
-  }
-
-  <!-- Empty library -->
-  @else if (sections.length === 0) {
-    <div class="page-state empty">
-      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      </svg>
-      <p class="state-title">{{ copy.emptyLibraryTitle }}</p>
-      <p class="state-hint">{{ copy.emptyLibraryHint }}</p>
-      <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooksBtn }}</a>
-    </div>
-  }
-
-  <!-- Filter bar + Shelf content -->
-  @else {
-    <div class="filter-bar">
-      <div class="filter-pills">
-        <button class="filter-pill" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">{{ copy.allFilter }}</button>
-        @if (hasRecommendations) {
-          <button class="filter-pill" [class.active]="activeFilter === 'recommended_by_friend'" (click)="activeFilter = 'recommended_by_friend'">{{ copy.recommendationsFilter }}</button>
-        }
-        <button class="filter-pill" [class.active]="activeFilter === 'currently_reading'" (click)="activeFilter = 'currently_reading'">{{ copy.readingFilter }}</button>
-        <button class="filter-pill" [class.active]="activeFilter === 'want_to_read'" (click)="activeFilter = 'want_to_read'">{{ copy.wantToReadFilter }}</button>
-        <button class="filter-pill" [class.active]="activeFilter === 'read'" (click)="activeFilter = 'read'">{{ copy.readFilter }}</button>
-      </div>
-      <select class="sort-select" [(ngModel)]="sortBy">
-        <option value="date">{{ copy.dateAddedSort }}</option>
-        <option value="title">{{ copy.titleAZSort }}</option>
-        <option value="rating">{{ copy.ratingSort }}</option>
-      </select>
-    </div>
-
-    <div class="shelf-content">
+      <!-- Sections -->
       @for (section of displayedSections; track section.statusName) {
         <section class="shelf-section">
           <div class="section-header">
-            <h2 class="section-title">{{ sectionLabel(section.statusName) }}</h2>
-            <span class="section-count">{{ section.books.length }}</span>
+            <div class="section-heading">
+              @switch (section.statusName) {
+                @case ('currently_reading') { <iconify-icon icon="lucide:book-open" class="section-icon"></iconify-icon> }
+                @case ('want_to_read') { <iconify-icon icon="lucide:bookmark" class="section-icon"></iconify-icon> }
+                @case ('read') { <iconify-icon icon="lucide:check-circle" class="section-icon"></iconify-icon> }
+                @case ('recommended_by_friend') { <iconify-icon icon="lucide:gift" class="section-icon"></iconify-icon> }
+                @default { <iconify-icon icon="lucide:book" class="section-icon"></iconify-icon> }
+              }
+              <h2 class="section-title">{{ sectionLabel(section.statusName) }}</h2>
+              <span class="section-count">{{ copy.sectionCount.replace('{count}', section.books.length.toString()) }}</span>
+            </div>
+            @if (showSeeAll(section)) {
+              <button class="see-all" (click)="activeFilter = section.statusName">
+                {{ copy.seeAllLink }} <iconify-icon icon="lucide:arrow-right" style="font-size:12px"></iconify-icon>
+              </button>
+            }
           </div>
 
           <div class="books-grid">
-            @for (book of section.books; track book.id) {
-              <div class="book-card" (click)="navigateToDetail(book)">
+            @for (book of visibleBooks(section); track book.id) {
+              <div class="bcard" (click)="navigateToDetail(book)">
 
                 <!-- Cover -->
-                <div class="cover-wrap">
+                <div class="bcover">
                   @if (book.book?.coverUrl) {
-                    <img [src]="book.book!.coverUrl" [alt]="book.book!.title" class="cover-img" loading="lazy" />
+                    <img [src]="book.book!.coverUrl" [alt]="book.book!.title" class="bcover-img" loading="lazy" />
                   } @else {
-                    <div class="cover-placeholder">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                      </svg>
+                    <div class="bcover-ph">
+                      <iconify-icon icon="lucide:book" style="font-size:24px;opacity:0.35"></iconify-icon>
+                      <span class="bcover-title">{{ book.book?.title }}</span>
                     </div>
                   }
-
                   @if (savingId === book.id) {
-                    <div class="cover-saving">
-                      <div class="saving-spinner"></div>
-                    </div>
+                    <div class="cover-saving"><div class="saving-spinner"></div></div>
                   }
                 </div>
 
                 <!-- Info -->
-                <div class="book-info">
-                  <h3 class="book-title">{{ book.book?.title }}</h3>
-                  <p class="book-author">{{ book.book?.author }}</p>
+                <div class="binfo">
+                  <div class="btitle">{{ book.book?.title }}</div>
+                  <div class="bauthor">{{ book.book?.author }}</div>
 
                   @if (section.statusName === 'recommended_by_friend') {
-                    <p class="rec-by">{{ copy.recommendedByPrefix }} {{ book.recommendedByName || 'a friend' }}</p>
-                    <div class="rec-actions" (click)="$event.stopPropagation()">
+                    <div class="brec-by">{{ copy.recommendedByPrefix }} {{ book.recommendedByName || 'a friend' }}</div>
+                    <div class="rec-card-actions" (click)="$event.stopPropagation()">
                       <button class="rec-accept" (click)="acceptRecommendation(book, $event)" [disabled]="savingId === book.id">{{ copy.acceptBtn }}</button>
                       <button class="rec-decline" (click)="declineRecommendation(book, $event)" [disabled]="savingId === book.id">{{ copy.declineBtn }}</button>
                     </div>
                   } @else {
-
-                  <!-- Stars -->
-                  @if (book.rating) {
-                    <div class="stars">
-                      @for (filled of starsArray(book.rating); track $index) {
-                        <svg class="star" [class.star--filled]="filled" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
-                      }
-                    </div>
-                  }
-
-                  <!-- Progress (currently reading only) -->
-                  @if (section.statusName === 'currently_reading') {
-                    <div class="progress-section" (click)="$event.stopPropagation()">
-                      @if (progressEditId === book.id) {
-                        <div class="progress-edit">
-                          <input
-                            type="number"
-                            [(ngModel)]="progressCurrent"
-                            [placeholder]="copy.progressPagePlaceholder"
-                            class="progress-input"
-                            min="1"
-                            (click)="$event.stopPropagation()"
-                          />
-                          <span class="progress-sep">/</span>
-                          <input
-                            type="number"
-                            [(ngModel)]="progressTotal"
-                            [placeholder]="copy.progressTotalPlaceholder"
-                            class="progress-input"
-                            min="1"
-                            (click)="$event.stopPropagation()"
-                          />
-                          <button class="progress-save" (click)="saveProgress(book, $event)" [disabled]="savingProgressId === book.id">
-                            @if (savingProgressId === book.id) { … } @else { ✓ }
-                          </button>
-                          <button class="progress-cancel" (click)="cancelProgressEdit($event)">✕</button>
-                        </div>
-                      } @else {
-                        @if (book.currentPage) {
-                          <div class="progress-bar-wrap" (click)="openProgressEdit(book, $event)">
-                            <div class="progress-bar">
-                              <div class="progress-fill" [style.width.%]="getProgressPercent(book)"></div>
-                            </div>
-                            <span class="progress-label">
-                              {{ book.currentPage }}{{ book.totalPages ? ' / ' + book.totalPages : '' }} p{{ book.totalPages ? ' · ' + getProgressPercent(book) + '%' : '' }}
-                            </span>
-                          </div>
-                        } @else {
-                          <button class="progress-start" (click)="openProgressEdit(book, $event)">{{ copy.trackProgress }}</button>
-                        }
-                      }
-                    </div>
-                  }
-
-                  <!-- Menu -->
-                  <div class="card-actions" (click)="$event.stopPropagation()">
-                    <button class="menu-btn" (click)="toggleMenu(book.id)" [class.active]="openMenuId === book.id">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                      </svg>
-                    </button>
-
-                    @if (openMenuId === book.id) {
-                      <div class="dropdown">
-                        <p class="dropdown-label">{{ copy.dropdownMoveTo }}</p>
-                        @for (status of SHELF_STATUSES; track status.name) {
-                          @if (status.name !== section.statusName) {
-                            <button class="dropdown-item" (click)="changeStatus(book, status.name)">
-                              {{ status.label }}
-                            </button>
+                    <div class="bmeta">
+                      @if (section.statusName === 'read' && book.rating) {
+                        <span class="stars">
+                          @for (filled of starsArray(book.rating); track $index) {
+                            <span class="star" [class.star--filled]="filled">★</span>
                           }
-                        }
-                        <div class="dropdown-divider"></div>
-                        <button class="dropdown-item dropdown-item--danger" (click)="removeBook(book)">
-                          {{ copy.dropdownRemove }}
+                        </span>
+                      } @else {
+                        <span class="bmeta-spacer"></span>
+                      }
+
+                      <div class="card-menu">
+                        <button class="morebtn" (click)="toggleMenu(book, section.statusName, $event)" [class.active]="openMenuId === book.id" [attr.aria-label]="copy.dropdownMoveTo">
+                          <iconify-icon icon="lucide:more-horizontal" style="font-size:15px"></iconify-icon>
                         </button>
                       </div>
-                    }
-                  </div>
+                    </div>
                   }
                 </div>
 
               </div>
             }
+
+            @if (showSeeAll(section)) {
+              <button class="showmore" (click)="activeFilter = section.statusName">
+                <iconify-icon icon="lucide:books" style="font-size:22px;color:var(--primary)"></iconify-icon>
+                <span class="showmore-text">{{ copy.moreBooks.replace('{count}', hiddenCount(section).toString()) }}</span>
+                <span class="showmore-btn">{{ copy.seeAllCount.replace('{count}', section.books.length.toString()) }}</span>
+              </button>
+            }
           </div>
         </section>
       }
+    }
+  </div>
+
+  <!-- Card action menu — rendered at page root with position:fixed so the
+       horizontal scroll rows can't clip it. -->
+  @if (openMenuBook) {
+    <div class="dropdown" [style.left.px]="menuPos.left" [style.top.px]="menuPos.top" (click)="$event.stopPropagation()">
+      <p class="dropdown-label">{{ copy.dropdownMoveTo }}</p>
+      @for (status of SHELF_STATUSES; track status.name) {
+        @if (status.name !== openMenuStatusName) {
+          <button class="dropdown-item" (click)="changeStatus(openMenuBook, status.name)">{{ status.label }}</button>
+        }
+      }
+      <div class="dropdown-divider"></div>
+      <button class="dropdown-item dropdown-item--danger" (click)="removeBook(openMenuBook)">{{ copy.dropdownRemove }}</button>
     </div>
   }
-
 </div>

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, HostListener, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -26,6 +26,7 @@ const STATUS_ORDER: Record<string, number> = {
   selector: 'app-shelf',
   standalone: true,
   imports: [RouterLink, FormsModule, TopNavComponent],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './shelf.component.html',
   styleUrl: './shelf.component.scss',
 })
@@ -44,6 +45,11 @@ export class ShelfComponent implements OnInit {
   error: string | null = null;
 
   openMenuId: number | null = null;
+  // The card menu renders once at page root with position:fixed so it can't be
+  // clipped by the horizontal scroll row's overflow.
+  openMenuBook: UserBook | null = null;
+  openMenuStatusName: string | null = null;
+  menuPos = { top: 0, left: 0 };
   savingId: number | null = null;
 
   progressEditId: number | null = null;
@@ -118,15 +124,61 @@ export class ShelfComponent implements OnInit {
     return this.sections.some((s) => s.statusName === 'recommended_by_friend');
   }
 
+  recBannerDismissed = false;
+  readonly MAX_PREVIEW = 8;
+
+  // The pending friend-recommendation books (surfaced as a banner in the "All"
+  // view, and as cards on the Recommendations tab).
+  get recommendations(): UserBook[] {
+    return this.sections.find((s) => s.statusName === 'recommended_by_friend')?.books ?? [];
+  }
+
+  get showRecBanner(): boolean {
+    return this.recommendations.length > 0
+      && !this.recBannerDismissed
+      && this.activeFilter !== 'recommended_by_friend';
+  }
+
+  // "Amer Atwi, issa allayan and others" — distinct recommender names.
+  get recommenderSummary(): string {
+    const names = [...new Set(
+      this.recommendations.map((b) => b.recommendedByName).filter((n): n is string => !!n),
+    )];
+    if (names.length === 0) return '';
+    if (names.length <= 2) return names.join(', ');
+    return `${names.slice(0, 2).join(', ')} ${this.copy.andOthers}`;
+  }
+
+  dismissRecBanner(): void { this.recBannerDismissed = true; }
+
+  tabCount(statusName: string): number {
+    return this.sections.find((s) => s.statusName === statusName)?.books.length ?? 0;
+  }
+
+  // In the "All" view the recommendations live in the banner, not as a row.
   get displayedSections(): ShelfSection[] {
-    let sections = this.activeFilter === 'all'
-      ? this.sections
+    const sections = this.activeFilter === 'all'
+      ? this.sections.filter((s) => s.statusName !== 'recommended_by_friend')
       : this.sections.filter((s) => s.statusName === this.activeFilter);
 
     return sections.map((section) => ({
       ...section,
       books: this.sortBooks(section.books),
     }));
+  }
+
+  // In the "All" view each row previews up to MAX_PREVIEW books, then a
+  // "See all N" card jumps to that status's own tab (which shows them all).
+  visibleBooks(section: ShelfSection): UserBook[] {
+    return this.showSeeAll(section) ? section.books.slice(0, this.MAX_PREVIEW) : section.books;
+  }
+
+  showSeeAll(section: ShelfSection): boolean {
+    return this.activeFilter === 'all' && section.books.length > this.MAX_PREVIEW;
+  }
+
+  hiddenCount(section: ShelfSection): number {
+    return Math.max(0, section.books.length - this.MAX_PREVIEW);
   }
 
   private sortBooks(books: UserBook[]): UserBook[] {
@@ -142,12 +194,33 @@ export class ShelfComponent implements OnInit {
     return sorted.sort((a, b) => (b.addedAt ?? '').localeCompare(a.addedAt ?? ''));
   }
 
-  toggleMenu(userBookId: number): void {
-    this.openMenuId = this.openMenuId === userBookId ? null : userBookId;
+  toggleMenu(book: UserBook, statusName: string, event: Event): void {
+    event.stopPropagation();
+    if (this.openMenuId === book.id) { this.closeMenu(); return; }
+
+    this.openMenuId = book.id;
+    this.openMenuBook = book;
+    this.openMenuStatusName = statusName;
+
+    // Anchor the fixed menu to the clicked button: right-aligned, opening
+    // upward (the CSS translateY(-100%) lifts it above the trigger).
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const width = 170;
+    const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+    this.menuPos = { left, top: rect.top - 6 };
   }
 
   closeMenu(): void {
     this.openMenuId = null;
+    this.openMenuBook = null;
+    this.openMenuStatusName = null;
+  }
+
+  // A fixed-position menu doesn't follow the page/row as it scrolls, so dismiss it.
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  onWindowChange(): void {
+    if (this.openMenuBook) this.closeMenu();
   }
 
   navigateToDetail(book: UserBook): void {
@@ -157,7 +230,7 @@ export class ShelfComponent implements OnInit {
   }
 
   async changeStatus(book: UserBook, statusName: string): Promise<void> {
-    this.openMenuId = null;
+    this.closeMenu();
     this.savingId = book.id;
 
     try {
@@ -190,7 +263,7 @@ export class ShelfComponent implements OnInit {
       danger: true,
     });
     if (!ok) return;
-    this.openMenuId = null;
+    this.closeMenu();
     this.savingId = book.id;
 
     try {
