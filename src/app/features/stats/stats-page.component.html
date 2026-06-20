@@ -2,183 +2,385 @@
   <app-top-nav />
 
   <main class="stats-main">
-
-    <!-- Header + period toggle -->
-    <div class="page-header">
+    <section class="page-header">
       <div class="page-header-left">
         <a class="back-btn" routerLink="/home" aria-label="Go back">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
+          <iconify-icon icon="lucide:arrow-left"></iconify-icon>
         </a>
         <div>
-          <h1 class="page-title">{{ copy.title }}</h1>
-          <p class="page-subtitle">{{ copy.subtitle }}</p>
+          <h1 class="page-title">Analytics dashboard</h1>
+          <p class="page-subtitle">Explore reading activity, ratings, and community trends.</p>
         </div>
       </div>
-      <div class="period-toggle">
-        <button [class.active]="period === 'week'" (click)="setPeriod('week')">{{ copy.periodWeek }}</button>
-        <button [class.active]="period === 'month'" (click)="setPeriod('month')">{{ copy.periodMonth }}</button>
+
+      <details class="download-menu">
+        <summary class="button button--primary">
+          <iconify-icon icon="lucide:download"></iconify-icon>
+          Download data
+          <iconify-icon icon="lucide:chevron-down"></iconify-icon>
+        </summary>
+        <div class="download-menu__panel">
+          <button type="button" (click)="exportCsv()" [disabled]="!dashboard">
+            <iconify-icon icon="lucide:file-spreadsheet"></iconify-icon>
+            <span>
+              <strong>CSV data</strong>
+              <small>Underlying filtered records</small>
+            </span>
+          </button>
+          <button type="button" (click)="exportPdf()" [disabled]="!dashboard || isExportingPdf">
+            <iconify-icon icon="lucide:camera"></iconify-icon>
+            <span>
+              <strong>{{ isExportingPdf ? 'Capturing…' : 'PDF snapshot' }}</strong>
+              <small>Visual copy of this dashboard</small>
+            </span>
+          </button>
+        </div>
+      </details>
+    </section>
+
+    <section class="filter-panel" aria-label="Analytics filters">
+      <div class="filter-field filter-field--range">
+        <label for="stats-range">Date range</label>
+        <select
+          id="stats-range"
+          [(ngModel)]="dateRange"
+          (ngModelChange)="onDateRangeChange($event)"
+          [class.preset-active]="dateRange !== 'lifetime' && dateRange !== 'custom'"
+        >
+          <option value="lifetime">All time</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="1y">Last year</option>
+          <option value="custom">Custom dates</option>
+        </select>
       </div>
-    </div>
 
-    <!-- Top Books + Trending Genres -->
-    <div class="stats-grid">
+      <div class="filter-field">
+        <label for="stats-scope">Scope</label>
+        <select id="stats-scope" [(ngModel)]="scope" (ngModelChange)="onFilterChange()">
+          @for (option of scopeOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
 
-      <!-- Top Books -->
-      <div class="stat-card">
-        <h2 class="card-title">
-          <iconify-icon icon="lucide:trending-up" style="font-size:18px"></iconify-icon>
-          {{ copy.topBooks }}
-        </h2>
+      <div class="filter-field">
+        <label for="stats-status">Status</label>
+        <select id="stats-status" [(ngModel)]="status" (ngModelChange)="onFilterChange()">
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
 
-        @if (isLoadingGlobal) {
-          <div class="loading-rows">
-            @for (n of skeletonRows; track n) {
-              <div class="skeleton-row"></div>
-            }
+      <button class="button button--secondary reset-button" type="button" (click)="resetFilters()">
+        <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
+        Reset
+      </button>
+
+      @if (dateRange === 'custom') {
+        <div class="custom-date-fields">
+          <div class="filter-field">
+            <label for="stats-from">From</label>
+            <input id="stats-from" type="date" [(ngModel)]="from" (ngModelChange)="onCustomDateChange()" />
           </div>
-        } @else if (errorGlobal) {
-          <p class="error-msg">{{ errorGlobal }}</p>
-        } @else if (topBooks.length === 0) {
-          <p class="empty-msg">{{ copy.noBooks }}</p>
-        } @else {
-          <div class="book-list">
-            @for (book of topBooks; track book.rank) {
-              <div class="book-row" [class.book-row--clickable]="book.googleBooksId" [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
-                <span class="rank-num">#{{ book.rank }}</span>
-                @if (book.coverUrl) {
-                  <img
-                    [src]="book.coverUrl"
-                    class="book-thumb"
-                    [alt]="book.title"
-                    (error)="book.coverUrl = null"
-                  />
-                } @else {
-                  <div class="book-thumb book-thumb--placeholder"></div>
+          <span class="date-separator">to</span>
+          <div class="filter-field">
+            <label for="stats-to">To</label>
+            <input id="stats-to" type="date" [(ngModel)]="to" (ngModelChange)="onCustomDateChange()" />
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (error) {
+      <div class="error-banner" role="alert">{{ error }}</div>
+    }
+
+    <div #dashboardBoard class="dashboard-board">
+      <div class="board-meta">
+        <div>
+          <strong>{{ currentScopeLabel }}</strong>
+          <span>{{ currentDateLabel }}</span>
+        </div>
+        <div class="refresh-meta" data-export-hide>
+          @if (lastUpdated) {
+            <span>Updated {{ lastUpdated | date:'shortTime' }} · refreshes every minute</span>
+          }
+          <button type="button" (click)="refresh()" [disabled]="isLoading" aria-label="Refresh analytics">
+            <iconify-icon icon="lucide:refresh-cw" [class.spinning]="isLoading"></iconify-icon>
+          </button>
+        </div>
+      </div>
+
+      @if (isLoading && !dashboard) {
+        <div class="dashboard-loading" aria-live="polite">
+          <div class="spinner"></div>
+          <p>Loading analytics…</p>
+        </div>
+      } @else if (dashboard) {
+        <section class="summary-grid" aria-label="Analytics summary">
+          <article class="summary-card">
+            <span class="summary-icon coral"><iconify-icon icon="lucide:library"></iconify-icon></span>
+            <div><span>Books tracked</span><strong>{{ dashboard.summary.booksTracked }}</strong></div>
+          </article>
+          <article class="summary-card">
+            <span class="summary-icon teal"><iconify-icon icon="lucide:circle-check"></iconify-icon></span>
+            <div><span>Completed</span><strong>{{ dashboard.summary.booksCompleted }}</strong></div>
+          </article>
+          <article class="summary-card">
+            <span class="summary-icon gold"><iconify-icon icon="lucide:star"></iconify-icon></span>
+            <div>
+              <span>Average rating</span>
+              <strong>{{ dashboard.summary.averageRating === null ? '—' : (dashboard.summary.averageRating | number:'1.1-1') }}</strong>
+            </div>
+          </article>
+          <article class="summary-card">
+            <span class="summary-icon violet"><iconify-icon icon="lucide:message-square-text"></iconify-icon></span>
+            <div><span>Reviews</span><strong>{{ dashboard.summary.reviewsWritten }}</strong></div>
+          </article>
+        </section>
+
+        <section class="chart-grid">
+          <article class="stat-card chart-card chart-card--wide">
+            <div class="card-heading">
+              <div>
+                <h2>Completion timeline</h2>
+                <p>Books marked as read during the selected range</p>
+              </div>
+              <iconify-icon icon="lucide:line-chart"></iconify-icon>
+            </div>
+            <div class="chart-wrap chart-wrap--line">
+              <canvas #timelineCanvas role="img" aria-label="Line chart of books completed over time"></canvas>
+            </div>
+          </article>
+
+          <article class="stat-card chart-card">
+            <div class="card-heading">
+              <div><h2>Status breakdown</h2><p>Current shelf states in this dataset</p></div>
+              <iconify-icon icon="lucide:pie-chart"></iconify-icon>
+            </div>
+            <div class="chart-wrap chart-wrap--donut">
+              <canvas #statusCanvas role="img" aria-label="Donut chart of reading statuses"></canvas>
+            </div>
+            <div class="chart-legend" aria-label="Toggle status series">
+              @for (bucket of dashboard.statusDistribution; track trackByKey($index, bucket); let index = $index) {
+                <button type="button" (click)="toggleStatusSegment(index)">
+                  <span class="legend-dot legend-dot--{{ index % 4 }}"></span>
+                  {{ bucket.label }} <strong>{{ bucket.count }}</strong>
+                </button>
+              }
+            </div>
+          </article>
+
+          <article class="stat-card chart-card">
+            <div class="card-heading">
+              <div><h2>Rating distribution</h2><p>How the selected books were rated</p></div>
+              <iconify-icon icon="lucide:bar-chart-3"></iconify-icon>
+            </div>
+            <div class="chart-wrap">
+              <canvas #ratingCanvas role="img" aria-label="Bar chart of one to five star ratings"></canvas>
+            </div>
+          </article>
+
+          <article class="stat-card chart-card chart-card--wide">
+            <div class="card-heading">
+              <div><h2>Top books</h2><p>Most common books in the filtered dataset</p></div>
+              <iconify-icon icon="lucide:trophy"></iconify-icon>
+            </div>
+            @if (dashboard.topBooks.length) {
+              <div class="chart-wrap chart-wrap--ranking">
+                <canvas #topBooksCanvas role="img" aria-label="Horizontal bar ranking of top books"></canvas>
+              </div>
+              <div class="top-book-links">
+                @for (book of dashboard.topBooks; track book.rank) {
+                  @if (book.googleBooksId) {
+                    <a [routerLink]="['/books', book.googleBooksId]">#{{ book.rank }} {{ book.title }}</a>
+                  } @else {
+                    <span>#{{ book.rank }} {{ book.title }}</span>
+                  }
                 }
-                <div class="book-meta">
-                  <div class="book-title-text">{{ book.title }}</div>
-                  <div class="book-author-text">{{ book.author }}</div>
-                </div>
-                <span class="add-badge">{{ book.addCount }}</span>
               </div>
+            } @else {
+              <p class="empty-state">No books match these filters.</p>
             }
-          </div>
-        }
-      </div>
+          </article>
 
-      <!-- Trending Genres -->
-      <div class="stat-card">
-        <h2 class="card-title">
-          <iconify-icon icon="lucide:bar-chart-2" style="font-size:18px"></iconify-icon>
-          {{ copy.trendingGenres }}
-        </h2>
-
-        @if (isLoadingGlobal) {
-          <div class="loading-rows">
-            @for (n of skeletonRows; track n) {
-              <div class="skeleton-row short"></div>
-            }
-          </div>
-        } @else if (errorGlobal) {
-          <p class="error-msg">{{ errorGlobal }}</p>
-        } @else if (trendingGenres.length === 0) {
-          <p class="empty-msg">{{ copy.noGenres }}</p>
-        } @else {
-          <div class="genre-list">
-            @for (genre of trendingGenres; track genre.name) {
-              <div class="genre-row">
-                <span class="genre-name">{{ genre.name | genreName:lang }}</span>
-                <div class="genre-track">
-                  <div class="genre-fill" [style.width.%]="genre.percentage"></div>
-                </div>
-                <span class="genre-pct">{{ genre.percentage }}%</span>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    </div>
-
-    <!-- Top Readers -->
-    <div class="stat-card">
-      <h2 class="card-title">
-        <iconify-icon icon="lucide:trophy" style="font-size:18px"></iconify-icon>
-        {{ copy.topReaders }}
-      </h2>
-
-      @if (isLoadingGlobal) {
-        <div class="loading-rows">
-          @for (n of [1,2,3]; track n) {
-            <div class="skeleton-row"></div>
-          }
-        </div>
-      } @else if (errorGlobal) {
-        <p class="error-msg">{{ errorGlobal }}</p>
-      } @else if (topReaders.length === 0) {
-        <p class="empty-msg">{{ copy.noReaders }}</p>
-      } @else {
-        <div class="readers-list">
-          @for (reader of topReaders; track reader.rank) {
-            <div class="reader-row" [routerLink]="['/profile', reader.userId]">
-              <span
-                class="rank-badge"
-                [class.gold]="reader.rank === 1"
-                [class.silver]="reader.rank === 2"
-                [class.bronze]="reader.rank === 3"
-              >{{ reader.rank }}</span>
-              <img
-                [src]="reader.avatarUrl || avatarFallback(reader.name)"
-                class="reader-avatar"
-                [alt]="reader.name"
-                loading="lazy"
-              />
-              <span class="reader-name">{{ reader.name }}</span>
-              <span class="reader-books">{{ copy.booksRead.replace('{{ n }}', reader.booksRead.toString()) }}</span>
+          <article class="stat-card insight-card">
+            <div class="card-heading">
+              <div><h2>Trending genres</h2><p>Most selected genre preferences in this scope</p></div>
+              <iconify-icon icon="lucide:tags"></iconify-icon>
             </div>
-          }
-        </div>
+            @if (dashboard.trendingGenres.length) {
+              <div class="genre-list">
+                @for (genre of dashboard.trendingGenres; track genre.name) {
+                  <div class="genre-row">
+                    <div class="genre-row__label">
+                      <span>{{ genre.name }}</span>
+                      <strong>{{ genre.percentage }}%</strong>
+                    </div>
+                    <div class="genre-track"><span [style.width.%]="genre.percentage"></span></div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No genre preferences in this scope.</p>
+            }
+          </article>
+
+          <article class="stat-card insight-card">
+            <div class="card-heading">
+              <div><h2>Top readers</h2><p>Most completed books in the selected range</p></div>
+              <iconify-icon icon="lucide:medal"></iconify-icon>
+            </div>
+            @if (dashboard.topReaders.length) {
+              <div class="reader-list">
+                @for (reader of dashboard.topReaders; track reader.userId) {
+                  <a class="reader-row" [routerLink]="['/profile', reader.userId]">
+                    <span class="reader-rank" [class.reader-rank--winner]="reader.rank === 1">{{ reader.rank }}</span>
+                    <img [src]="reader.avatarUrl || avatarFallback(reader.name)" [alt]="reader.name" />
+                    <span class="reader-details">
+                      <strong>{{ reader.name }}</strong>
+                      <small>{{ reader.booksRead }} completed</small>
+                    </span>
+                    <iconify-icon icon="lucide:chevron-right"></iconify-icon>
+                  </a>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No completed books in this range.</p>
+            }
+          </article>
+
+          <div class="insight-section-heading">
+            <div>
+              <span>Activity signals</span>
+              <h2>Conversation and engagement</h2>
+              <p>Calculated from recorded posts, comments, reactions, reviews, and ratings.</p>
+            </div>
+          </div>
+
+          <article class="stat-card activity-overview chart-card--wide">
+            <div class="activity-metric">
+              <iconify-icon icon="lucide:messages-square"></iconify-icon>
+              <div><strong>{{ dashboard.communitySummary.posts }}</strong><span>Posts</span></div>
+            </div>
+            <div class="activity-metric">
+              <iconify-icon icon="lucide:message-circle"></iconify-icon>
+              <div><strong>{{ dashboard.communitySummary.comments }}</strong><span>Comments</span></div>
+            </div>
+            <div class="activity-metric">
+              <iconify-icon icon="lucide:heart"></iconify-icon>
+              <div><strong>{{ dashboard.communitySummary.reactions }}</strong><span>Reactions</span></div>
+            </div>
+            <div class="activity-metric">
+              <iconify-icon icon="lucide:notebook-pen"></iconify-icon>
+              <div><strong>{{ dashboard.communitySummary.reviews }}</strong><span>Book reviews</span></div>
+            </div>
+          </article>
+
+          <article class="stat-card metric-list-card">
+            <div class="card-heading">
+              <div><h2>Most discussed books</h2><p>Posts plus comments attached to each book</p></div>
+              <iconify-icon icon="lucide:message-square-more"></iconify-icon>
+            </div>
+            @if (dashboard.mostDiscussedBooks.length) {
+              <div class="ranked-metric-list">
+                @for (book of dashboard.mostDiscussedBooks; track book.rank) {
+                  <a [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
+                    <span class="metric-rank">{{ book.rank }}</span>
+                    <span class="metric-copy"><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
+                    <span class="metric-value">{{ book.value }} <small>items</small></span>
+                  </a>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No book discussions in this range.</p>
+            }
+          </article>
+
+          <article class="stat-card metric-list-card">
+            <div class="card-heading">
+              <div><h2>Most reviewed books</h2><p>Books receiving the most written reviews</p></div>
+              <iconify-icon icon="lucide:notebook-tabs"></iconify-icon>
+            </div>
+            @if (dashboard.mostReviewedBooks.length) {
+              <div class="ranked-metric-list">
+                @for (book of dashboard.mostReviewedBooks; track book.rank) {
+                  <a [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
+                    <span class="metric-rank">{{ book.rank }}</span>
+                    <span class="metric-copy"><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
+                    <span class="metric-value">{{ book.value }} <small>reviews</small></span>
+                  </a>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No written reviews in this range.</p>
+            }
+          </article>
+
+          <article class="stat-card metric-list-card">
+            <div class="card-heading">
+              <div><h2>Highest-rated books</h2><p>Average rating with its rating count shown</p></div>
+              <iconify-icon icon="lucide:star"></iconify-icon>
+            </div>
+            @if (dashboard.highestRatedBooks.length) {
+              <div class="ranked-metric-list">
+                @for (book of dashboard.highestRatedBooks; track book.rank) {
+                  <a [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
+                    <span class="metric-rank">{{ book.rank }}</span>
+                    <span class="metric-copy"><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
+                    <span class="metric-value metric-value--rating">{{ book.value | number:'1.1-1' }} ★ <small>{{ book.secondaryValue }} ratings</small></span>
+                  </a>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No ratings in this range.</p>
+            }
+          </article>
+
+          <article class="stat-card insight-card">
+            <div class="card-heading">
+              <div><h2>Conversation sentiment</h2><p>AI labels stored with community posts</p></div>
+              <iconify-icon icon="lucide:smile-plus"></iconify-icon>
+            </div>
+            @if (dashboard.sentimentDistribution.length) {
+              <div class="sentiment-list">
+                @for (sentiment of dashboard.sentimentDistribution; track sentiment.key) {
+                  <div class="sentiment-row">
+                    <span class="sentiment-dot sentiment-dot--{{ sentiment.key }}"></span>
+                    <span>{{ sentiment.label }}</span>
+                    <strong>{{ sentiment.count }}</strong>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No classified posts in this range.</p>
+            }
+          </article>
+
+          <article class="stat-card insight-card">
+            <div class="card-heading">
+              <div><h2>Top contributors</h2><p>Posts, comments, and reviews created</p></div>
+              <iconify-icon icon="lucide:users-round"></iconify-icon>
+            </div>
+            @if (dashboard.topContributors.length) {
+              <div class="reader-list">
+                @for (user of dashboard.topContributors; track user.userId) {
+                  <a class="reader-row" [routerLink]="['/profile', user.userId]">
+                    <span class="reader-rank" [class.reader-rank--winner]="user.rank === 1">{{ user.rank }}</span>
+                    <img [src]="user.avatarUrl || avatarFallback(user.name)" [alt]="user.name" />
+                    <span class="reader-details"><strong>{{ user.name }}</strong><small>{{ user.contributions }} contributions</small></span>
+                    <iconify-icon icon="lucide:chevron-right"></iconify-icon>
+                  </a>
+                }
+              </div>
+            } @else {
+              <p class="empty-state empty-state--compact">No contributions in this range.</p>
+            }
+          </article>
+        </section>
       }
     </div>
-
-    <!-- My Reading Pace -->
-    <div class="stat-card">
-      <div class="card-header-row">
-        <h2 class="card-title">
-          <iconify-icon icon="lucide:activity" style="font-size:18px"></iconify-icon>
-          {{ copy.myReadingPace }}
-        </h2>
-        <span class="year-chip">{{ currentYear }}</span>
-      </div>
-
-      @if (isLoadingPace) {
-        <div class="pace-skeleton"></div>
-      } @else if (errorPace) {
-        <p class="error-msg">{{ errorPace }}</p>
-      } @else {
-        <div class="pace-chart">
-          @for (m of readingPace; track m.month) {
-            <div class="bar-col">
-              <span class="bar-count">{{ m.count > 0 ? m.count : '' }}</span>
-              <div class="bar-wrap">
-                <div
-                  class="bar-fill"
-                  [class.active]="m.count > 0"
-                  [style.height.%]="getBarHeight(m.count)"
-                ></div>
-              </div>
-              <span class="bar-month">{{ monthLabel(m.month) }}</span>
-            </div>
-          }
-        </div>
-        @if (totalBooksRead === 0) {
-          <p class="empty-msg center">{{ copy.noReadingPace }}</p>
-        } @else {
-          <p class="pace-total">{{ copy.paceTotal.replace('{{ n }}', totalBooksRead.toString()) }}</p>
-        }
-      }
-    </div>
-
   </main>
 </div>
