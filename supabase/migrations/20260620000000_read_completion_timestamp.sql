@@ -46,3 +46,38 @@ FOR EACH ROW EXECUTE FUNCTION public.maintain_user_book_read_at();
 CREATE INDEX IF NOT EXISTS idx_user_books_read_at
   ON public.user_books(read_at DESC)
   WHERE read_at IS NOT NULL;
+
+-- Realtime invalidation sources for the analytics dashboard. The browser
+-- receives only changes allowed by each table's SELECT/RLS policies, then
+-- refetches the server-computed aggregate dashboard.
+DO $$
+DECLARE
+  analytics_table text;
+BEGIN
+  FOREACH analytics_table IN ARRAY ARRAY[
+    'user_books',
+    'user_genres',
+    'posts',
+    'comments',
+    'post_likes',
+    'comment_likes',
+    'review_likes',
+    'friendship',
+    'users'
+  ]
+  LOOP
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = analytics_table
+    ) THEN
+      EXECUTE format(
+        'ALTER PUBLICATION supabase_realtime ADD TABLE public.%I',
+        analytics_table
+      );
+    END IF;
+  END LOOP;
+END;
+$$;

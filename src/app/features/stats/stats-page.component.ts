@@ -15,6 +15,7 @@ import { RouterLink } from '@angular/router';
 import { Chart, ChartConfiguration } from 'chart.js/auto';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { TranslationService } from '../../i18n';
@@ -98,6 +99,7 @@ interface AnalyticsDashboard {
   };
   generatedAt: string;
   refreshAfterSeconds: number;
+  availableFrom: string | null;
   summary: {
     booksTracked: number;
     booksCompleted: number;
@@ -153,6 +155,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   from = '';
   to = '';
   dateRange: DateRange = 'lifetime';
+  private previousDatePreset: Exclude<DateRange, 'custom'> = 'lifetime';
   scope: StatsScope = 'personal';
   status: StatsStatus = 'all';
   dashboard: AnalyticsDashboard | null = null;
@@ -160,9 +163,11 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   isExportingPdf = false;
   error: string | null = null;
   lastUpdated: Date | null = null;
+  realtimeStatus: 'connecting' | 'live' | 'offline' = 'connecting';
   private viewReady = false;
-  private refreshTimer?: ReturnType<typeof setInterval>;
   private filterTimer?: ReturnType<typeof setTimeout>;
+  private realtimeRefreshTimer?: ReturnType<typeof setTimeout>;
+  private realtimeChannel?: RealtimeChannel;
   private charts: Chart[] = [];
 
   get currentScopeLabel(): string {
@@ -170,11 +175,52 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get currentDateLabel(): string {
-    if (this.dateRange === 'lifetime') return 'All time';
+    if (this.dateRange === 'lifetime') {
+      return this.dashboard?.availableFrom
+        ? `All time · since ${formatDisplayDate(this.dashboard.availableFrom)}`
+        : 'All time';
+    }
     if (this.dateRange === '7d') return 'Last 7 days';
     if (this.dateRange === '30d') return 'Last 30 days';
     if (this.dateRange === '1y') return 'Last year';
     return this.from && this.to ? `${this.from} → ${this.to}` : 'Custom dates';
+  }
+
+  get showComparativeInsights(): boolean {
+    return this.scope !== 'personal';
+  }
+
+  get minimumDate(): string {
+    return this.dashboard?.availableFrom
+      ? formatDateInput(new Date(this.dashboard.availableFrom))
+      : formatDateInput(new Date());
+  }
+
+  get maximumDate(): string {
+    return formatDateInput(new Date());
+  }
+
+  get minimumDateValue(): number {
+    return dateInputToDayNumber(this.minimumDate);
+  }
+
+  get maximumDateValue(): number {
+    return dateInputToDayNumber(this.maximumDate);
+  }
+
+  get fromDateValue(): number {
+    return dateInputToDayNumber(this.from || this.minimumDate);
+  }
+
+  get toDateValue(): number {
+    return dateInputToDayNumber(this.to || this.maximumDate);
+  }
+
+  get selectedRangePercent(): { left: number; width: number } {
+    const span = Math.max(1, this.maximumDateValue - this.minimumDateValue);
+    const left = ((this.fromDateValue - this.minimumDateValue) / span) * 100;
+    const right = ((this.toDateValue - this.minimumDateValue) / span) * 100;
+    return { left, width: Math.max(0, right - left) };
   }
 
   constructor() {
@@ -186,7 +232,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     void this.loadDashboard();
-    this.refreshTimer = setInterval(() => void this.loadDashboard(true), 60_000);
+    void this.setupRealtime();
   }
 
   ngAfterViewInit(): void {
@@ -195,24 +241,25 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.refreshTimer) clearInterval(this.refreshTimer);
     if (this.filterTimer) clearTimeout(this.filterTimer);
+    if (this.realtimeRefreshTimer) clearTimeout(this.realtimeRefreshTimer);
+    void this.teardownRealtime();
     this.destroyCharts();
   }
 
   onDateRangeChange(range: DateRange): void {
     this.dateRange = range;
     if (range === 'custom') {
+      // Preserve the dates produced by the selected preset. Entering Custom
+      // after "Last 7 days", for example, opens on that exact seven-day range.
       if (!this.from || !this.to) {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 29);
-        this.from = formatDateInput(start);
-        this.to = formatDateInput(end);
+        this.from = this.minimumDate;
+        this.to = this.maximumDate;
       }
       this.scheduleFilterRefresh();
       return;
     }
+    this.previousDatePreset = range;
     if (range === 'lifetime') {
       this.from = '';
       this.to = '';
@@ -234,8 +281,26 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onCustomDateChange(): void {
     if (this.dateRange === 'custom' && this.from && this.to) {
+      this.from = clampDateInput(this.from, this.minimumDate, this.to);
+      this.to = clampDateInput(this.to, this.from, this.maximumDate);
       this.scheduleFilterRefresh();
     }
+  }
+
+  onFromSliderChange(value: string | number): void {
+    const day = Math.min(Number(value), this.toDateValue);
+    this.from = dayNumberToDateInput(day);
+    this.scheduleFilterRefresh();
+  }
+
+  onToSliderChange(value: string | number): void {
+    const day = Math.max(Number(value), this.fromDateValue);
+    this.to = dayNumberToDateInput(day);
+    this.scheduleFilterRefresh();
+  }
+
+  leaveCustomDates(): void {
+    this.onDateRangeChange(this.previousDatePreset);
   }
 
   resetFilters(): void {
@@ -252,7 +317,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   exportCsv(): void {
-    if (!this.dashboard) return;
+    if (!this.dashboard || this.scope !== 'personal') return;
     const headers = [
       'Reader',
       'Book',
@@ -338,6 +403,52 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filterTimer = setTimeout(() => void this.loadDashboard(), 250);
   }
 
+  private async setupRealtime(): Promise<void> {
+    const client = await this.supabaseService.getClient();
+    const tables = [
+      'user_books',
+      'user_genres',
+      'posts',
+      'comments',
+      'post_likes',
+      'comment_likes',
+      'review_likes',
+      'friendship',
+      'users',
+    ] as const;
+
+    let channel = client.channel(`stats-dashboard-${crypto.randomUUID()}`);
+    for (const table of tables) {
+      channel = channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table },
+        () => this.scheduleRealtimeRefresh(),
+      );
+    }
+    this.realtimeChannel = channel.subscribe((status) => {
+      this.realtimeStatus =
+        status === 'SUBSCRIBED'
+          ? 'live'
+          : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'
+            ? 'offline'
+            : 'connecting';
+    });
+  }
+
+  private scheduleRealtimeRefresh(): void {
+    if (this.realtimeRefreshTimer) clearTimeout(this.realtimeRefreshTimer);
+    // One user action may update several related tables. Collapse that burst
+    // into one aggregate request so every chart changes atomically.
+    this.realtimeRefreshTimer = setTimeout(() => void this.loadDashboard(true), 600);
+  }
+
+  private async teardownRealtime(): Promise<void> {
+    if (!this.realtimeChannel) return;
+    const client = await this.supabaseService.getClient();
+    await client.removeChannel(this.realtimeChannel);
+    this.realtimeChannel = undefined;
+  }
+
   private async loadDashboard(silent = false): Promise<void> {
     if (this.dateRange === 'custom' && this.from > this.to) {
       this.error = 'The start date must be before the end date.';
@@ -362,6 +473,10 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
         throw new Error(body?.message ?? 'Failed to load analytics.');
       }
       this.dashboard = (await response.json()) as AnalyticsDashboard;
+      if (this.dateRange === 'custom') {
+        this.from = clampDateInput(this.from || this.minimumDate, this.minimumDate, this.to || this.maximumDate);
+        this.to = clampDateInput(this.to || this.maximumDate, this.from, this.maximumDate);
+      }
       this.lastUpdated = new Date(this.dashboard.generatedAt);
       this.renderChartsSoon();
     } catch (error) {
@@ -512,6 +627,28 @@ function formatDateInput(date: Date): string {
     String(date.getMonth() + 1).padStart(2, '0'),
     String(date.getDate()).padStart(2, '0'),
   ].join('-');
+}
+
+function formatDisplayDate(value: string): string {
+  return new Intl.DateTimeFormat('en', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
+}
+
+function dateInputToDayNumber(value: string): number {
+  return Math.floor(new Date(`${value}T00:00:00Z`).getTime() / 86_400_000);
+}
+
+function dayNumberToDateInput(value: number): string {
+  return new Date(value * 86_400_000).toISOString().slice(0, 10);
+}
+
+function clampDateInput(value: string, minimum: string, maximum: string): string {
+  if (value < minimum) return minimum;
+  if (value > maximum) return maximum;
+  return value;
 }
 
 function humanizeStatus(status: string): string {

@@ -92,6 +92,7 @@ export interface AnalyticsDashboard {
   filters: AnalyticsFilters;
   generatedAt: string;
   refreshAfterSeconds: number;
+  availableFrom: string | null;
   summary: AnalyticsSummary;
   completionTimeline: AnalyticsBucket[];
   statusDistribution: AnalyticsBucket[];
@@ -179,6 +180,7 @@ export class StatsService {
       .map((row) => row.rating)
       .filter((rating): rating is number => rating !== null);
     const completedRows = rows.filter((row) => row.status === 'read');
+    const availableFrom = earliestActivityDate(rows);
     const communityInsights = await this.getCommunityInsights(
       scopedUserIds,
       filters,
@@ -190,6 +192,7 @@ export class StatsService {
       filters,
       generatedAt: new Date().toISOString(),
       refreshAfterSeconds: 60,
+      availableFrom,
       summary: {
         booksTracked: rows.length,
         booksCompleted: completedRows.length,
@@ -198,14 +201,17 @@ export class StatsService {
           : null,
         reviewsWritten: rows.filter((row) => Boolean(row.reviewText?.trim())).length,
       },
-      completionTimeline: buildCompletionTimeline(completedRows, filters),
+      completionTimeline: buildCompletionTimeline(completedRows, filters, availableFrom),
       statusDistribution: buildStatusDistribution(rows),
       ratingDistribution: buildRatingDistribution(rows),
       topBooks: buildTopBooks(rows),
       topReaders: buildTopReaders(rows, userProfiles),
       trendingGenres: await this.getTrendingGenres(scopedUserIds),
       ...communityInsights,
+      // Raw rows are export data. Never expose another user's shelf records,
+      // even when the visible dashboard is aggregated across friends/all users.
       rows: rows
+        .filter((row) => row.userId === userId)
         .map((row) => ({
           reader: userProfiles.get(row.userId)?.name ?? 'Reader',
           title: row.title,
@@ -226,7 +232,15 @@ export class StatsService {
     scope: StatsScope,
   ): Promise<string[] | null> {
     if (scope === 'personal') return [userId];
-    if (scope === 'community') return null;
+    if (scope === 'community') {
+      const { data, error } = await this.supabase
+        .getAdmin()
+        .from('users')
+        .select('id')
+        .or(`is_private.eq.false,is_private.is.null,id.eq.${userId}`);
+      if (error) throw new InternalServerErrorException(error.message);
+      return [...new Set((data ?? []).map((user) => user['id'] as string))];
+    }
 
     const admin = this.supabase.getAdmin();
     const { data: accepted, error: statusError } = await admin
@@ -600,17 +614,23 @@ function roundOne(value: number): number {
 function buildCompletionTimeline(
   rows: ShelfRow[],
   filters: AnalyticsFilters,
+  availableFrom: string | null,
 ): AnalyticsBucket[] {
   const completedDates = rows
     .map((row) => row.readAt)
     .filter((date): date is string => Boolean(date))
     .map((date) => new Date(date));
-  const from = filters.from
-    ? new Date(filters.from)
-    : completedDates.length
-      ? new Date(Math.min(...completedDates.map((date) => date.getTime())))
-      : new Date();
-  const to = filters.to ? new Date(filters.to) : new Date();
+  if (!completedDates.length) return [];
+
+  const firstRecorded = availableFrom
+    ? new Date(availableFrom)
+    : new Date(Math.min(...completedDates.map((date) => date.getTime())));
+  const requestedFrom = filters.from ? new Date(filters.from) : firstRecorded;
+  const from = requestedFrom < firstRecorded ? firstRecorded : requestedFrom;
+  const today = new Date();
+  const requestedTo = filters.to ? new Date(filters.to) : today;
+  const to = requestedTo > today ? today : requestedTo;
+  if (from > to) return [];
   const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
   const granularity = days <= 45 ? 'day' : days <= 180 ? 'week' : 'month';
   const buckets = new Map<string, AnalyticsBucket>();
@@ -728,6 +748,14 @@ function buildTopReaders(
       avatarUrl: profiles.get(userId)?.avatarUrl ?? null,
       booksRead,
     }));
+}
+
+function earliestActivityDate(rows: ShelfRow[]): string | null {
+  if (!rows.length) return null;
+  return rows.reduce(
+    (earliest, row) => (row.activityAt < earliest ? row.activityAt : earliest),
+    rows[0].activityAt,
+  );
 }
 
 function emptyCommunityInsights() {

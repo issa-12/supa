@@ -20,17 +20,17 @@
           <iconify-icon icon="lucide:chevron-down"></iconify-icon>
         </summary>
         <div class="download-menu__panel">
-          <button type="button" (click)="exportCsv()" [disabled]="!dashboard">
+          <button type="button" (click)="exportCsv()" [disabled]="!dashboard || scope !== 'personal'">
             <iconify-icon icon="lucide:file-spreadsheet"></iconify-icon>
             <span>
               <strong>CSV data</strong>
-              <small>Underlying filtered records</small>
+              <small>{{ scope === 'personal' ? 'Your filtered records only' : 'Available for My data only' }}</small>
             </span>
           </button>
           <button type="button" (click)="exportPdf()" [disabled]="!dashboard || isExportingPdf">
             <iconify-icon icon="lucide:camera"></iconify-icon>
             <span>
-              <strong>{{ isExportingPdf ? 'Capturing…' : 'PDF snapshot' }}</strong>
+              <strong>{{ isExportingPdf ? 'Capturing…' : 'PDF view' }}</strong>
               <small>Visual copy of this dashboard</small>
             </span>
           </button>
@@ -39,21 +39,84 @@
     </section>
 
     <section class="filter-panel" aria-label="Analytics filters">
-      <div class="filter-field filter-field--range">
-        <label for="stats-range">Date range</label>
-        <select
-          id="stats-range"
-          [(ngModel)]="dateRange"
-          (ngModelChange)="onDateRangeChange($event)"
-          [class.preset-active]="dateRange !== 'lifetime' && dateRange !== 'custom'"
-        >
-          <option value="lifetime">All time</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="1y">Last year</option>
-          <option value="custom">Custom dates</option>
-        </select>
-      </div>
+      @if (dateRange !== 'custom') {
+        <div class="filter-field filter-field--range">
+          <label for="stats-range">Date range</label>
+          <select
+            id="stats-range"
+            [(ngModel)]="dateRange"
+            (ngModelChange)="onDateRangeChange($event)"
+            [class.preset-active]="dateRange !== 'lifetime'"
+          >
+            <option value="lifetime">All time</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="1y">Last year</option>
+            <option value="custom">Custom dates</option>
+          </select>
+        </div>
+      } @else {
+        <div class="custom-range-column">
+          <div class="custom-range-inline">
+            <button type="button" (click)="leaveCustomDates()" aria-label="Back to date range options">
+              <iconify-icon icon="lucide:arrow-left"></iconify-icon>
+            </button>
+            <div class="filter-field">
+              <label for="stats-from">From</label>
+              <input
+                id="stats-from"
+                type="date"
+                [(ngModel)]="from"
+                [min]="minimumDate"
+                [max]="to"
+                (ngModelChange)="onCustomDateChange()"
+              />
+            </div>
+            <span class="date-separator">to</span>
+            <div class="filter-field">
+              <label for="stats-to">To</label>
+              <input
+                id="stats-to"
+                type="date"
+                [(ngModel)]="to"
+                [min]="from"
+                [max]="maximumDate"
+                (ngModelChange)="onCustomDateChange()"
+              />
+            </div>
+          </div>
+
+          <div class="date-range-slider">
+            <div class="date-range-slider__labels">
+              <span>{{ minimumDate }}</span>
+              <span>{{ maximumDate }}</span>
+            </div>
+            <div class="date-range-slider__track">
+              <span
+                class="date-range-slider__selection"
+                [style.left.%]="selectedRangePercent.left"
+                [style.width.%]="selectedRangePercent.width"
+              ></span>
+              <input
+                type="range"
+                aria-label="Custom range start date"
+                [min]="minimumDateValue"
+                [max]="maximumDateValue"
+                [ngModel]="fromDateValue"
+                (ngModelChange)="onFromSliderChange($event)"
+              />
+              <input
+                type="range"
+                aria-label="Custom range end date"
+                [min]="minimumDateValue"
+                [max]="maximumDateValue"
+                [ngModel]="toDateValue"
+                (ngModelChange)="onToSliderChange($event)"
+              />
+            </div>
+          </div>
+        </div>
+      }
 
       <div class="filter-field">
         <label for="stats-scope">Scope</label>
@@ -73,24 +136,14 @@
         </select>
       </div>
 
-      <button class="button button--secondary reset-button" type="button" (click)="resetFilters()">
-        <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
-        Reset
-      </button>
+      <div class="filter-action">
+        <span aria-hidden="true">Action</span>
+        <button class="button button--secondary reset-button" type="button" (click)="resetFilters()">
+          <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
+          Reset Filters
+        </button>
+      </div>
 
-      @if (dateRange === 'custom') {
-        <div class="custom-date-fields">
-          <div class="filter-field">
-            <label for="stats-from">From</label>
-            <input id="stats-from" type="date" [(ngModel)]="from" (ngModelChange)="onCustomDateChange()" />
-          </div>
-          <span class="date-separator">to</span>
-          <div class="filter-field">
-            <label for="stats-to">To</label>
-            <input id="stats-to" type="date" [(ngModel)]="to" (ngModelChange)="onCustomDateChange()" />
-          </div>
-        </div>
-      }
     </section>
 
     @if (error) {
@@ -98,6 +151,12 @@
     }
 
     <div #dashboardBoard class="dashboard-board">
+      @if (isLoading && dashboard) {
+        <div class="dashboard-refreshing" role="status" aria-live="polite">
+          <div class="spinner"></div>
+          <strong>Updating dashboard…</strong>
+        </div>
+      }
       <div class="board-meta">
         <div>
           <strong>{{ currentScopeLabel }}</strong>
@@ -105,8 +164,12 @@
         </div>
         <div class="refresh-meta" data-export-hide>
           @if (lastUpdated) {
-            <span>Updated {{ lastUpdated | date:'shortTime' }} · refreshes every minute</span>
+            <span>Updated {{ lastUpdated | date:'shortTime' }}</span>
           }
+          <span class="live-status live-status--{{ realtimeStatus }}">
+            <i></i>
+            {{ realtimeStatus === 'live' ? 'Live' : realtimeStatus === 'connecting' ? 'Connecting' : 'Offline' }}
+          </span>
           <button type="button" (click)="refresh()" [disabled]="isLoading" aria-label="Refresh analytics">
             <iconify-icon icon="lucide:refresh-cw" [class.spinning]="isLoading"></iconify-icon>
           </button>
@@ -183,6 +246,7 @@
             </div>
           </article>
 
+          @if (showComparativeInsights) {
           <article class="stat-card chart-card chart-card--wide">
             <div class="card-heading">
               <div><h2>Top books</h2><p>Most common books in the filtered dataset</p></div>
@@ -205,10 +269,15 @@
               <p class="empty-state">No books match these filters.</p>
             }
           </article>
+          }
 
+          @if (showComparativeInsights) {
           <article class="stat-card insight-card">
             <div class="card-heading">
-              <div><h2>Trending genres</h2><p>Most selected genre preferences in this scope</p></div>
+              <div>
+                <h2>Trending genres</h2>
+                <p>Most selected genre preferences in this scope</p>
+              </div>
               <iconify-icon icon="lucide:tags"></iconify-icon>
             </div>
             @if (dashboard.trendingGenres.length) {
@@ -227,7 +296,9 @@
               <p class="empty-state empty-state--compact">No genre preferences in this scope.</p>
             }
           </article>
+          }
 
+          @if (showComparativeInsights) {
           <article class="stat-card insight-card">
             <div class="card-heading">
               <div><h2>Top readers</h2><p>Most completed books in the selected range</p></div>
@@ -251,6 +322,7 @@
               <p class="empty-state empty-state--compact">No completed books in this range.</p>
             }
           </article>
+          }
 
           <div class="insight-section-heading">
             <div>
@@ -260,23 +332,33 @@
             </div>
           </div>
 
-          <article class="stat-card activity-overview chart-card--wide">
+          <article class="stat-card activity-overview chart-card--wide" [class.activity-overview--personal]="scope === 'personal'">
             <div class="activity-metric">
-              <iconify-icon icon="lucide:messages-square"></iconify-icon>
+              <span class="activity-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>
+              </span>
               <div><strong>{{ dashboard.communitySummary.posts }}</strong><span>Posts</span></div>
             </div>
             <div class="activity-metric">
-              <iconify-icon icon="lucide:message-circle"></iconify-icon>
+              <span class="activity-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.4 9.4 0 0 1-4-.9L3 21l1.8-4.6A8.5 8.5 0 1 1 21 11.5z"/></svg>
+              </span>
               <div><strong>{{ dashboard.communitySummary.comments }}</strong><span>Comments</span></div>
             </div>
             <div class="activity-metric">
-              <iconify-icon icon="lucide:heart"></iconify-icon>
+              <span class="activity-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+              </span>
               <div><strong>{{ dashboard.communitySummary.reactions }}</strong><span>Reactions</span></div>
             </div>
+            @if (showComparativeInsights) {
             <div class="activity-metric">
-              <iconify-icon icon="lucide:notebook-pen"></iconify-icon>
+              <span class="activity-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="m14 7 3 3-5 5-4 1 1-4z"/></svg>
+              </span>
               <div><strong>{{ dashboard.communitySummary.reviews }}</strong><span>Book reviews</span></div>
             </div>
+            }
           </article>
 
           <article class="stat-card metric-list-card">
@@ -299,6 +381,7 @@
             }
           </article>
 
+          @if (showComparativeInsights) {
           <article class="stat-card metric-list-card">
             <div class="card-heading">
               <div><h2>Most reviewed books</h2><p>Books receiving the most written reviews</p></div>
@@ -338,6 +421,7 @@
               <p class="empty-state empty-state--compact">No ratings in this range.</p>
             }
           </article>
+          }
 
           <article class="stat-card insight-card">
             <div class="card-heading">
@@ -359,6 +443,7 @@
             }
           </article>
 
+          @if (showComparativeInsights) {
           <article class="stat-card insight-card">
             <div class="card-heading">
               <div><h2>Top contributors</h2><p>Posts, comments, and reviews created</p></div>
@@ -379,6 +464,7 @@
               <p class="empty-state empty-state--compact">No contributions in this range.</p>
             }
           </article>
+          }
         </section>
       }
     </div>
