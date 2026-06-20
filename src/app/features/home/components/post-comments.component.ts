@@ -18,7 +18,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       } @else {
         @if (comments.length > 0) {
           <div class="comments-list">
-            @for (comment of comments; track comment.id) {
+            @for (comment of visibleComments; track comment.id) {
               <div class="comment">
                 <div class="comment-avatar">
                   @if (comment.userAvatar) {
@@ -39,23 +39,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                       </svg>
                       @if (comment.likeCount > 0) { {{ comment.likeCount }} }
                     </button>
-                    @if (comment.depth < 3) {
-                      <button class="meta-btn" (click)="startReply(comment)">{{ copy.replyBtn }}</button>
-                    }
                     <time class="meta-time">{{ timeAgo(comment.createdAt, lang) }}</time>
                     @if (comment.userId === currentUserId) {
-                      <button class="meta-btn meta-btn--danger" (click)="deleteComment(comment)">{{ copy.deleteBtn }}</button>
+                      <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(comment)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                      </button>
                     }
                   </div>
-                  @if (replyingToId === comment.id) {
-                    <div class="reply-form">
-                      <input class="comment-input" type="text" [placeholder]="copy.replyToPlaceholder + comment.userName + '…'" [(ngModel)]="replyContent" (keydown.enter)="submitReply(comment)" />
-                      <button class="send-btn" [disabled]="!replyContent.trim() || submitting" (click)="submitReply(comment)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      </button>
-                      <button class="cancel-reply-btn" (click)="cancelReply()">✕</button>
-                    </div>
-                  }
                   @for (reply of comment.replies; track reply.id) {
                     <div class="comment" style="margin-top: 8px;">
                       <div class="comment-avatar comment-avatar--sm">
@@ -72,19 +62,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                             <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="reply.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                             @if (reply.likeCount > 0) { {{ reply.likeCount }} }
                           </button>
-                          @if (reply.depth < 3) { <button class="meta-btn" (click)="startReply(reply)">{{ copy.replyBtn }}</button> }
                           <time class="meta-time">{{ timeAgo(reply.createdAt, lang) }}</time>
-                          @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(reply)">{{ copy.deleteBtn }}</button> }
+                          @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(reply)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button> }
                         </div>
-                        @if (replyingToId === reply.id) {
-                          <div class="reply-form">
-                            <input class="comment-input" type="text" [placeholder]="copy.replyToPlaceholder + reply.userName + '…'" [(ngModel)]="replyContent" (keydown.enter)="submitReply(reply)" />
-                            <button class="send-btn" [disabled]="!replyContent.trim() || submitting" (click)="submitReply(reply)">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                            </button>
-                            <button class="cancel-reply-btn" (click)="cancelReply()">✕</button>
-                          </div>
-                        }
                         @for (deep of reply.replies; track deep.id) {
                           <div class="comment" style="padding-left: 24px; margin-top: 8px;">
                             <div class="comment-avatar comment-avatar--sm">
@@ -102,7 +82,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                                   @if (deep.likeCount > 0) { {{ deep.likeCount }} }
                                 </button>
                                 <time class="meta-time">{{ timeAgo(deep.createdAt, lang) }}</time>
-                                @if (deep.userId === currentUserId) { <button class="meta-btn meta-btn--danger" (click)="deleteComment(deep)">{{ copy.deleteBtn }}</button> }
+                                @if (deep.userId === currentUserId) { <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(deep)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button> }
                               </div>
                             </div>
                           </div>
@@ -112,6 +92,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                   }
                 </div>
               </div>
+            }
+            @if (comments.length > 2) {
+              <button type="button" class="view-comments-toggle" (click)="toggleCommentsExpanded()">
+                {{ commentsExpanded ? copy.hideComments : copy.viewAllComments.replace('{count}', comments.length.toString()) }}
+              </button>
             }
           </div>
         }
@@ -173,7 +158,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .comments-list { display: flex; flex-direction: column; gap: 10px; }
+    .comments-list { display: flex; flex-direction: column; }
+
+    .view-comments-toggle {
+      display: block;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: #C1553A;
+      cursor: pointer;
+      padding: 4px 0;
+      margin-top: 4px;
+      text-align: start;
+
+      &:hover { text-decoration: underline; }
+    }
+
+    .comments-list > .comment {
+      padding: 12px 0;
+      border-bottom: 0.5px solid rgba(100, 70, 50, 0.08);
+    }
+    .comments-list > .comment:first-child { padding-top: 0; }
+    .comments-list > .comment:last-child { padding-bottom: 0; border-bottom: none; }
 
     .comment {
       display: flex;
@@ -201,30 +209,31 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     .comment-body { flex: 1; min-width: 0; }
 
     .comment-bubble {
-      background: var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-      display: inline-block;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      display: block;
       max-width: 100%;
     }
 
     .comment-author {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--foreground);
+      font-size: 13px;
+      font-weight: 600;
+      color: #1C1410;
       text-decoration: none;
       display: block;
       overflow-wrap: break-word;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
 
       &:hover { color: var(--primary); }
     }
 
     .comment-text {
       font-size: 13px;
-      color: var(--foreground);
+      color: #4A3828;
       margin: 0;
-      line-height: 1.5;
+      line-height: 1.55;
+      font-style: normal;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -232,16 +241,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     .comment-meta {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 3px 4px 0;
+      gap: 16px;
+      margin-top: 6px;
     }
 
     .meta-btn {
       background: none;
       border: none;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted-foreground);
+      font-size: 12px;
+      font-weight: 400;
+      color: #9E8E82;
       cursor: pointer;
       padding: 2px 0;
       display: flex;
@@ -249,15 +258,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       gap: 3px;
       transition: color 0.15s;
 
-      &:hover { color: var(--foreground); }
+      &:hover { color: #C1553A; }
       &--liked { color: var(--primary); }
-      &--danger:hover { color: #dc2626; }
+      &--danger:hover { color: #C1553A; }
     }
 
     .meta-time {
       font-size: 11px;
-      color: var(--muted-foreground);
-      margin-left: auto;
+      color: #9E8E82;
+      order: 1;
+      margin-inline-start: auto;
     }
 
     .reply-form {
@@ -284,12 +294,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--border);
-      border-radius: 999px;
-      padding: 6px 10px 6px 14px;
-      border: 1px solid var(--border);
+      background: #FFFFFF;
+      border-radius: 20px;
+      padding: 9px 16px;
+      border: 0.5px solid rgba(100, 70, 50, 0.18);
 
-      &:focus-within { border-color: var(--primary); }
+      &:focus-within { border-color: rgba(193, 85, 58, 0.35); }
     }
 
     .comment-input {
@@ -300,21 +310,20 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       color: var(--foreground);
       outline: none;
 
-      &::placeholder { color: var(--muted-foreground); }
+      &::placeholder { color: #9E8E82; }
     }
 
     .send-btn {
       background: none;
       border: none;
       cursor: pointer;
-      color: var(--primary);
+      color: #C1553A;
       padding: 2px;
       display: flex;
-      opacity: 0.7;
-      transition: opacity 0.15s;
+      transition: color 0.15s;
 
-      &:not(:disabled):hover { opacity: 1; }
-      &:disabled { opacity: 0.3; cursor: not-allowed; }
+      &:not(:disabled):hover { color: #A8432A; }
+      &:disabled { color: #C0B0A0; cursor: not-allowed; }
     }
 
     .cancel-reply-btn {
@@ -349,6 +358,17 @@ export class PostCommentsComponent implements OnInit {
 
   comments: Comment[] = [];
   loading = true;
+  commentsExpanded = false;
+
+  // Collapse long comment threads: show 2 by default, toggle to show all.
+  // Purely UI state — all comments are already loaded.
+  get visibleComments(): Comment[] {
+    return this.commentsExpanded ? this.comments : this.comments.slice(0, 2);
+  }
+
+  toggleCommentsExpanded(): void {
+    this.commentsExpanded = !this.commentsExpanded;
+  }
 
   newContent = '';
   replyingToId: number | null = null;

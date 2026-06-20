@@ -11,6 +11,8 @@ export interface CommentsCopy {
   deleteBtn: string;
   contentRejected: string;
   commentFailed: string;
+  viewAllComments: string;
+  hideComments: string;
 }
 
 export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
@@ -25,6 +27,8 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     deleteBtn: 'Delete',
     contentRejected: 'Your comment was flagged by our community guidelines and can\'t be posted.',
     commentFailed: 'Could not post comment. Please try again.',
+    viewAllComments: 'View all {count} comments',
+    hideComments: 'Hide comments',
   },
   ar: {
     inputPlaceholder: 'اكتب تعليق…',
@@ -37,6 +41,8 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     deleteBtn: 'حذف',
     contentRejected: 'تم تمييز تعليقك بواسطة إرشادات المجتمع ولا يمكن نشره.',
     commentFailed: 'تعذّر نشر التعليق. حاول مرة أخرى.',
+    viewAllComments: 'عرض كل التعليقات ({count})',
+    hideComments: 'إخفاء التعليقات',
   },
   fr: {
     inputPlaceholder: 'Écrire un commentaire…',
@@ -49,5 +55,7 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     deleteBtn: 'Supprimer',
     contentRejected: 'Votre commentaire a été signalé par nos règles communautaires et ne peut pas être publié.',
     commentFailed: 'Impossible de publier le commentaire. Veuillez réessayer.',
+    viewAllComments: 'Voir les {count} commentaires',
+    hideComments: 'Masquer les commentaires',
   },
 };
