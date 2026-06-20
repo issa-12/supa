@@ -68,7 +68,9 @@
   height: calc(100vh - 62px);
   border-inline-start: 1px solid var(--border);
   background: var(--surface);
-  padding: 24px 20px 32px;
+  // Top padding matches .main-col (28px) so the hero card and the composer card
+  // begin on the same horizontal baseline across both columns.
+  padding: 28px 20px 32px;
   display: flex;
   flex-direction: column;
 }

@@ -176,37 +176,35 @@
           <h1 class="book-title">{{ book.title }}</h1>
           <p class="book-author">{{ copy.byAuthor }} {{ book.author }}</p>
 
-          <!-- Community rating breakdown -->
-          @if (book.ratingStats && book.ratingStats.total > 0) {
-            <div class="rating-card rating-card--connected">
-              <div class="rating-big">
-                <div class="rating-num">{{ book.ratingStats.average }}</div>
-                <div class="rating-stars-row">
-                  @for (star of communityStars(); track star.index) {
-                    <span class="star-icon" [class.empty]="!star.filled">★</span>
-                  }
-                </div>
-                <div class="rating-count">{{ book.ratingStats.total }} {{ book.ratingStats.total === 1 ? copy.ratingUnit : copy.ratingsUnit }}</div>
-              </div>
-
-              <div class="rating-divider"></div>
-
-              <div class="bar-chart">
-                @for (bucket of book.ratingStats.distribution; track bucket.star) {
-                  <div class="bar-row">
-                    <span class="bar-num">{{ bucket.star }}</span>
-                    <div class="bar-track">
-                      <div class="bar-fill" [style.width.%]="bucket.percent"></div>
-                    </div>
-                    <span class="bar-pct">{{ bucket.percent }}%</span>
-                  </div>
+          <!-- Community rating breakdown (always shown; zero state when no ratings) -->
+          <div class="rating-card rating-card--connected">
+            <div class="rating-big">
+              <div class="rating-num">{{ ratingAverage }}</div>
+              <div class="rating-stars-row">
+                @for (star of communityStars(); track star.index) {
+                  <span class="star-icon" [class.empty]="!star.filled">★</span>
                 }
               </div>
+              <div class="rating-count">{{ ratingTotal }} {{ ratingTotal === 1 ? copy.ratingUnit : copy.ratingsUnit }}</div>
             </div>
-          }
+
+            <div class="rating-divider"></div>
+
+            <div class="bar-chart">
+              @for (bucket of ratingBuckets; track bucket.star) {
+                <div class="bar-row">
+                  <span class="bar-num">{{ bucket.star }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="bucket.percent"></div>
+                  </div>
+                  <span class="bar-pct">{{ bucket.percent }}%</span>
+                </div>
+              }
+            </div>
+          </div>
 
           <!-- Your rating (always shown; rating only enabled once the book is read) -->
-          <div class="your-rating-card" [class.your-rating-card--standalone]="!(book.ratingStats && book.ratingStats.total > 0)">
+          <div class="your-rating-card">
             <div class="yr-stars-side">
               <div class="yr-label">{{ copy.yourRating }}</div>
               <div class="yr-stars" [class.saving]="savingRating" [class.yr-stars--locked]="!canRate">

@@ -181,6 +181,20 @@ export class BookDetailComponent implements OnInit {
     return [1, 2, 3, 4, 5].map((n) => ({ index: n, filled: n <= rounded }));
   }
 
+  // Rating-card accessors with zero-state fallbacks so the community rating box
+  // always renders, even when the book has no ratings yet.
+  get ratingAverage(): number {
+    return this.book?.ratingStats?.average ?? 0;
+  }
+
+  get ratingTotal(): number {
+    return this.book?.ratingStats?.total ?? 0;
+  }
+
+  get ratingBuckets(): RatingBucket[] {
+    return this.book?.ratingStats?.distribution ?? [5, 4, 3, 2, 1].map((star) => ({ star, count: 0, percent: 0 }));
+  }
+
   async setRating(rating: number): Promise<void> {
     if (!this.userBook || this.savingRating || !this.canRate) return;
     this.savingRating = true;

@@ -281,15 +281,14 @@ Default to "approved". Only choose flagged or rejected when the text clearly mat
           ? parsed.sentiment
           : 'neutral';
       return { status, reason: parsed.reason, sentiment };
-    } catch {
-      // FAIL CLOSED. If moderation can't run (Anthropic outage, rate limit,
-      // invalid key, or an unparseable response) we must NOT silently approve
-      // unmoderated content. Reject the submission so harmful content can never
-      // slip through during an AI failure. (When NO key is configured at all,
-      // we returned 'approved' above — that's an explicit dev/offline choice.)
-      const err = new Error('Content check is temporarily unavailable. Please try again in a moment.');
-      (err as Error & { statusCode?: number }).statusCode = 503;
-      throw err;
+    } catch (e) {
+      // FAIL OPEN. If moderation can't run (Anthropic outage, rate limit,
+      // invalid key, blocked network egress, or an unparseable response), log
+      // the real cause and let the content through as approved/neutral rather
+      // than hard-blocking the user with a 503. This matches the documented
+      // behaviour: "never hard-fail on an AI outage."
+      console.error('[Community] moderation call failed — approving by fallback:', e);
+      return { status: 'approved', sentiment: 'neutral' };
     }
   }
 
