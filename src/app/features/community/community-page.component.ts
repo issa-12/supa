@@ -57,7 +57,7 @@ export class CommunityPageComponent implements OnInit {
   loadingMore = false;
   page = 0;
   hasMore = true;
-  activeTab: 'all' | 'trending' = 'all';
+  activeTab: 'all' | 'friends' | 'mine' | 'trending' = 'all';
   activeTag: string | null = null;
   openCommentPostIds = new Set<number>();
 
@@ -104,6 +104,9 @@ export class CommunityPageComponent implements OnInit {
     else { this.loading = true; this.posts = []; this.page = 0; }
 
     try {
+      const scope =
+        this.activeTab === 'friends' ? 'friends' :
+        this.activeTab === 'mine' ? 'mine' : undefined;
       const newPosts =
         this.activeTab === 'trending'
           ? await this.activityService.getCommunityTrendingPosts(this.currentUserId)
@@ -111,6 +114,7 @@ export class CommunityPageComponent implements OnInit {
               this.currentUserId,
               this.activeTag ?? undefined,
               this.page,
+              scope,
             );
 
       this.posts = append ? [...this.posts, ...newPosts] : newPosts;
@@ -138,7 +142,7 @@ export class CommunityPageComponent implements OnInit {
     } catch { /* ignore */ }
   }
 
-  switchTab(tab: 'all' | 'trending'): void {
+  switchTab(tab: 'all' | 'friends' | 'mine' | 'trending'): void {
     if (this.activeTab === tab) return;
     this.activeTab = tab;
     this.activeTag = null;

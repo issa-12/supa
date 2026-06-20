@@ -43,6 +43,17 @@ export interface ShelfCopy {
   recommendedByPrefix: string;
   acceptBtn: string;
   declineBtn: string;
+  addBookBtn: string;
+  booksAcrossShelves: string;
+  seeAllLink: string;
+  seeAllCount: string;
+  moreBooks: string;
+  pendingRecommendations: string;
+  fromPrefix: string;
+  andOthers: string;
+  viewAllBtn: string;
+  dismissBtn: string;
+  sectionCount: string;
 }
 
 export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
@@ -89,6 +100,17 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     recommendedByPrefix: 'Recommended by',
     acceptBtn: 'Accept',
     declineBtn: 'Decline',
+    addBookBtn: 'Add book',
+    booksAcrossShelves: '{count} books across all shelves',
+    seeAllLink: 'See all',
+    seeAllCount: 'See all {count}',
+    moreBooks: '+{count} more',
+    pendingRecommendations: '{count} pending recommendations',
+    fromPrefix: 'From',
+    andOthers: 'and others',
+    viewAllBtn: 'View all',
+    dismissBtn: 'Dismiss',
+    sectionCount: '{count} books',
   },
   ar: {
     title: 'مكتبتي',
@@ -133,6 +155,17 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     recommendedByPrefix: 'أوصى به',
     acceptBtn: 'قبول',
     declineBtn: 'رفض',
+    addBookBtn: 'إضافة كتاب',
+    booksAcrossShelves: '{count} كتاب في جميع الرفوف',
+    seeAllLink: 'عرض الكل',
+    seeAllCount: 'عرض الكل ({count})',
+    moreBooks: '+{count} المزيد',
+    pendingRecommendations: '{count} توصيات معلّقة',
+    fromPrefix: 'من',
+    andOthers: 'وآخرين',
+    viewAllBtn: 'عرض الكل',
+    dismissBtn: 'تجاهل',
+    sectionCount: '{count} كتاب',
   },
   fr: {
     title: 'Ma Bibliothèque',
@@ -177,5 +210,16 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     recommendedByPrefix: 'Recommandé par',
     acceptBtn: 'Accepter',
     declineBtn: 'Refuser',
+    addBookBtn: 'Ajouter un livre',
+    booksAcrossShelves: '{count} livres sur toutes les étagères',
+    seeAllLink: 'Voir tout',
+    seeAllCount: 'Voir les {count}',
+    moreBooks: '+{count} de plus',
+    pendingRecommendations: '{count} recommandations en attente',
+    fromPrefix: 'De',
+    andOthers: 'et d\'autres',
+    viewAllBtn: 'Voir tout',
+    dismissBtn: 'Ignorer',
+    sectionCount: '{count} livres',
   },
 };

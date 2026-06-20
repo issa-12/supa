@@ -5,10 +5,11 @@
   --cream: #F5F0E8;
   --cream-dark: #EDE7DA;
   --cream-mid: #E8E0D0;
-  --brand: #C1553A;
-  --brand-dark: #A8432A;
-  --brand-light: #FAF0ED;
-  --brand-text: #8B3E2A;
+  // Inherit the unified app accent (set in styles.scss :root).
+  --brand: var(--primary);
+  --brand-dark: var(--primary-dark);
+  --brand-light: var(--primary-soft);
+  --brand-text: var(--primary-dark);
   --gold: #C8A84B;
   --t1: #1C1410;
   --t2: #4A3828;

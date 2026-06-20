@@ -298,12 +298,18 @@ export class ActivityService {
     ).pipe(catchError((err) => throwError(() => err)));
   }
 
-  async getCommunityPosts(userId: string, tag?: string, page = 0): Promise<ActivityPost[]> {
+  async getCommunityPosts(
+    userId: string,
+    tag?: string,
+    page = 0,
+    scope?: 'friends' | 'mine',
+  ): Promise<ActivityPost[]> {
     const session = await this.supabaseService.getCurrentSession();
     const token = session?.access_token;
     if (!token) return [];
     const params = new URLSearchParams({ page: String(page) });
     if (tag) params.set('tag', tag);
+    if (scope) params.set('scope', scope);
     const res = await fetch(`/api/community/posts?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     });

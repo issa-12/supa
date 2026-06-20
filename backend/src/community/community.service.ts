@@ -173,10 +173,27 @@ export class CommunityService {
     return [...new Set([...blocked, ...hiddenPrivate])].filter(isUuid);
   }
 
-  async getAllPosts(userId: string, tag?: string, page = 0, limit = 20) {
+  async getAllPosts(
+    userId: string,
+    tag?: string,
+    page = 0,
+    limit = 20,
+    scope?: 'friends' | 'mine',
+  ) {
     const sb = this.supabase.getAdmin();
     const offset = page * limit;
     const blocked = await this.getHiddenAuthorIds(userId);
+
+    // Scope the author set: 'mine' → only this user; 'friends' → only accepted
+    // friends (excludes the viewer). An empty friend list short-circuits.
+    let authorFilter: string[] | null = null;
+    if (scope === 'mine') {
+      authorFilter = [userId];
+    } else if (scope === 'friends') {
+      const friendIds = (await this.getFriendIds(userId)).filter(isUuid);
+      if (friendIds.length === 0) return [];
+      authorFilter = friendIds;
+    }
 
     let query = sb
       .from('posts')
@@ -186,6 +203,10 @@ export class CommunityService {
       .or('moderation_status.is.null,and(moderation_status.neq.rejected,moderation_status.neq.flagged)')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
+
+    if (authorFilter) {
+      query = query.in('user_id', authorFilter);
+    }
 
     const safeTag = sanitizeTag(tag);
     if (safeTag) {
