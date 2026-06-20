@@ -178,7 +178,7 @@
 
           <!-- Community rating breakdown -->
           @if (book.ratingStats && book.ratingStats.total > 0) {
-            <div class="rating-card" [class.rating-card--connected]="userBook">
+            <div class="rating-card rating-card--connected">
               <div class="rating-big">
                 <div class="rating-num">{{ book.ratingStats.average }}</div>
                 <div class="rating-stars-row">
@@ -205,37 +205,35 @@
             </div>
           }
 
-          <!-- Your rating (only if book is on shelf) -->
-          @if (userBook) {
-            <div class="your-rating-card" [class.your-rating-card--standalone]="!(book.ratingStats && book.ratingStats.total > 0)">
-              <div class="yr-stars-side">
-                <div class="yr-label">{{ copy.yourRating }}</div>
-                <div class="yr-stars" [class.saving]="savingRating" [class.yr-stars--locked]="!canRate">
-                  @for (star of starsArray(); track star.index) {
-                    <button
-                      class="yr-star"
-                      [class.on]="star.filled"
-                      (mouseenter)="canRate && (hoverRating = star.index)"
-                      (mouseleave)="hoverRating = 0"
-                      (click)="setRating(star.index)"
-                      [disabled]="savingRating || !canRate"
-                    >★</button>
-                  }
-                </div>
-              </div>
-              <div class="yr-text-side">
-                @if (!canRate) {
-                  <div class="yr-hint">{{ copy.rateOnlyIfRead }}</div>
-                } @else if (displayRating > 0) {
-                  <div class="yr-hint">{{ copy.youRatedThis }}</div>
-                  <div class="yr-value">{{ displayRating }} {{ copy.outOfFiveStars }}</div>
-                  <div class="yr-desc">{{ ratingDescription }}</div>
-                } @else {
-                  <div class="yr-hint">{{ copy.tapToRate }}</div>
+          <!-- Your rating (always shown; rating only enabled once the book is read) -->
+          <div class="your-rating-card" [class.your-rating-card--standalone]="!(book.ratingStats && book.ratingStats.total > 0)">
+            <div class="yr-stars-side">
+              <div class="yr-label">{{ copy.yourRating }}</div>
+              <div class="yr-stars" [class.saving]="savingRating" [class.yr-stars--locked]="!canRate">
+                @for (star of starsArray(); track star.index) {
+                  <button
+                    class="yr-star"
+                    [class.on]="star.filled"
+                    (mouseenter)="canRate && (hoverRating = star.index)"
+                    (mouseleave)="hoverRating = 0"
+                    (click)="setRating(star.index)"
+                    [disabled]="savingRating || !canRate"
+                  >★</button>
                 }
               </div>
             </div>
-          }
+            <div class="yr-text-side">
+              @if (!canRate) {
+                <div class="yr-hint">{{ copy.rateOnlyIfRead }}</div>
+              } @else if (displayRating > 0) {
+                <div class="yr-hint">{{ copy.youRatedThis }}</div>
+                <div class="yr-value">{{ displayRating }} {{ copy.outOfFiveStars }}</div>
+                <div class="yr-desc">{{ ratingDescription }}</div>
+              } @else {
+                <div class="yr-hint">{{ copy.tapToRate }}</div>
+              }
+            </div>
+          </div>
         </div>
       </div>
 
