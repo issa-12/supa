@@ -3,74 +3,72 @@
 
   <div class="scroll-area">
     <div class="page-shell">
-      <!-- Hero Section -->
-      <app-hero-section *ngIf="heroBook" [book]="heroBook" [genre]="favoriteGenre" [currentUserId]="currentUserId" (addToReading)="onHeroAdded()"></app-hero-section>
 
-      <!-- Continue Reading skeleton -->
-      <div *ngIf="isLoadingContinue" class="home-section-skeleton">
-        <div class="skel-h2 skeleton"></div>
-        <div class="skel-book-row">
-          <div *ngFor="let i of [1,2,3]" class="skel-continue-card">
-            <div class="skel-continue-cover skeleton"></div>
-            <div class="skel-continue-info">
+      <!-- ── Main column ─────────────────────────────────────── -->
+      <main class="main-col">
+
+        <!-- Hero (driven by the first recommendation) -->
+        <div *ngIf="isLoadingRecommended" class="hero-skeleton">
+          <div class="hero-skel-content">
+            <div class="skel-pill skeleton"></div>
+            <div class="skel-h1 skeleton"></div>
+            <div class="skel-line skeleton"></div>
+            <div class="skel-line skeleton"></div>
+            <div class="skel-line-short skeleton"></div>
+            <div class="skel-actions">
+              <div class="skel-btn skeleton"></div>
+              <div class="skel-btn skeleton"></div>
+            </div>
+          </div>
+          <div class="skel-hero-cover skeleton"></div>
+        </div>
+        <app-hero-section
+          *ngIf="!isLoadingRecommended && heroBook"
+          [book]="heroBook"
+          [genre]="favoriteGenre"
+          [currentUserId]="currentUserId"
+          (addToReading)="onHeroAdded()"
+        ></app-hero-section>
+
+        <!-- Recommended for You -->
+        <div *ngIf="isLoadingRecommended" class="home-section-skeleton">
+          <div class="skel-h2 skeleton"></div>
+          <div class="skel-rec-grid">
+            <div *ngFor="let i of [1,2,3,4,5,6]" class="skel-rec-card">
+              <div class="skel-rec-cover skeleton"></div>
+              <div class="skel-rec-info">
+                <div class="skel-line skeleton"></div>
+                <div class="skel-line-short skeleton"></div>
+                <div class="skel-pill skeleton"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <app-recommended-books *ngIf="!isLoadingRecommended" [books]="recommendedBooks" (addBook)="onAddBook($event)"></app-recommended-books>
+
+        <!-- Trending This Week -->
+        <div *ngIf="isLoadingTrending" class="home-section-skeleton">
+          <div class="skel-h2 skeleton"></div>
+          <div class="skel-trending-row">
+            <div *ngFor="let i of [1,2,3,4,5]" class="skel-trending-card">
+              <div class="skel-trending-cover skeleton"></div>
               <div class="skel-line skeleton"></div>
               <div class="skel-line-short skeleton"></div>
-              <div class="skel-progress-bar skeleton"></div>
             </div>
           </div>
         </div>
-      </div>
-      <!-- Continue Reading Section -->
-      <app-continue-reading *ngIf="!isLoadingContinue" [books]="continueReadingBooks" (continueReading)="onContinueReading($event)"></app-continue-reading>
+        <app-trending-books *ngIf="!isLoadingTrending" [books]="trendingBooks"></app-trending-books>
+      </main>
 
-      <!-- Main Grid Layout -->
-      <div class="home-bottom-grid">
-        <!-- Main Column -->
-        <div class="main-col">
+      <!-- ── Community sidebar ───────────────────────────────── -->
+      <aside class="side-col">
+        <app-posts-feed
+          [currentUserId]="currentUserId"
+          [currentUserAvatar]="currentUserAvatar"
+          [currentUserName]="currentUser?.name ?? null"
+        ></app-posts-feed>
+      </aside>
 
-          <!-- Recommended skeleton -->
-          <div *ngIf="isLoadingRecommended" class="home-section-skeleton">
-            <div class="skel-h2 skeleton"></div>
-            <div class="skel-cards-grid">
-              <div *ngFor="let i of [1,2,3,4,5,6]" class="skel-book-tile">
-                <div class="skel-tile-cover skeleton"></div>
-                <div class="skel-tile-title skeleton"></div>
-                <div class="skel-tile-author skeleton"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Recommended For You Section -->
-          <app-recommended-books *ngIf="!isLoadingRecommended" [books]="recommendedBooks"></app-recommended-books>
-
-          <!-- Trending skeleton -->
-          <div *ngIf="isLoadingTrending" class="home-section-skeleton">
-            <div class="skel-h2 skeleton"></div>
-            <div class="skel-cards-grid">
-              <div *ngFor="let i of [1,2,3,4,5,6]" class="skel-book-tile">
-                <div class="skel-tile-cover skeleton"></div>
-                <div class="skel-tile-title skeleton"></div>
-                <div class="skel-tile-author skeleton"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Trending This Week Section -->
-          <app-trending-books *ngIf="!isLoadingTrending" [books]="trendingBooks"></app-trending-books>
-        </div>
-
-        <!-- Friends Feed Sidebar -->
-        <aside class="side-col">
-          <app-posts-feed
-            [currentUserId]="currentUserId"
-            [currentUserAvatar]="currentUserAvatar"
-            [currentUserName]="currentUser?.name ?? null"
-          ></app-posts-feed>
-        </aside>
-      </div>
     </div>
   </div>
-
-  <!-- Floating Action Button — opens compose form in feed -->
-  <button class="fab-btn" [attr.aria-label]="copy.writePostAriaLabel" (click)="openCompose()">
-    <iconify-icon icon="lucide:pencil" style="font-size: 24px"></iconify-icon>
-  </button>
 </div>

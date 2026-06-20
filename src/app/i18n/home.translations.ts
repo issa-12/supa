@@ -49,6 +49,7 @@ export interface HomeCopy {
   composePlaceholder: string;
   composeTextareaPlaceholder: string;
   bookSearchPlaceholder: string;
+  tagBookBtn: string;
   cancelBtn: string;
   postingBtn: string;
   postBtn: string;
@@ -108,9 +109,10 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     feedAriaDeletePost: 'Delete post',
     feedAriaRemoveBook: 'Remove book',
     feedConfirmDelete: 'Delete this post?',
-    composePlaceholder: 'Share your thoughts on a book…',
+    composePlaceholder: 'What are you reading? Share a thought…',
     composeTextareaPlaceholder: 'What did you think? Any quotes? Recommend it?',
     bookSearchPlaceholder: 'Search for a book…',
+    tagBookBtn: 'Tag a book',
     cancelBtn: 'Cancel',
     postingBtn: 'Posting…',
     postBtn: 'Post',
@@ -165,9 +167,10 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     feedAriaDeletePost: 'حذف المنشور',
     feedAriaRemoveBook: 'إزالة الكتاب',
     feedConfirmDelete: 'حذف هذا المنشور؟',
-    composePlaceholder: 'شارك أفكارك حول كتاب…',
+    composePlaceholder: 'ماذا تقرأ؟ شارك فكرة…',
     composeTextareaPlaceholder: 'ماذا كان انطباعك؟ هل لديك اقتباسات؟ هل توصي به؟',
     bookSearchPlaceholder: 'ابحث عن كتاب…',
+    tagBookBtn: 'أضف كتابًا',
     cancelBtn: 'إلغاء',
     postingBtn: 'جاري النشر…',
     postBtn: 'نشر',
@@ -222,9 +225,10 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     feedAriaDeletePost: 'Supprimer le message',
     feedAriaRemoveBook: 'Supprimer le livre',
     feedConfirmDelete: 'Supprimer ce message ?',
-    composePlaceholder: 'Partagez vos réflexions sur un livre…',
+    composePlaceholder: 'Que lisez-vous ? Partagez une pensée…',
     composeTextareaPlaceholder: 'Que pensiez-vous ? Des citations ? Vous le recommandez ?',
     bookSearchPlaceholder: 'Rechercher un livre…',
+    tagBookBtn: 'Associer un livre',
     cancelBtn: 'Annuler',
     postingBtn: 'Publication en cours…',
     postBtn: 'Publier',

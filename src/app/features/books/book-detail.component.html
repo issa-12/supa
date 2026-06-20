@@ -1,21 +1,6 @@
 <div class="detail-viewport" (click)="closeDropdown()">
 
-  <!-- Header -->
-  <header class="detail-header">
-    <div class="header-content">
-      <button class="back-btn" onclick="history.back()" [attr.aria-label]="copy.goBack">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-      </button>
-      <h1 class="header-title">{{ copy.title }}</h1>
-      <a routerLink="/shelf" class="shelf-link" [attr.aria-label]="copy.myShelf" [title]="copy.myShelf">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>
-        </svg>
-      </a>
-    </div>
-  </header>
+  <app-top-nav />
 
   <!-- Loading -->
   @if (isLoading) {
@@ -35,193 +20,84 @@
 
   <!-- Content -->
   @else if (book) {
-    <div class="detail-content">
+    <div class="page-wrap">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/home">{{ copy.breadcrumbHome }}</a>
+        <span class="breadcrumb-sep">›</span>
+        <a routerLink="/books/search">{{ copy.breadcrumbBooks }}</a>
+        @if (book.categories.length > 0) {
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-current">{{ book.categories[0] | genreName:lang }}</span>
+        }
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">{{ book.title }}</span>
+      </nav>
 
       <!-- Hero section -->
       <div class="book-hero">
-        <!-- Cover -->
-        <div class="cover-wrap">
-          @if (book.coverUrl) {
-            <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
-          } @else {
-            <div class="cover-placeholder">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-              </svg>
-            </div>
-          }
-        </div>
 
-        <!-- Info -->
-        <div class="book-meta">
-          <h2 class="book-title">{{ book.title }}</h2>
-          <p class="book-author">{{ copy.byAuthor }} {{ book.author }}</p>
-
-          <!-- Meta chips -->
-          <div class="meta-chips">
-            @if (publishYear) {
-              <span class="chip">{{ publishYear }}</span>
-            }
-            @if (book.pageCount) {
-              <span class="chip">{{ book.pageCount }} {{ copy.pagesUnit }}</span>
-            }
-            @for (cat of book.categories.slice(0, 2); track cat) {
-              <span class="chip chip--genre">{{ cat | genreName:lang }}</span>
-            }
-          </div>
-
-          <!-- Community rating breakdown -->
-          @if (book.ratingStats && book.ratingStats.total > 0) {
-            <div class="rating-breakdown">
-              <div class="rb-summary">
-                <span class="rb-average">{{ book.ratingStats.average }}</span>
-                <div class="rb-summary-meta">
-                  <div class="rb-summary-stars">
-                    @for (star of communityStars(); track star.index) {
-                      <svg class="rb-star" [class.rb-star--filled]="star.filled" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                    }
-                  </div>
-                  <span class="rb-total">{{ book.ratingStats.total }} {{ book.ratingStats.total === 1 ? copy.ratingUnit : copy.ratingsUnit }}</span>
-                </div>
-              </div>
-
-              <div class="rb-bars">
-                @for (bucket of book.ratingStats.distribution; track bucket.star) {
-                  <div class="rb-row">
-                    <span class="rb-row-label">{{ bucket.star }}</span>
-                    <svg class="rb-row-star" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                    <div class="rb-track">
-                      <div class="rb-fill" [style.width.%]="bucket.percent"></div>
-                    </div>
-                    <span class="rb-percent">{{ bucket.percent }}%</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Rating (only if book is on shelf) -->
-          @if (userBook) {
-            <div class="rating-section">
-              <p class="rating-label">{{ copy.yourRating }}</p>
-              <div class="stars" [class.saving]="savingRating">
-                @for (star of starsArray(); track star.index) {
-                  <button
-                    class="star-btn"
-                    [class.filled]="star.filled"
-                    (mouseenter)="hoverRating = star.index"
-                    (mouseleave)="hoverRating = 0"
-                    (click)="setRating(star.index)"
-                    [disabled]="savingRating"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  </button>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Recommend to friend -->
-          <div class="recommend-wrap" (click)="$event.stopPropagation()">
-            <button class="btn btn-outline recommend-btn" (click)="openRecommendPicker()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <polyline points="16 6 12 2 8 6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-              {{ copy.recommendToFriend }}
-            </button>
-
-            @if (showRecommendPicker) {
-              <div class="recommend-dropdown">
-                @if (friends.length === 0) {
-                  <p class="recommend-empty">{{ copy.noFriends }}</p>
-                } @else {
-                  @for (friend of friends; track friend.userId) {
-                    <button
-                      class="recommend-item"
-                      [disabled]="recommendingToId === friend.userId"
-                      (click)="recommendTo(friend)"
-                    >
-                      <div class="recommend-avatar">
-                        @if (friend.avatarUrl) {
-                          <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
-                        } @else {
-                          <span>{{ friend.name[0].toUpperCase() }}</span>
-                        }
-                      </div>
-                      <span class="recommend-name">{{ friend.name }}</span>
-                      @if (recommendFeedback?.userId === friend.userId) {
-                        <span class="recommend-status" [class.recommend-status--ok]="recommendFeedback!.success">
-                          {{ recommendFeedback!.success ? (recommendFeedback!.alreadyHad ? copy.recommendAlreadyHas : copy.recommendSent) : copy.recommendFailed }}
-                        </span>
-                      } @else if (recommendingToId === friend.userId) {
-                        <span class="recommend-status">…</span>
-                      }
-                    </button>
-                  }
-                }
-              </div>
-            }
-          </div>
-
-          <!-- Shelf actions -->
-          <div class="shelf-actions" (click)="$event.stopPropagation()">
-            @if (userBook) {
-              <!-- Currently on shelf -->
-              <div class="shelf-status-wrap">
-                <div class="dropdown-wrap">
-                  <button
-                    class="btn btn-outline shelf-status-btn"
-                    (click)="toggleStatusDropdown()"
-                    [disabled]="savingStatus"
-                  >
-                    <svg class="shelf-status-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <span class="shelf-status-text">{{ currentStatusLabel }}</span>
-                    <svg class="shelf-status-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                  </button>
-
-                  @if (showStatusDropdown) {
-                    <div class="dropdown">
-                      @for (status of statuses; track status.name) {
-                        @if (status.name !== userBook.status?.name) {
-                          <button class="dropdown-item" (click)="changeStatus(status.name)">
-                            <span>{{ status.icon }}</span>
-                            {{ status.label }}
-                          </button>
-                        }
-                      }
-                      <div class="dropdown-divider"></div>
-                      <button class="dropdown-item dropdown-item--danger" (click)="removeFromShelf()">
-                        {{ copy.removeFromShelf }}
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
+        <!-- Cover + actions -->
+        <div class="cover-col">
+          <div class="cover-wrap">
+            @if (book.coverUrl) {
+              <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
             } @else {
-              <!-- Not on shelf -->
+              <div class="cover-placeholder">
+                <div class="cover-ph-title">{{ book.title }}</div>
+                <div class="cover-ph-line"></div>
+                <div class="cover-ph-author">{{ book.author }}</div>
+              </div>
+            }
+          </div>
+
+          <div class="cover-actions" (click)="$event.stopPropagation()">
+            <!-- Shelf actions -->
+            @if (userBook) {
               <div class="dropdown-wrap">
                 <button
-                  class="btn btn-primary"
+                  class="shelf-status"
+                  (click)="toggleStatusDropdown()"
+                  [disabled]="savingStatus"
+                >
+                  <svg class="shelf-status-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span class="shelf-status-text">{{ currentStatusLabel }}</span>
+                  <svg class="shelf-status-caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                @if (showStatusDropdown) {
+                  <div class="dropdown">
+                    @for (status of statuses; track status.name) {
+                      @if (status.name !== userBook.status?.name) {
+                        <button class="dropdown-item" (click)="changeStatus(status.name)">
+                          <span>{{ status.icon }}</span>
+                          {{ status.label }}
+                        </button>
+                      }
+                    }
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item dropdown-item--danger" (click)="removeFromShelf()">
+                      {{ copy.removeFromShelf }}
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="dropdown-wrap">
+                <button
+                  class="shelf-btn"
                   (click)="toggleStatusDropdown()"
                   [disabled]="addingToShelf"
                 >
                   @if (addingToShelf) {
                     {{ copy.adding }}
                   } @else {
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <line x1="12" y1="5" x2="12" y2="19"/>
                       <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
@@ -241,128 +117,259 @@
                 }
               </div>
             }
+
+            <!-- Recommend to friend -->
+            <div class="recommend-wrap">
+              <button class="recommend-btn" (click)="openRecommendPicker()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                {{ copy.recommendToFriend }}
+              </button>
+
+              @if (showRecommendPicker) {
+                <div class="recommend-dropdown">
+                  @if (friends.length === 0) {
+                    <p class="recommend-empty">{{ copy.noFriends }}</p>
+                  } @else {
+                    @for (friend of friends; track friend.userId) {
+                      <button
+                        class="recommend-item"
+                        [disabled]="recommendingToId === friend.userId"
+                        (click)="recommendTo(friend)"
+                      >
+                        <div class="recommend-avatar">
+                          @if (friend.avatarUrl) {
+                            <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
+                          } @else {
+                            <span>{{ friend.name[0].toUpperCase() }}</span>
+                          }
+                        </div>
+                        <span class="recommend-name">{{ friend.name }}</span>
+                        @if (recommendFeedback?.userId === friend.userId) {
+                          <span class="recommend-status" [class.recommend-status--ok]="recommendFeedback!.success">
+                            {{ recommendFeedback!.success ? (recommendFeedback!.alreadyHad ? copy.recommendAlreadyHas : copy.recommendSent) : copy.recommendFailed }}
+                          </span>
+                        } @else if (recommendingToId === friend.userId) {
+                          <span class="recommend-status">…</span>
+                        }
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="meta-col">
+          @if (book.categories.length > 0) {
+            <div class="genre-tags">
+              @for (cat of book.categories.slice(0, 3); track cat) {
+                <span class="genre-tag">{{ cat | genreName:lang }}</span>
+              }
+            </div>
+          }
+
+          <h1 class="book-title">{{ book.title }}</h1>
+          <p class="book-author">{{ copy.byAuthor }} {{ book.author }}</p>
+
+          <!-- Community rating breakdown -->
+          @if (book.ratingStats && book.ratingStats.total > 0) {
+            <div class="rating-card rating-card--connected">
+              <div class="rating-big">
+                <div class="rating-num">{{ book.ratingStats.average }}</div>
+                <div class="rating-stars-row">
+                  @for (star of communityStars(); track star.index) {
+                    <span class="star-icon" [class.empty]="!star.filled">★</span>
+                  }
+                </div>
+                <div class="rating-count">{{ book.ratingStats.total }} {{ book.ratingStats.total === 1 ? copy.ratingUnit : copy.ratingsUnit }}</div>
+              </div>
+
+              <div class="rating-divider"></div>
+
+              <div class="bar-chart">
+                @for (bucket of book.ratingStats.distribution; track bucket.star) {
+                  <div class="bar-row">
+                    <span class="bar-num">{{ bucket.star }}</span>
+                    <div class="bar-track">
+                      <div class="bar-fill" [style.width.%]="bucket.percent"></div>
+                    </div>
+                    <span class="bar-pct">{{ bucket.percent }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Your rating (always shown; rating only enabled once the book is read) -->
+          <div class="your-rating-card" [class.your-rating-card--standalone]="!(book.ratingStats && book.ratingStats.total > 0)">
+            <div class="yr-stars-side">
+              <div class="yr-label">{{ copy.yourRating }}</div>
+              <div class="yr-stars" [class.saving]="savingRating" [class.yr-stars--locked]="!canRate">
+                @for (star of starsArray(); track star.index) {
+                  <button
+                    class="yr-star"
+                    [class.on]="star.filled"
+                    (mouseenter)="canRate && (hoverRating = star.index)"
+                    (mouseleave)="hoverRating = 0"
+                    (click)="setRating(star.index)"
+                    [disabled]="savingRating || !canRate"
+                  >★</button>
+                }
+              </div>
+            </div>
+            <div class="yr-text-side">
+              @if (!canRate) {
+                <div class="yr-hint">{{ copy.rateOnlyIfRead }}</div>
+              } @else if (displayRating > 0) {
+                <div class="yr-hint">{{ copy.youRatedThis }}</div>
+                <div class="yr-value">{{ displayRating }} {{ copy.outOfFiveStars }}</div>
+                <div class="yr-desc">{{ ratingDescription }}</div>
+              } @else {
+                <div class="yr-hint">{{ copy.tapToRate }}</div>
+              }
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Description -->
-      @if (descriptionText) {
-        <div class="description-section">
-          <h3 class="section-title">{{ copy.aboutBook }}</h3>
-          <p class="description-text">{{ descriptionText }}</p>
-        </div>
-      }
+      <!-- Main body -->
+      <div class="body-grid">
 
-      <!-- Notes & Review (only if book is on shelf) -->
-      @if (userBook) {
-        <div class="content-section">
-          <h3 class="section-title">{{ copy.myNotes }}</h3>
-          <p class="section-hint">{{ copy.notesHint }}</p>
-          <textarea
-            [(ngModel)]="note"
-            class="content-textarea"
-            [placeholder]="copy.notesPlaceholder"
-            rows="4"
-            maxlength="500"
-          ></textarea>
-          <div class="textarea-footer">
-            <span class="char-count" [class.char-count--warn]="note.length > 450">{{ note.length }}/500</span>
-            <button class="btn save-btn" [class.btn-saved]="noteSaved" [class.btn-outline]="!noteSaved" (click)="saveNote()" [disabled]="noteSaving">
-              {{ noteSaved ? copy.saved : noteSaving ? copy.saving : copy.saveNotes }}
-            </button>
+        <!-- About -->
+        @if (descriptionText) {
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">{{ copy.aboutBook }}</div>
+            </div>
+            <div class="card-body">
+              <div class="about-text">{{ descriptionText }}</div>
+            </div>
           </div>
-        </div>
+        }
 
-        <div class="content-section">
-          <h3 class="section-title">{{ copy.myReview }}</h3>
-          <p class="section-hint">{{ copy.reviewHint }}</p>
-
-          @if (savedReview && !editingReview) {
-            <!-- Posted state -->
-            <div class="review-card own-review-card">
-              <p class="review-text">{{ savedReview }}</p>
-              <button class="btn btn-outline own-review-edit" (click)="startEditReview()">{{ copy.editReview }}</button>
-            </div>
-          } @else {
-            <!-- Editing / first-time state -->
-            <textarea
-              [(ngModel)]="reviewText"
-              class="content-textarea"
-              [placeholder]="copy.reviewPlaceholder"
-              rows="4"
-              maxlength="1000"
-            ></textarea>
-            <div class="textarea-footer">
-              <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }}/1000</span>
-              <div class="own-review-actions">
-                @if (savedReview) {
-                  <button class="btn btn-outline save-btn" (click)="cancelEditReview()" [disabled]="reviewSaving">{{ copy.cancelEdit }}</button>
-                }
-                <button class="btn btn-primary save-btn" (click)="saveReview()" [disabled]="reviewSaving || !reviewText.trim()">
-                  {{ reviewSaving ? copy.saving : (savedReview ? copy.updateReview : copy.postReview) }}
+        <!-- Notes & Review (only if book is on shelf) -->
+        @if (userBook) {
+          <div class="two-col-cards">
+            <div class="note-card">
+              <div class="note-card-title">{{ copy.myNotes }}</div>
+              <div class="note-card-sub">{{ copy.notesHint }}</div>
+              <textarea
+                [(ngModel)]="note"
+                class="note-textarea"
+                [placeholder]="copy.notesPlaceholder"
+                maxlength="500"
+              ></textarea>
+              <div class="note-footer">
+                <span class="char-count" [class.char-count--warn]="note.length > 450">{{ note.length }} / 500</span>
+                <button class="save-btn" [class.save-btn--saved]="noteSaved" (click)="saveNote()" [disabled]="noteSaving">
+                  {{ noteSaved ? copy.saved : noteSaving ? copy.saving : copy.saveNotes }}
                 </button>
               </div>
             </div>
-          }
-        </div>
-      }
 
-      <!-- Community Reviews -->
-      @if (communityReviews.length > 0) {
-        <div class="content-section">
-          <h3 class="section-title">{{ copy.communityReviews }}</h3>
-          @for (review of communityReviews; track review.userId) {
-            <div class="review-card">
-              <div class="review-header">
-                <img
-                  [src]="review.avatarUrl || 'https://ui-avatars.com/api/?name=' + review.userName[0] + '&background=E9783F&color=fff&size=32'"
-                  [alt]="review.userName"
-                  class="review-avatar"
-                  loading="lazy"
-                />
-                <span class="review-name">{{ review.userName }}</span>
-                @if (review.rating) {
-                  <div class="review-stars">
-                    @for (n of starsRange(); track n) {
-                      <svg class="rev-star" [class.rev-star--filled]="n <= review.rating!" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
+            <div class="note-card">
+              <div class="note-card-title">{{ copy.myReview }}</div>
+              <div class="note-card-sub">{{ copy.reviewHint }}</div>
+
+              @if (savedReview && !editingReview) {
+                <!-- Posted state -->
+                <div class="posted-review">
+                  <p class="posted-review-text">{{ savedReview }}</p>
+                  <button class="save-btn save-btn--outline" (click)="startEditReview()">{{ copy.editReview }}</button>
+                </div>
+              } @else {
+                <!-- Editing / first-time state -->
+                <textarea
+                  [(ngModel)]="reviewText"
+                  class="note-textarea"
+                  [placeholder]="copy.reviewPlaceholder"
+                  maxlength="1000"
+                ></textarea>
+                <div class="note-footer">
+                  <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }} / 1000</span>
+                  <div class="review-edit-actions">
+                    @if (savedReview) {
+                      <button class="save-btn save-btn--outline" (click)="cancelEditReview()" [disabled]="reviewSaving">{{ copy.cancelEdit }}</button>
                     }
+                    <button class="save-btn" (click)="saveReview()" [disabled]="reviewSaving || !reviewText.trim()">
+                      {{ reviewSaving ? copy.saving : (savedReview ? copy.updateReview : copy.postReview) }}
+                    </button>
                   </div>
-                }
-              </div>
-              <p class="review-text">{{ review.reviewText }}</p>
-              <div class="review-actions">
-                <button
-                  class="review-react"
-                  [class.review-react--liked]="review.myReaction === 'like'"
-                  [disabled]="review.reactionSaving"
-                  [attr.aria-label]="copy.likeReview"
-                  (click)="toggleReviewReaction(review, true)"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-                  </svg>
-                  @if (review.likeCount > 0) { <span>{{ review.likeCount }}</span> }
-                </button>
-                <button
-                  class="review-react"
-                  [class.review-react--disliked]="review.myReaction === 'dislike'"
-                  [disabled]="review.reactionSaving"
-                  [attr.aria-label]="copy.dislikeReview"
-                  (click)="toggleReviewReaction(review, false)"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
-                  </svg>
-                  @if (review.dislikeCount > 0) { <span>{{ review.dislikeCount }}</span> }
-                </button>
-              </div>
+                </div>
+              }
             </div>
-          }
-        </div>
-      }
+          </div>
+        }
 
+        <!-- Community Reviews -->
+        @if (communityReviews.length > 0) {
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">{{ copy.communityReviews }}</div>
+              <div class="card-sub">{{ copy.communityReviewsSubtitle }}</div>
+            </div>
+            <div class="card-body">
+              @for (review of communityReviews; track review.userId) {
+                <div class="review-item">
+                  <div class="review-header">
+                    <img
+                      [src]="review.avatarUrl || 'https://ui-avatars.com/api/?name=' + review.userName[0] + '&background=E9783F&color=fff&size=72'"
+                      [alt]="review.userName"
+                      class="r-avatar"
+                      loading="lazy"
+                    />
+                    <div class="r-meta">
+                      <div class="r-name-row">
+                        <span class="r-name">{{ review.userName }}</span>
+                      </div>
+                      @if (review.rating) {
+                        <div class="r-stars-row">
+                          @for (n of starsRange(); track n) {
+                            <span class="r-star" [class.e]="n > review.rating!">★</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  <p class="r-text">{{ review.reviewText }}</p>
+                  <div class="r-actions">
+                    <button
+                      class="r-action"
+                      [class.r-action--liked]="review.myReaction === 'like'"
+                      [disabled]="review.reactionSaving"
+                      [attr.aria-label]="copy.likeReview"
+                      (click)="toggleReviewReaction(review, true)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                      </svg>
+                      {{ copy.likeReview }}@if (review.likeCount > 0) { · {{ review.likeCount }}}
+                    </button>
+                    <button
+                      class="r-action"
+                      [class.r-action--disliked]="review.myReaction === 'dislike'"
+                      [disabled]="review.reactionSaving"
+                      [attr.aria-label]="copy.dislikeReview"
+                      (click)="toggleReviewReaction(review, false)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+                      </svg>
+                      {{ copy.dislikeReview }}@if (review.dislikeCount > 0) { · {{ review.dislikeCount }}}
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
     </div>
   }
 

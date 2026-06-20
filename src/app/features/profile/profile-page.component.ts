@@ -18,6 +18,7 @@ import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { timeAgo } from '../../core/util/time-ago';
 import { TranslationService, PROFILE_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TopNavComponent } from '../home/components/top-nav.component';
 
 interface ProfileBook {
   userBookId: number;
@@ -31,7 +32,7 @@ interface ProfileBook {
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [RouterLink, FormsModule, GenreNamePipe],
+  imports: [RouterLink, FormsModule, GenreNamePipe, TopNavComponent],
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.scss',
 })

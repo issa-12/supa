@@ -9,7 +9,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
   <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-96x96.png">
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-  <!-- PT Serif is self-hosted (see @font-face in styles.scss) — no external font CDN. -->
+  <!-- PT Serif is self-hosted (see @font-face in styles.scss). Lora + Inter (Google Fonts)
+       power the book-detail reference design; allowed in nginx.conf CSP. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script>
   <!-- PWA manifest disabled along with the service worker (see app.config.ts).
        Re-enable both together when serving over a trusted cert. -->

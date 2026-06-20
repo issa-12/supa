@@ -29,8 +29,9 @@ interface BookSearchResult {
       @if (currentUserId) {
         <div #composeCard class="compose-card" [class.compose-card--expanded]="composeOpen">
 
+          <!-- Input row -->
           @if (!composeOpen) {
-            <button class="compose-trigger" (click)="openCompose()">
+            <button class="compose-input-row" (click)="openCompose()">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
                   <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
@@ -41,7 +42,14 @@ interface BookSearchResult {
               <span class="compose-placeholder">{{ copy.composePlaceholder }}</span>
             </button>
           } @else {
-            <div class="compose-form">
+            <div class="compose-input-row compose-input-row--open">
+              <div class="compose-avatar">
+                @if (currentUserAvatar) {
+                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+                } @else {
+                  <span>{{ currentUserInitial }}</span>
+                }
+              </div>
               <textarea
                 #composeTextarea
                 class="compose-textarea"
@@ -49,71 +57,82 @@ interface BookSearchResult {
                 [placeholder]="copy.composeTextareaPlaceholder"
                 rows="3"
               ></textarea>
-
-              <!-- Book picker -->
-              <div class="book-picker">
-                @if (selectedBook) {
-                  <div class="selected-book">
-                    @if (selectedBook.coverUrl) {
-                      <img [src]="selectedBook.coverUrl" [alt]="selectedBook.title" class="selected-book-cover" loading="lazy" />
-                    }
-                    <div class="selected-book-info">
-                      <span class="selected-book-title">{{ selectedBook.title }}</span>
-                      <span class="selected-book-author">{{ selectedBook.author }}</span>
-                    </div>
-                    <button class="clear-book" (click)="clearBook()" aria-label="Remove book">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                      </svg>
-                    </button>
-                  </div>
-                } @else {
-                  <div class="book-search-bar">
-                    <svg class="book-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
-                    <input
-                      class="book-search-input"
-                      type="text"
-                      [placeholder]="copy.bookSearchPlaceholder"
-                      [(ngModel)]="bookQuery"
-                      (ngModelChange)="onBookQueryChange()"
-                    />
-                  </div>
-                  @if (bookResults.length > 0) {
-                    <ul class="book-results">
-                      @for (b of bookResults; track b.googleId) {
-                        <li class="book-result-item" (click)="selectBook(b)">
-                          @if (b.coverUrl) {
-                            <img [src]="b.coverUrl" [alt]="b.title" class="book-result-cover" loading="lazy" />
-                          }
-                          <div>
-                            <p class="book-result-title">{{ b.title }}</p>
-                            <p class="book-result-author">{{ b.author }}</p>
-                          </div>
-                        </li>
-                      }
-                    </ul>
-                  }
-                }
-              </div>
-
-              @if (postError) {
-                <p class="compose-error">{{ postError }}</p>
-              }
-
-              <div class="compose-actions">
-                <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelBtn }}</button>
-                <button
-                  class="btn-post"
-                  [disabled]="!canPost || submitting"
-                  (click)="submitPost()"
-                >
-                  {{ submitting ? copy.postingBtn : copy.postBtn }}
-                </button>
-              </div>
             </div>
+
+            <!-- Book picker -->
+            <div class="book-picker">
+              @if (selectedBook) {
+                <div class="selected-book">
+                  @if (selectedBook.coverUrl) {
+                    <img [src]="selectedBook.coverUrl" [alt]="selectedBook.title" class="selected-book-cover" loading="lazy" />
+                  }
+                  <div class="selected-book-info">
+                    <span class="selected-book-title">{{ selectedBook.title }}</span>
+                    <span class="selected-book-author">{{ selectedBook.author }}</span>
+                  </div>
+                  <button class="clear-book" (click)="clearBook()" aria-label="Remove book">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              } @else {
+                <div class="book-search-bar">
+                  <svg class="book-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                  <input
+                    class="book-search-input"
+                    type="text"
+                    [placeholder]="copy.bookSearchPlaceholder"
+                    [(ngModel)]="bookQuery"
+                    (ngModelChange)="onBookQueryChange()"
+                  />
+                </div>
+                @if (bookResults.length > 0) {
+                  <ul class="book-results">
+                    @for (b of bookResults; track b.googleId) {
+                      <li class="book-result-item" (click)="selectBook(b)">
+                        @if (b.coverUrl) {
+                          <img [src]="b.coverUrl" [alt]="b.title" class="book-result-cover" loading="lazy" />
+                        }
+                        <div>
+                          <p class="book-result-title">{{ b.title }}</p>
+                          <p class="book-result-author">{{ b.author }}</p>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+            </div>
+
+            @if (postError) {
+              <p class="compose-error">{{ postError }}</p>
+            }
           }
+
+          <!-- Bottom row — always visible -->
+          <div class="compose-bottom">
+            @if (composeOpen) {
+              <button class="btn-cancel" (click)="closeCompose()">{{ copy.cancelBtn }}</button>
+              <button
+                class="btn-post"
+                [disabled]="!canPost || submitting"
+                (click)="submitPost()"
+              >
+                {{ submitting ? copy.postingBtn : copy.postBtn }}
+              </button>
+            } @else {
+              <button class="tag-book-pill" type="button" (click)="openCompose()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                {{ copy.tagBookBtn }}
+              </button>
+              <button class="btn-post" (click)="openCompose()">{{ copy.postBtn }}</button>
+            }
+          </div>
         </div>
       }
 
@@ -152,11 +171,9 @@ interface BookSearchResult {
                       <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
                     }
                   </div>
-                  <div class="post-meta">
-                    <span class="post-author">{{ post.userName }}</span>
-                    <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
-                  </div>
+                  <span class="post-author">{{ post.userName }}</span>
                 </a>
+                <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
                 @if (post.userId === currentUserId) {
                   <button class="post-delete" (click)="deletePost(post)" aria-label="Delete post">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -215,42 +232,52 @@ interface BookSearchResult {
     </div>
   `,
   styles: [`
-    :host { display: contents; }
+    :host {
+      display: contents;
+      --ui-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --display-serif: 'PT Serif', Georgia, 'Times New Roman', serif;
+    }
 
     .feed-col {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
+      font-family: var(--ui-sans);
     }
 
     // ── Compose card ──────────────────────────────────────────
 
+    // White "invitation" card: clear boundary so users know this is the composer.
     .compose-card {
-      background: var(--surface);
-      border-radius: 16px;
-      border: 1px solid transparent;
-       overflow: hidden;
-
-      &--expanded {  }
+      background: #fff;
+      border-radius: 14px;
+      border: 0.5px solid rgba(100, 70, 50, 0.2);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .compose-trigger {
+    .compose-input-row {
       width: 100%;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
+      gap: 10px;
       background: none;
       border: none;
       cursor: pointer;
       text-align: left;
+      padding: 0;
+      font-family: inherit;
 
       &:hover .compose-placeholder { color: var(--foreground); }
+
+      &--open { align-items: flex-start; cursor: default; }
     }
 
     .compose-avatar {
-      width: 36px;
-      height: 36px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
@@ -260,27 +287,20 @@ interface BookSearchResult {
       justify-content: center;
 
       img { width: 100%; height: 100%; object-fit: cover; }
-      span { color: #fff; font-size: 14px; font-weight: 700; }
+      span { color: #fff; font-size: 13px; font-weight: 700; }
     }
 
     .compose-placeholder {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--muted-foreground);
       transition: color 0.15s;
     }
 
-    .compose-form {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 16px;
-    }
-
     .compose-textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
+      flex: 1;
+      min-width: 0;
+      padding: 4px 0;
+      border: none;
       background: transparent;
       font-size: 14px;
       color: var(--foreground);
@@ -289,8 +309,34 @@ interface BookSearchResult {
       font-family: inherit;
       box-sizing: border-box;
 
-      &:focus { border-color: var(--primary);  }
       &::placeholder { color: var(--muted-foreground); }
+    }
+
+    .compose-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .tag-book-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-inline-end: auto;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+      svg { flex-shrink: 0; }
+      &:hover { color: var(--primary); border-color: rgba(217, 119, 87, 0.4); background: var(--primary-soft); }
     }
 
     .book-picker { display: flex; flex-direction: column; gap: 8px; }
@@ -422,59 +468,60 @@ interface BookSearchResult {
       margin: 0 0 10px;
     }
 
-    .compose-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
     .btn-cancel {
-      padding: 8px 16px;
-      border-radius: 999px;
+      padding: 9px 18px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       background: transparent;
       font-size: 13px;
       font-weight: 600;
       color: var(--muted-foreground);
       cursor: pointer;
+      font-family: inherit;
 
-      &:hover { background: var(--border); }
+      &:hover { background: var(--surface-alt); }
     }
 
     .btn-post {
-      padding: 8px 20px;
-      border-radius: 999px;
+      padding: 9px 20px;
+      border-radius: 10px;
       border: none;
       background: var(--primary);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       color: #fff;
       cursor: pointer;
-      transition: opacity 0.2s;
+      font-family: inherit;
+      transition: background 0.2s, opacity 0.2s;
 
       &:disabled { opacity: 0.45; cursor: not-allowed; }
-      &:not(:disabled):hover { opacity: 0.9; }
+      &:not(:disabled):hover { background: var(--accent); }
     }
 
     // ── Feed ──────────────────────────────────────────────────
 
-    .feed-header { display: flex; align-items: center; }
+    .feed-header {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
 
-    .feed-tabs { display: flex; gap: 4px; }
+    .feed-tabs { display: flex; gap: 0; }
 
     .feed-tab {
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border: none;
+      border-bottom: 2px solid transparent;
       background: transparent;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--muted-foreground);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: color 0.15s, border-color 0.15s;
+      margin-bottom: -1px;
 
-      &:hover { border-color: var(--primary); color: var(--foreground); }
-      &--active { background: var(--primary); border-color: var(--primary); color: #fff; }
+      &:hover { color: var(--foreground); }
+      &--active { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); }
     }
 
     .feed-state {
@@ -502,22 +549,30 @@ interface BookSearchResult {
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .posts-list { display: flex; flex-direction: column; gap: 16px; }
+    .posts-list { display: flex; flex-direction: column; }
 
     .post-card {
-      background: var(--surface);
-      border-radius: 16px;
-      border: 1px solid transparent;
-       padding: 16px;
+      background: transparent;
+      border-bottom: 1px solid var(--border);
+      // Transparent accent rail by default → terracotta on hover (no layout shift).
+      border-left: 2px solid transparent;
+      padding: 16px 2px 16px 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      transition: border-left-color 0.15s, background 0.15s;
+
+      &:last-child { border-bottom: none; }
+      &:hover {
+        border-left-color: rgba(193, 85, 58, 0.25);
+        background: rgba(193, 85, 58, 0.02);
+      }
     }
 
     .post-header {
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
     .post-author-link {
@@ -525,6 +580,7 @@ interface BookSearchResult {
       align-items: center;
       gap: 10px;
       text-decoration: none;
+      min-width: 0;
 
       &:hover .post-author { color: var(--primary); }
     }
@@ -544,16 +600,22 @@ interface BookSearchResult {
       span { color: #fff; font-size: 14px; font-weight: 700; }
     }
 
-    .post-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-
     .post-author {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 600;
       color: var(--foreground);
       transition: color 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .post-time { font-size: 12px; color: var(--muted-foreground); }
+    .post-time {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      margin-inline-start: auto;
+      flex-shrink: 0;
+    }
 
     .post-delete {
       background: none;
@@ -571,12 +633,15 @@ interface BookSearchResult {
     }
 
     .post-content {
+      font-family: var(--display-serif);
+      font-style: italic;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.55;
       color: var(--foreground);
       margin: 0;
       white-space: pre-wrap;
       word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .post-tags {
@@ -599,12 +664,12 @@ interface BookSearchResult {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 12px;
-      background: var(--border);
-      border-radius: 10px;
+      padding: 9px 11px;
+      background: #F5EFE6;
+      border-radius: 9px;
       border: 1px solid var(--border);
       text-decoration: none;
-      transition: background 0.15s;
+      transition: background 0.15s, border-color 0.15s;
 
       &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); }
     }
@@ -626,7 +691,13 @@ interface BookSearchResult {
       text-overflow: ellipsis;
     }
 
-    .post-footer { display: flex; align-items: center; gap: 8px; }
+    .post-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-top: 0.5px solid rgba(100, 70, 50, 0.08);
+      padding-top: 8px;
+    }
 
     .action-btn {
       display: flex;
@@ -640,11 +711,13 @@ interface BookSearchResult {
       cursor: pointer;
       padding: 4px 8px;
       border-radius: 8px;
-      transition: all 0.15s;
+      transition: background 0.15s, color 0.15s;
 
-      svg { flex-shrink: 0; }
-      &:hover { background: var(--border); color: var(--foreground); }
-      &--liked { color: #e74c3c; }
+      svg { flex-shrink: 0; transition: transform 0.15s ease; }
+      &:hover { background: var(--surface-alt); color: var(--foreground); }
+      // Liked: terracotta fill + a small pop when it becomes active.
+      &--liked { color: #C1553A; }
+      &--liked svg { transform: scale(1.15); }
       &--active { color: var(--primary); }
     }
 
