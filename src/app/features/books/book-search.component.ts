@@ -6,6 +6,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, GoogleBook } from '../../core/services/book.service';
 import { TranslationService, BOOK_SEARCH_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TopNavComponent } from '../home/components/top-nav.component';
 
 interface ShelfStatus {
   id: number;
@@ -23,7 +24,7 @@ const SHELF_STATUS_DEFS: Array<{ name: string; label: string; icon: string }> = 
 @Component({
   selector: 'app-book-search',
   standalone: true,
-  imports: [RouterLink, FormsModule, SlicePipe],
+  imports: [RouterLink, FormsModule, SlicePipe, TopNavComponent],
   templateUrl: './book-search.component.html',
   styleUrl: './book-search.component.scss',
 })

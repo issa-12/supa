@@ -10,6 +10,7 @@ import { LikesService } from '../../core/services/likes.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { TranslationService, BOOK_DETAIL_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TopNavComponent } from '../home/components/top-nav.component';
 
 interface RatingBucket {
   star: number;
@@ -45,7 +46,7 @@ const SHELF_STATUSES = [
 @Component({
   selector: 'app-book-detail',
   standalone: true,
-  imports: [RouterLink, FormsModule, GenreNamePipe],
+  imports: [RouterLink, FormsModule, GenreNamePipe, TopNavComponent],
   templateUrl: './book-detail.component.html',
   styleUrl: './book-detail.component.scss',
 })
@@ -150,6 +151,23 @@ export class BookDetailComponent implements OnInit {
     return this.hoverRating || this.userBook?.rating || 0;
   }
 
+  // Rating is only allowed once the book is marked "Already Read".
+  get canRate(): boolean {
+    return this.userBook?.status?.name === 'read';
+  }
+
+  // Short blurb for the Your Rating card, keyed off the current (hover or saved) rating.
+  get ratingDescription(): string {
+    const descs = [
+      this.copy.ratingDesc1,
+      this.copy.ratingDesc2,
+      this.copy.ratingDesc3,
+      this.copy.ratingDesc4,
+      this.copy.ratingDesc5,
+    ];
+    return descs[this.displayRating - 1] ?? '';
+  }
+
   starsArray(): Array<{ index: number; filled: boolean }> {
     return [1, 2, 3, 4, 5].map((n) => ({
       index: n,
@@ -164,7 +182,7 @@ export class BookDetailComponent implements OnInit {
   }
 
   async setRating(rating: number): Promise<void> {
-    if (!this.userBook || this.savingRating) return;
+    if (!this.userBook || this.savingRating || !this.canRate) return;
     this.savingRating = true;
 
     try {

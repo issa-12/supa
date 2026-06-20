@@ -7,6 +7,7 @@ import { BookService, UserBook } from '../../core/services/book.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { TranslationService, SHELF_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TopNavComponent } from '../home/components/top-nav.component';
 
 interface ShelfSection {
   statusName: string;
@@ -24,7 +25,7 @@ const STATUS_ORDER: Record<string, number> = {
 @Component({
   selector: 'app-shelf',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TopNavComponent],
   templateUrl: './shelf.component.html',
   styleUrl: './shelf.component.scss',
 })

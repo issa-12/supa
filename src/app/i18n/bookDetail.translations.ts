@@ -3,6 +3,8 @@ import { LanguageCode } from './language.model';
 export interface BookDetailCopy {
   title: string;
   myShelf: string;
+  breadcrumbHome: string;
+  breadcrumbBooks: string;
   loadingBook: string;
   goBack: string;
   bookNotFound: string;
@@ -11,6 +13,15 @@ export interface BookDetailCopy {
   pagesUnit: string;
   byAuthor: string;
   yourRating: string;
+  youRatedThis: string;
+  tapToRate: string;
+  rateOnlyIfRead: string;
+  outOfFiveStars: string;
+  ratingDesc1: string;
+  ratingDesc2: string;
+  ratingDesc3: string;
+  ratingDesc4: string;
+  ratingDesc5: string;
   ratingUnit: string;
   ratingsUnit: string;
   recommendToFriend: string;
@@ -41,6 +52,7 @@ export interface BookDetailCopy {
   editReview: string;
   cancelEdit: string;
   communityReviews: string;
+  communityReviewsSubtitle: string;
   likeReview: string;
   dislikeReview: string;
   confirmRemove: string;
@@ -53,6 +65,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
   en: {
     title: 'Book Details',
     myShelf: 'My Shelf',
+    breadcrumbHome: 'Home',
+    breadcrumbBooks: 'Books',
     loadingBook: 'Loading book…',
     goBack: 'Go back',
     bookNotFound: 'Book not found.',
@@ -61,6 +75,15 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     pagesUnit: 'pages',
     byAuthor: 'by',
     yourRating: 'Your Rating',
+    youRatedThis: 'You rated this book',
+    tapToRate: 'Tap a star to rate',
+    rateOnlyIfRead: 'Mark as Already Read to rate this book',
+    outOfFiveStars: 'out of 5 stars',
+    ratingDesc1: 'Not for me',
+    ratingDesc2: 'It was okay',
+    ratingDesc3: 'I liked it',
+    ratingDesc4: 'Really liked it',
+    ratingDesc5: 'It was amazing',
     ratingUnit: 'rating',
     ratingsUnit: 'ratings',
     recommendToFriend: 'Recommend to Friend',
@@ -91,6 +114,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     editReview: 'Edit',
     cancelEdit: 'Cancel',
     communityReviews: 'Community Reviews',
+    communityReviewsSubtitle: 'What readers are saying',
     likeReview: 'Helpful',
     dislikeReview: 'Not helpful',
     confirmRemove: 'Remove this book from your shelf?',
@@ -101,6 +125,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
   ar: {
     title: 'تفاصيل الكتاب',
     myShelf: 'رفي الخاص',
+    breadcrumbHome: 'الرئيسية',
+    breadcrumbBooks: 'الكتب',
     loadingBook: 'جاري تحميل الكتاب…',
     goBack: 'العودة',
     bookNotFound: 'الكتاب غير موجود.',
@@ -109,6 +135,15 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     pagesUnit: 'صفحة',
     byAuthor: 'بقلم',
     yourRating: 'تقييمك',
+    youRatedThis: 'لقد قيّمت هذا الكتاب',
+    tapToRate: 'انقر على نجمة للتقييم',
+    rateOnlyIfRead: 'ضع علامة "تمت قراءته" لتقييم هذا الكتاب',
+    outOfFiveStars: 'من 5 نجوم',
+    ratingDesc1: 'ليس لي',
+    ratingDesc2: 'كان لا بأس به',
+    ratingDesc3: 'أعجبني',
+    ratingDesc4: 'أعجبني كثيراً',
+    ratingDesc5: 'كان رائعاً',
     ratingUnit: 'تقييم',
     ratingsUnit: 'تقييمات',
     recommendToFriend: 'أوصي به لصديق',
@@ -139,6 +174,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     editReview: 'تعديل',
     cancelEdit: 'إلغاء',
     communityReviews: 'تقييمات المجتمع',
+    communityReviewsSubtitle: 'ماذا يقول القرّاء',
     likeReview: 'مفيد',
     dislikeReview: 'غير مفيد',
     confirmRemove: 'إزالة هذا الكتاب من رفك؟',
@@ -149,6 +185,8 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
   fr: {
     title: 'Détails du livre',
     myShelf: 'Ma Bibliothèque',
+    breadcrumbHome: 'Accueil',
+    breadcrumbBooks: 'Livres',
     loadingBook: 'Chargement du livre…',
     goBack: 'Retour',
     bookNotFound: 'Livre introuvable.',
@@ -157,6 +195,15 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     pagesUnit: 'pages',
     byAuthor: 'par',
     yourRating: 'Votre note',
+    youRatedThis: 'Vous avez noté ce livre',
+    tapToRate: 'Touchez une étoile pour noter',
+    rateOnlyIfRead: 'Marquez comme « Déjà lu » pour noter ce livre',
+    outOfFiveStars: 'sur 5 étoiles',
+    ratingDesc1: 'Pas pour moi',
+    ratingDesc2: 'C\'était correct',
+    ratingDesc3: 'Je l\'ai aimé',
+    ratingDesc4: 'Je l\'ai beaucoup aimé',
+    ratingDesc5: 'C\'était formidable',
     ratingUnit: 'évaluation',
     ratingsUnit: 'évaluations',
     recommendToFriend: 'Recommander à un ami',
@@ -187,6 +234,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     editReview: 'Modifier',
     cancelEdit: 'Annuler',
     communityReviews: 'Avis de la communauté',
+    communityReviewsSubtitle: 'Ce que disent les lecteurs',
     likeReview: 'Utile',
     dislikeReview: 'Pas utile',
     confirmRemove: 'Supprimer ce livre de votre bibliothèque ?',
