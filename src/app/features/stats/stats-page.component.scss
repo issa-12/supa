@@ -259,6 +259,15 @@
   font-weight: 700;
 }
 
+.date-range-slider__selected {
+  margin-bottom: 3px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  text-align: center;
+
+  strong { color: var(--primary); }
+}
+
 .date-range-slider__track {
   position: relative;
   height: 24px;
@@ -361,22 +370,32 @@
 }
 
 .board-meta {
+  position: relative;
+  min-height: 34px;
   justify-content: space-between;
   gap: 16px;
   margin: 0 2px 16px;
   color: var(--muted-foreground);
   font-size: 12px;
 
-  > div:first-child {
-    display: flex;
-    gap: 10px;
-    align-items: baseline;
+  &::before {
+    content: '';
+    width: 34px;
   }
+}
 
-  strong { color: var(--foreground); font-size: 14px; }
+.board-date {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .refresh-meta {
+  margin-left: auto;
   gap: 8px;
 
   button {
@@ -437,6 +456,31 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.visual-section-heading {
+  margin: 4px 2px 16px;
+
+  > span {
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 4px 0;
+    color: var(--foreground);
+    font-size: 24px;
+    letter-spacing: -0.03em;
+  }
+
+  p {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 13px;
+  }
 }
 
 .summary-card {
@@ -665,7 +709,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 
-  &--personal { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  &--personal { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .activity-metric {
@@ -834,7 +878,7 @@
   .filter-panel { grid-template-columns: minmax(390px, 1.4fr) repeat(2, minmax(120px, 0.75fr)) auto; }
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .activity-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .activity-overview--personal { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .activity-overview--personal { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {

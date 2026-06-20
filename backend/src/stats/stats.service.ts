@@ -180,7 +180,9 @@ export class StatsService {
       .map((row) => row.rating)
       .filter((rating): rating is number => rating !== null);
     const completedRows = rows.filter((row) => row.status === 'read');
-    const availableFrom = earliestActivityDate(rows);
+    // Date bounds are global and stable. Switching My Data / Friends / All
+    // must not move the custom-date slider or rewrite the selected range.
+    const availableFrom = await this.getAnalyticsStartDate();
     const communityInsights = await this.getCommunityInsights(
       scopedUserIds,
       filters,
@@ -264,6 +266,36 @@ export class StatsService {
         ? (friendship['user_id2'] as string)
         : (friendship['user_id1'] as string),
     );
+  }
+
+  private async getAnalyticsStartDate(): Promise<string | null> {
+    const admin = this.supabase.getAdmin();
+    const sources = [
+      { table: 'user_books', column: 'added_at' },
+      { table: 'posts', column: 'created_at' },
+      { table: 'comments', column: 'created_at' },
+      { table: 'post_likes', column: 'created_at' },
+      { table: 'comment_likes', column: 'created_at' },
+      { table: 'review_likes', column: 'created_at' },
+    ] as const;
+
+    const results = await Promise.all(
+      sources.map(({ table, column }) =>
+        admin.from(table).select(column).not(column, 'is', null).order(column).limit(1),
+      ),
+    );
+
+    const dates: string[] = [];
+    results.forEach((result, index) => {
+      if (result.error) {
+        throw new InternalServerErrorException(result.error.message);
+      }
+      const value = result.data?.[0]?.[sources[index].column];
+      if (typeof value === 'string') dates.push(value);
+    });
+    return dates.length
+      ? dates.reduce((earliest, date) => (date < earliest ? date : earliest))
+      : null;
   }
 
   private async getShelfRows(
@@ -748,14 +780,6 @@ function buildTopReaders(
       avatarUrl: profiles.get(userId)?.avatarUrl ?? null,
       booksRead,
     }));
-}
-
-function earliestActivityDate(rows: ShelfRow[]): string | null {
-  if (!rows.length) return null;
-  return rows.reduce(
-    (earliest, row) => (row.activityAt < earliest ? row.activityAt : earliest),
-    rows[0].activityAt,
-  );
 }
 
 function emptyCommunityInsights() {

@@ -9,11 +9,10 @@
         </a>
         <div>
           <h1 class="page-title">Analytics dashboard</h1>
-          <p class="page-subtitle">Explore reading activity, ratings, and community trends.</p>
         </div>
       </div>
 
-      <details class="download-menu">
+      <details #downloadMenu class="download-menu">
         <summary class="button button--primary">
           <iconify-icon icon="lucide:download"></iconify-icon>
           Download data
@@ -51,7 +50,6 @@
             <option value="lifetime">All time</option>
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
-            <option value="1y">Last year</option>
             <option value="custom">Custom dates</option>
           </select>
         </div>
@@ -87,9 +85,12 @@
           </div>
 
           <div class="date-range-slider">
+            <div class="date-range-slider__selected">
+              Viewing <strong>{{ from }}</strong> to <strong>{{ to }}</strong>
+            </div>
             <div class="date-range-slider__labels">
-              <span>{{ minimumDate }}</span>
-              <span>{{ maximumDate }}</span>
+              <span>Earliest: {{ minimumDate }}</span>
+              <span>Latest: {{ maximumDate }}</span>
             </div>
             <div class="date-range-slider__track">
               <span
@@ -158,10 +159,7 @@
         </div>
       }
       <div class="board-meta">
-        <div>
-          <strong>{{ currentScopeLabel }}</strong>
-          <span>{{ currentDateLabel }}</span>
-        </div>
+        <span class="board-date">{{ currentDateLabel }}</span>
         <div class="refresh-meta" data-export-hide>
           @if (lastUpdated) {
             <span>Updated {{ lastUpdated | date:'shortTime' }}</span>
@@ -182,6 +180,10 @@
           <p>Loading analytics…</p>
         </div>
       } @else if (dashboard) {
+        <section class="visual-section-heading">
+          <h2>Reading and rating</h2>
+        </section>
+
         <section class="summary-grid" aria-label="Analytics summary">
           <article class="summary-card">
             <span class="summary-icon coral"><iconify-icon icon="lucide:library"></iconify-icon></span>
@@ -326,9 +328,7 @@
 
           <div class="insight-section-heading">
             <div>
-              <span>Activity signals</span>
               <h2>Conversation and engagement</h2>
-              <p>Calculated from recorded posts, comments, reactions, reviews, and ratings.</p>
             </div>
           </div>
 
@@ -351,14 +351,12 @@
               </span>
               <div><strong>{{ dashboard.communitySummary.reactions }}</strong><span>Reactions</span></div>
             </div>
-            @if (showComparativeInsights) {
             <div class="activity-metric">
               <span class="activity-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="m14 7 3 3-5 5-4 1 1-4z"/></svg>
               </span>
               <div><strong>{{ dashboard.communitySummary.reviews }}</strong><span>Book reviews</span></div>
             </div>
-            }
           </article>
 
           <article class="stat-card metric-list-card">

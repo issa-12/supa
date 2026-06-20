@@ -4,6 +4,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   DestroyRef,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -23,7 +24,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type StatsScope = 'personal' | 'friends' | 'community';
 type StatsStatus = 'all' | 'read' | 'currently_reading' | 'want_to_read';
-type DateRange = 'lifetime' | '7d' | '30d' | '1y' | 'custom';
+type DateRange = 'lifetime' | '7d' | '30d' | 'custom';
 
 interface AnalyticsBucket {
   key: string;
@@ -135,6 +136,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild('dashboardBoard') dashboardBoard?: ElementRef<HTMLElement>;
+  @ViewChild('downloadMenu') downloadMenu?: ElementRef<HTMLDetailsElement>;
   @ViewChild('timelineCanvas') timelineCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('statusCanvas') statusCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('ratingCanvas') ratingCanvas?: ElementRef<HTMLCanvasElement>;
@@ -182,8 +184,17 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.dateRange === '7d') return 'Last 7 days';
     if (this.dateRange === '30d') return 'Last 30 days';
-    if (this.dateRange === '1y') return 'Last year';
     return this.from && this.to ? `${this.from} → ${this.to}` : 'Custom dates';
+  }
+
+  get overviewDescription(): string {
+    const scopeLabel =
+      this.scope === 'personal'
+        ? 'your reading data'
+        : this.scope === 'friends'
+          ? 'your friends’ reading data'
+          : 'all public reading data';
+    return `Summary and visual trends for ${scopeLabel} during ${this.currentDateLabel.toLowerCase()}.`;
   }
 
   get showComparativeInsights(): boolean {
@@ -247,6 +258,14 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroyCharts();
   }
 
+  @HostListener('document:click', ['$event'])
+  closeDownloadMenuOnOutsideClick(event: MouseEvent): void {
+    const menu = this.downloadMenu?.nativeElement;
+    if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) {
+      menu.open = false;
+    }
+  }
+
   onDateRangeChange(range: DateRange): void {
     this.dateRange = range;
     if (range === 'custom') {
@@ -266,7 +285,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.scheduleFilterRefresh();
       return;
     }
-    const days = range === '7d' ? 7 : range === '30d' ? 30 : 365;
+    const days = range === '7d' ? 7 : 30;
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - (days - 1));
