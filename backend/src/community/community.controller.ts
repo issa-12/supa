@@ -21,6 +21,7 @@ export class CommunityController {
     @Query('tag') tag: string,
     @Query('page') page: string,
     @Query('trending') trending: string,
+    @Query('scope') scope: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -29,6 +30,7 @@ export class CommunityController {
 
     const parsedPage = Number.parseInt(page ?? '0', 10);
     const safePage = Number.isFinite(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
+    const safeScope = scope === 'friends' || scope === 'mine' ? scope : undefined;
 
     try {
       const posts =
@@ -38,6 +40,8 @@ export class CommunityController {
               userId,
               tag || undefined,
               safePage,
+              20,
+              safeScope,
             );
       return res.json(posts);
     } catch (err) {

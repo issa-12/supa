@@ -16,6 +16,8 @@ export interface CommunityCopy {
   postButton: string;
   posting: string;
   tabAllPosts: string;
+  tabFriends: string;
+  tabMine: string;
   tabTrending: string;
   emptyNoTag: string;
   emptyWithTag: string;
@@ -50,6 +52,8 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     postButton: 'Post',
     posting: 'Posting…',
     tabAllPosts: 'All Posts',
+    tabFriends: 'Friends',
+    tabMine: 'My Posts',
     tabTrending: 'Trending',
     emptyNoTag: 'No posts yet — be the first to share!',
     emptyWithTag: 'No posts tagged #{{ tag }}.',
@@ -82,6 +86,8 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     postButton: 'نشر',
     posting: 'جاري النشر…',
     tabAllPosts: 'جميع المنشورات',
+    tabFriends: 'الأصدقاء',
+    tabMine: 'منشوراتي',
     tabTrending: 'الأكثر شهرة',
     emptyNoTag: 'لا توجد منشورات حتى الآن — كن أول من يشارك!',
     emptyWithTag: 'لا توجد منشورات موسومة #{{ tag }}.',
@@ -114,6 +120,8 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     postButton: 'Publier',
     posting: 'Publication en cours…',
     tabAllPosts: 'Tous les messages',
+    tabFriends: 'Amis',
+    tabMine: 'Mes messages',
     tabTrending: 'Tendance',
     emptyNoTag: 'Aucun message pour le moment — soyez le premier à partager !',
     emptyWithTag: 'Aucun message avec la balise #{{ tag }}.',

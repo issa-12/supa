@@ -179,6 +179,14 @@
       <div class="feed-header">
         <div class="feed-tabs">
           <button class="feed-tab" [class.feed-tab--active]="activeTab === 'all'" (click)="switchTab('all')">{{ copy.tabAllPosts }}</button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'friends'" (click)="switchTab('friends')">
+            <iconify-icon icon="lucide:users" style="font-size:13px"></iconify-icon>
+            {{ copy.tabFriends }}
+          </button>
+          <button class="feed-tab" [class.feed-tab--active]="activeTab === 'mine'" (click)="switchTab('mine')">
+            <iconify-icon icon="lucide:user" style="font-size:13px"></iconify-icon>
+            {{ copy.tabMine }}
+          </button>
           <button class="feed-tab" [class.feed-tab--active]="activeTab === 'trending'" (click)="switchTab('trending')">
             <iconify-icon icon="lucide:flame" style="font-size:13px"></iconify-icon>
             {{ copy.tabTrending }}
