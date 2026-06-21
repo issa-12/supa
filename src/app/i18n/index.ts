@@ -14,6 +14,7 @@ export * from './bookSearch.translations';
 export * from './bookDetail.translations';
 export * from './stats.translations';
 export * from './community.translations';
+export * from './apiKeys.translations';
 export * from './onboarding.translations';
 export * from './language.model';
 export * from './languages';

@@ -9,10 +9,11 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
 import { StatsModule } from './stats/stats.module';
 import { CommunityModule } from './community/community.module';
 import { ReportsModule } from './reports/reports.module';
+import { PublicApiModule } from './public-api/public-api.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
-  imports: [SupabaseModule, AuthModule, BooksModule, FriendsModule, NotificationsModule, RecommendationsModule, StatsModule, CommunityModule, ReportsModule],
+  imports: [SupabaseModule, AuthModule, BooksModule, FriendsModule, NotificationsModule, RecommendationsModule, StatsModule, CommunityModule, ReportsModule, PublicApiModule],
   controllers: [HealthController],
 })
 export class AppModule implements NestModule {

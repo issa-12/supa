@@ -1,8 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { SupabaseService } from '../../core/services/supabase.service';
+import { SupabaseService, RealtimeSubscription } from '../../core/services/supabase.service';
 import { BookService, UserBook, GoogleBook, CommunityReview } from '../../core/services/book.service';
 import { FriendshipService, FriendUser } from '../../core/services/friendship.service';
 import { RecommendationService } from '../../core/services/recommendation.service';
@@ -50,7 +50,7 @@ const SHELF_STATUSES = [
   templateUrl: './book-detail.component.html',
   styleUrl: './book-detail.component.scss',
 })
-export class BookDetailComponent implements OnInit {
+export class BookDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly supabaseService = inject(SupabaseService);
@@ -104,6 +104,10 @@ export class BookDetailComponent implements OnInit {
   readonly statuses = SHELF_STATUSES;
   private userId: string | null = null;
 
+  private realtimeSubs: RealtimeSubscription[] = [];
+  private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
+
   async ngOnInit(): Promise<void> {
     const googleId = this.route.snapshot.paramMap.get('googleId');
     if (!googleId) { this.error = this.copy.bookNotFound; this.isLoading = false; return; }
@@ -135,12 +139,66 @@ export class BookDetailComponent implements OnInit {
 
       if (this.book.dbBookId) {
         this.loadCommunityReviews(this.book.dbBookId);
+        void this.setupRealtime();
       }
     } catch {
       this.error = this.copy.loadFailed;
     } finally {
       this.isLoading = false;
     }
+  }
+
+  // Live-update the community reviews + rating distribution when anyone reviews
+  // this book or reacts to a review. user_books is filtered to this book; review
+  // reactions carry no book_id so that channel is unfiltered (debounced refetch
+  // keeps the churn to one round-trip per burst).
+  private async setupRealtime(): Promise<void> {
+    if (!this.book?.dbBookId || !this.userId || this.realtimeSubs.length) return;
+    const bookId = this.book.dbBookId;
+    const subs = await Promise.all([
+      this.supabaseService.createRealtimeSubscription('book-reviews', {
+        tables: ['user_books'],
+        filter: `book_id=eq.${bookId}`,
+        onChange: () => this.scheduleReviewRefresh(),
+        onReconnect: () => this.scheduleReviewRefresh(),
+      }),
+      this.supabaseService.createRealtimeSubscription('book-review-likes', {
+        tables: ['review_likes'],
+        onChange: () => this.scheduleReviewRefresh(),
+        onReconnect: () => this.scheduleReviewRefresh(),
+      }),
+    ]);
+    if (this.destroyed) { subs.forEach((s) => void s.teardown()); return; }
+    this.realtimeSubs = subs;
+  }
+
+  private scheduleReviewRefresh(): void {
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    this.realtimeTimer = setTimeout(() => {
+      this.realtimeTimer = null;
+      void this.refreshReviewData();
+    }, 700);
+  }
+
+  // Silently re-pull the community reviews (new/edited reviews + reaction
+  // counts) and the server-computed rating distribution. Leaves the viewer's
+  // own rating/review/note state untouched.
+  private async refreshReviewData(): Promise<void> {
+    if (!this.book?.dbBookId) return;
+    this.loadCommunityReviews(this.book.dbBookId);
+    try {
+      const res = await fetch(`/api/books/${this.book.googleId}`);
+      if (res.ok && this.book) {
+        const fresh = (await res.json()) as BookDetail;
+        this.book.ratingStats = fresh.ratingStats;
+      }
+    } catch { /* non-critical */ }
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    this.realtimeSubs.forEach((s) => void s.teardown());
   }
 
   get currentStatusLabel(): string {
