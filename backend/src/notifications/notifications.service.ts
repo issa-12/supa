@@ -51,6 +51,9 @@ export class NotificationsService {
     referenceId?: number,
     referenceType?: string,
   ): Promise<void> {
+    // Never notify yourself about your own action (e.g. commenting on your own
+    // post, or replying to your own comment). Single guard for every caller.
+    if (recipientId === actorId) return;
     const typeId = await this.getTypeId(typeName);
     await this.supabase.getAdmin().from('notifications').insert({
       user_id: recipientId,

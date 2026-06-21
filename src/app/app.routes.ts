@@ -114,6 +114,14 @@ export const routes: Routes = [
         (m) => m.CommunityPageComponent,
       ),
   },
+  {
+    path: 'settings/api-keys',
+    canActivate: [authGuard, genreOnboardingGuard],
+    loadComponent: () =>
+      import('./features/settings/api-keys-page.component').then(
+        (m) => m.ApiKeysPageComponent,
+      ),
+  },
 
   // ── Static pages (no auth required) ──────────────────────────
   {

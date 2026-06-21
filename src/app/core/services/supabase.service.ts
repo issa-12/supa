@@ -5,10 +5,37 @@ import type {
   AuthTokenResponse,
   OAuthResponse,
   Provider,
+  RealtimeChannel,
   Session,
   SupabaseClient,
   User,
 } from '@supabase/supabase-js';
+
+export type RealtimeStatus = 'connecting' | 'live' | 'offline';
+
+export interface RealtimeSubscriptionOptions {
+  /** public-schema tables to watch (a single channel can watch several). */
+  tables: string[];
+  /** Row event to listen for. Defaults to all events. */
+  event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  /** Optional PostgREST-style row filter, e.g. `post_id=eq.42`. Applied to every table. */
+  filter?: string;
+  /** Fired on each matching row change. */
+  onChange: () => void;
+  /**
+   * Fired whenever the channel RE-subscribes after a dropped connection (not on
+   * the first subscribe). Use it to re-sync state that may have changed while
+   * the socket was down — realtime delivers no backlog for the gap.
+   */
+  onReconnect?: () => void;
+  /** Fired on each lifecycle transition, for an optional UI indicator. */
+  onStatus?: (status: RealtimeStatus) => void;
+}
+
+export interface RealtimeSubscription {
+  /** Removes the channel and stops the socket from holding it open. */
+  teardown: () => Promise<void>;
+}
 
 // Supabase serializes auth-token access with the browser's Navigator LockManager
 // by default. When concurrent getUser/getSession calls race on load it logs
@@ -251,6 +278,51 @@ export class SupabaseService {
     }
 
     return `${window.location.origin}${this.authRedirectPath}`;
+  }
+
+  /**
+   * Subscribe to Postgres changes with built-in connection-lifecycle handling.
+   *
+   * Supabase's realtime socket auto-reconnects and re-joins channels after a
+   * drop (network blip, laptop sleep, token refresh), but it replays no events
+   * for the offline gap. This helper surfaces that: `onStatus` reports the live
+   * state, and `onReconnect` fires on every re-subscribe so the caller can
+   * re-fetch whatever it may have missed. Returns an async teardown.
+   */
+  async createRealtimeSubscription(
+    name: string,
+    opts: RealtimeSubscriptionOptions,
+  ): Promise<RealtimeSubscription> {
+    const client = await this.getClient();
+    const event = opts.event ?? '*';
+    let channel: RealtimeChannel = client.channel(`${name}-${crypto.randomUUID()}`);
+
+    for (const table of opts.tables) {
+      const config = { event, schema: 'public', table, ...(opts.filter ? { filter: opts.filter } : {}) };
+      // The supabase-js postgres_changes overload is awkward to satisfy when the
+      // event is a variable; the runtime shape is correct.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      channel = channel.on('postgres_changes', config as any, () => opts.onChange());
+    }
+
+    let hasSubscribed = false;
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        opts.onStatus?.('live');
+        if (hasSubscribed) opts.onReconnect?.();
+        hasSubscribed = true;
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        opts.onStatus?.('offline');
+      } else {
+        opts.onStatus?.('connecting');
+      }
+    });
+
+    return {
+      teardown: async () => {
+        await client.removeChannel(channel);
+      },
+    };
   }
 
   getClient(): Promise<SupabaseClient> {

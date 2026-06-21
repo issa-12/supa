@@ -1,8 +1,9 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CommentService, Comment } from '../../../core/services/comment.service';
 import { LikesService } from '../../../core/services/likes.service';
+import { SupabaseService, RealtimeSubscription } from '../../../core/services/supabase.service';
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, COMMENTS_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -339,7 +340,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     }
   `],
 })
-export class PostCommentsComponent implements OnInit {
+export class PostCommentsComponent implements OnInit, OnDestroy {
   @Input() postId!: number;
   @Input() currentUserId!: string;
   @Input() currentUserAvatar: string | null = null;
@@ -347,7 +348,12 @@ export class PostCommentsComponent implements OnInit {
 
   private readonly commentService = inject(CommentService);
   private readonly likesService = inject(LikesService);
+  private readonly supabaseService = inject(SupabaseService);
   private readonly translationService = inject(TranslationService);
+
+  private realtimeSub: RealtimeSubscription | null = null;
+  private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return COMMENTS_COPY[this.lang]; }
@@ -382,14 +388,46 @@ export class PostCommentsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadComments();
+    void this.setupRealtime();
   }
 
-  private loadComments(): void {
-    this.loading = true;
+  private loadComments(silent = false): void {
+    if (!silent) this.loading = true;
     this.commentService.getComments(this.postId, this.currentUserId).subscribe({
       next: (comments) => { this.comments = comments; this.loading = false; },
       error: () => { this.loading = false; },
     });
+  }
+
+  // Live-update this post's comments when anyone adds/removes one. Scoped to
+  // this post via the row filter so an open panel only reacts to its own thread.
+  // Silent reload keeps the server-side block/privacy filtering + tree-build
+  // authoritative.
+  private async setupRealtime(): Promise<void> {
+    if (this.realtimeSub) return;
+    const sub = await this.supabaseService.createRealtimeSubscription('post-comments', {
+      tables: ['comments'],
+      filter: `post_id=eq.${this.postId}`,
+      onChange: () => this.scheduleRealtimeRefresh(),
+      onReconnect: () => this.scheduleRealtimeRefresh(),
+    });
+    // The panel can be toggled shut before the channel resolves — don't leak it.
+    if (this.destroyed) { void sub.teardown(); return; }
+    this.realtimeSub = sub;
+  }
+
+  private scheduleRealtimeRefresh(): void {
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    this.realtimeTimer = setTimeout(() => {
+      this.realtimeTimer = null;
+      this.loadComments(true);
+    }, 600);
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    void this.realtimeSub?.teardown();
   }
 
   submitComment(): void {

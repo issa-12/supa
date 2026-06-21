@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { SupabaseService } from './supabase.service';
+import { SupabaseService, RealtimeSubscription } from './supabase.service';
 
 export interface AppNotification {
   id: number;
@@ -21,7 +21,7 @@ export class NotificationsService {
   readonly unreadCount$ = new BehaviorSubject<number>(0);
   readonly notifications$ = new BehaviorSubject<AppNotification[]>([]);
 
-  private realtimeChannel: ReturnType<Awaited<ReturnType<typeof this.supabaseService.getClient>>['channel']> | null = null;
+  private realtimeSub: RealtimeSubscription | null = null;
 
   private async authHeaders(): Promise<Record<string, string>> {
     const session = await this.supabaseService.getCurrentSession();
@@ -138,35 +138,40 @@ export class NotificationsService {
   private refetchTimer: ReturnType<typeof setTimeout> | null = null;
 
   async subscribeToRealtime(userId: string): Promise<void> {
-    if (this.subscribedUserId === userId && this.realtimeChannel) return;
+    if (this.subscribedUserId === userId && this.realtimeSub) return;
     this.unsubscribe();
 
-    const supabase = await this.supabaseService.getClient();
     this.subscribedUserId = userId;
-    this.realtimeChannel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          // Reconcile the badge against the exact server count rather than a
-          // blind +1 — that way the bell can never show a number with no
-          // matching row behind it. Debounce the full list refetch so a burst
-          // of inserts collapses into a single round-trip.
-          void this.loadUnreadCount();
-          if (this.refetchTimer) clearTimeout(this.refetchTimer);
-          this.refetchTimer = setTimeout(() => {
-            this.refetchTimer = null;
-            void this.loadNotifications();
-          }, 500);
-        },
-      )
-      .subscribe();
+    const sub = await this.supabaseService.createRealtimeSubscription('notifications', {
+      tables: ['notifications'],
+      event: 'INSERT',
+      filter: `user_id=eq.${userId}`,
+      onChange: () => {
+        // Reconcile the badge against the exact server count rather than a
+        // blind +1 — that way the bell can never show a number with no
+        // matching row behind it. Debounce the full list refetch so a burst
+        // of inserts collapses into a single round-trip.
+        void this.loadUnreadCount();
+        if (this.refetchTimer) clearTimeout(this.refetchTimer);
+        this.refetchTimer = setTimeout(() => {
+          this.refetchTimer = null;
+          void this.loadNotifications();
+        }, 500);
+      },
+      // The socket delivers no backlog for the time it was disconnected, so on
+      // every reconnect pull the current count + list to catch what was missed.
+      onReconnect: () => {
+        void this.loadUnreadCount();
+        void this.loadNotifications();
+      },
+    });
+
+    // A sign-out / re-subscribe may have raced while we awaited the channel.
+    if (this.subscribedUserId !== userId) {
+      void sub.teardown();
+      return;
+    }
+    this.realtimeSub = sub;
   }
 
   private readonly typeIdCache = new Map<string, number>();
@@ -206,11 +211,14 @@ export class NotificationsService {
   }
 
   unsubscribe(): void {
-    if (this.realtimeChannel) {
-      this.realtimeChannel.unsubscribe();
-      this.realtimeChannel = null;
-    }
+    const sub = this.realtimeSub;
+    this.realtimeSub = null;
     this.subscribedUserId = null;
+    if (this.refetchTimer) {
+      clearTimeout(this.refetchTimer);
+      this.refetchTimer = null;
+    }
+    if (sub) void sub.teardown();
     this.unreadCount$.next(0);
     this.notifications$.next([]);
   }

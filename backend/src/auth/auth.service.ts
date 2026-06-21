@@ -193,17 +193,16 @@ export class AuthService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    // A failed email send (e.g. SMTP misconfigured / provider down) is an
-    // upstream email-infrastructure failure, not an internal server fault.
-    // Surface it as 502 with a stable code so the UI shows a clear "try again"
-    // message instead of a scary 500.
-    if (/sending.*email|error sending|smtp|magic link email|recovery email/i.test(message)) {
-      throw new HttpException(
-        { code: 'EMAIL_SEND_FAILED', message: 'Could not send the verification email. Please try again later.' },
-        HttpStatus.BAD_GATEWAY,
-      );
-    }
-    throw new InternalServerErrorException(message || 'Could not send verification code.');
+    // Any other failure means the verification code could not be delivered:
+    // an SMTP misconfig / provider outage, a transport error ("TypeError: fetch
+    // failed"), an invalid Supabase key ("Invalid API key"), etc. Log the real
+    // cause server-side for debugging, but surface ONE clean, translated 502 to
+    // the user — never leak the raw internal message into the signup UI.
+    console.error('[Auth] failed to send verification code:', message || error);
+    throw new HttpException(
+      { code: 'EMAIL_SEND_FAILED', message: 'Could not send the verification email. Please try again later.' },
+      HttpStatus.BAD_GATEWAY,
+    );
   }
 
   private async verifyAuthOtp(

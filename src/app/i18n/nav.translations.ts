@@ -13,6 +13,7 @@ export interface NavCopy {
   statsAriaLabel: string;
   notificationsAriaLabel: string;
   myProfile: string;
+  apiKeys: string;
   logout: string;
   languageLabel: string;
 }
@@ -31,6 +32,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     statsAriaLabel: 'Stats',
     notificationsAriaLabel: 'Notifications',
     myProfile: 'My Profile',
+    apiKeys: 'API Keys',
     logout: 'Logout',
     languageLabel: 'Change language',
   },
@@ -47,6 +49,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     statsAriaLabel: 'الإحصائيات',
     notificationsAriaLabel: 'الإشعارات',
     myProfile: 'ملفي الشخصي',
+    apiKeys: 'مفاتيح API',
     logout: 'تسجيل الخروج',
     languageLabel: 'تغيير اللغة',
   },
@@ -63,6 +66,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     statsAriaLabel: 'Statistiques',
     notificationsAriaLabel: 'Notifications',
     myProfile: 'Mon Profil',
+    apiKeys: 'Clés API',
     logout: 'Déconnexion',
     languageLabel: 'Changer de langue',
   },
