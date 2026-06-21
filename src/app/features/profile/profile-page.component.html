@@ -2,31 +2,17 @@
 
   <app-top-nav />
 
-  <!-- Header -->
-  <header class="profile-header">
-    <div class="header-content">
-      <button class="back-btn" routerLink="/home" aria-label="Go back">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-      </button>
-      <h1 class="header-title">{{ isOwnProfile ? copy.myProfileTitle : copy.profileTitle }}</h1>
-      <div class="header-spacer"></div>
-    </div>
-  </header>
-
   <!-- Loading skeleton -->
   @if (isLoading) {
     <div class="profile-content">
       <div class="profile-card">
-        <div class="profile-header-section">
+        <div class="profile-top">
           <div class="skel-avatar skeleton"></div>
           <div class="skel-info">
             <div class="skel-name skeleton"></div>
             <div class="skel-username skeleton"></div>
             <div class="skel-joined skeleton"></div>
           </div>
-          <div class="skel-btn skeleton"></div>
         </div>
         <div class="skel-bio-line skeleton" style="width:80%"></div>
         <div class="skel-bio-line skeleton" style="width:55%"></div>
@@ -34,16 +20,15 @@
           @for (i of [1,2,3]; track i) { <div class="skel-tag skeleton"></div> }
         </div>
       </div>
-      <div class="reading-stats-grid">
+      <div class="stats-row">
+        <div class="stat-card skel-stat-card skeleton"></div>
         <div class="stat-card skel-stat-card skeleton"></div>
         <div class="stat-card skel-stat-card skeleton"></div>
       </div>
-      <div class="books-section">
-        <div class="section-header">
-          <div class="skel-section-h skeleton"></div>
-        </div>
-        <div class="books-grid">
-          @for (i of [1,2,3,4]; track i) {
+      <div class="shelf-section">
+        <div class="skel-section-h skeleton"></div>
+        <div class="books-row">
+          @for (i of [1,2,3,4,5]; track i) {
             <div class="book-card">
               <div class="skel-book-cover skeleton"></div>
               <div class="skel-book-title skeleton"></div>
@@ -73,18 +58,29 @@
 
   <!-- Content -->
   @else if (profile) {
-    <div class="profile-content">
+    <div class="profile-content" [class.is-blurred]="editingProfile">
 
-      <!-- Profile Card -->
+      <!-- Profile Header Card -->
       <div class="profile-card">
-        <div class="profile-header-section">
+
+        @if (isOwnProfile) {
+          <button class="edit-profile-btn" (click)="onEditProfile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            {{ copy.editProfileBtn }}
+          </button>
+        }
+
+        <div class="profile-top">
 
           <!-- Avatar -->
-          <div class="profile-avatar-wrapper" [class.avatar-uploading]="uploadingAvatar">
+          <div class="avatar-wrap" [class.avatar-uploading]="uploadingAvatar">
             @if (profile.avatarUrl) {
-              <img [src]="profile.avatarUrl" [alt]="profile.name" class="profile-avatar" loading="lazy" />
+              <img [src]="profile.avatarUrl" [alt]="profile.name" class="avatar" loading="lazy" />
             } @else {
-              <div class="profile-avatar profile-avatar--initials">{{ avatarInitials }}</div>
+              <div class="avatar avatar--initials">{{ avatarInitials }}</div>
             }
 
             @if (canSeeViewedUserPresence && isOnline(viewedUserId)) {
@@ -102,12 +98,13 @@
                   [attr.aria-expanded]="avatarMenuOpen"
                 >
                   @if (uploadingAvatar) {
-                    <svg class="avatar-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <svg class="avatar-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                     </svg>
                   } @else {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   }
                 </button>
@@ -136,12 +133,12 @@
           </div>
 
           <!-- Name & join date -->
-          <div class="profile-header-info">
+          <div class="profile-info">
             <h2 class="profile-name">{{ profile.name }}</h2>
             @if (profile.username) {
-              <p class="profile-username">&#64;{{ profile.username }}</p>
+              <p class="profile-handle">&#64;{{ profile.username }}</p>
             }
-            <p class="profile-joined">{{ copy.readingSincePrefix }} {{ profile.joinDate }}</p>
+            <p class="profile-since">{{ copy.readingSincePrefix }}{{ profile.joinDate }}</p>
             @if (canSeeViewedUserPresence) {
               <p class="profile-presence" [class.is-online]="isOnline(viewedUserId)">
                 <span class="presence-dot"></span>
@@ -150,22 +147,9 @@
             }
           </div>
 
-          <!-- Friend action error -->
-          @if (friendActionError) {
-            <p class="friend-action-error">{{ friendActionError }}</p>
-          }
-
-          <!-- Actions -->
-          <div class="profile-actions">
-            @if (isOwnProfile) {
-              <button class="btn btn-primary" (click)="onEditProfile()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                </svg>
-                {{ copy.editProfileBtn }}
-              </button>
-            } @else {
-              <!-- Dynamic friend button based on relationship status -->
+          <!-- Other-user actions -->
+          @if (!isOwnProfile) {
+            <div class="profile-actions">
               @if (friendshipStatus === 'blocked' && blockedByMe) {
                 <span class="blocked-badge">{{ copy.blockedLabel }}</span>
                 <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="unblockUser()">
@@ -173,7 +157,7 @@
                 </button>
               } @else if (friendshipStatus === 'none' || friendshipStatus === 'rejected') {
                 <button class="btn btn-primary" [disabled]="friendActionLoading" (click)="sendFriendRequest()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <line x1="19" y1="8" x2="19" y2="14"/>
@@ -183,11 +167,6 @@
                 </button>
               } @else if (friendshipStatus === 'pending_sent') {
                 <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="cancelRequest()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <line x1="22" y1="11" x2="16" y2="11"/>
-                  </svg>
                   {{ copy.cancelRequestBtn }}
                 </button>
               } @else if (friendshipStatus === 'pending_received') {
@@ -195,11 +174,6 @@
                 <button class="btn btn-outline" [disabled]="friendActionLoading" (click)="rejectRequest()">{{ copy.declineBtn }}</button>
               } @else if (friendshipStatus === 'accepted') {
                 <button class="btn btn-outline btn-danger" [disabled]="friendActionLoading" (click)="unfriend()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <line x1="22" y1="11" x2="16" y2="11"/>
-                  </svg>
                   {{ copy.friendsBtn }}
                 </button>
               }
@@ -212,246 +186,92 @@
                   {{ copy.blockBtn }}
                 </button>
               }
-            }
-          </div>
+            </div>
+          }
         </div>
 
+        @if (friendActionError) {
+          <p class="friend-action-error">{{ friendActionError }}</p>
+        }
         @if (avatarError) {
           <p class="avatar-error">{{ avatarError }}</p>
         }
 
         @if (isPrivateLocked) {
           <div class="private-notice">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect width="18" height="11" x="3" y="11" rx="2"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
             <p>{{ copy.privateAccountNotice }}</p>
           </div>
         } @else {
-          <!-- Bio -->
-          @if (profile.bio) {
-            <div class="profile-bio">
-              <p class="bio-text">{{ profile.bio }}</p>
-            </div>
+          @if (profile.bio || genres.length > 0) {
+            <div class="divider"></div>
           }
-
-          <!-- Genres -->
+          @if (profile.bio) {
+            <p class="bio">{{ profile.bio }}</p>
+          }
           @if (genres.length > 0) {
-            <div class="tags-section">
-              <div class="tag-list">
-                @for (genre of genres; track genre.id) {
-                  <span class="tag">{{ genre.name | genreName:lang }}</span>
-                }
-              </div>
+            <div class="genre-tags">
+              @for (genre of genres; track genre.id) {
+                <span class="gtag">{{ genre.name | genreName:lang }}</span>
+              }
             </div>
           }
         }
       </div>
 
       @if (!isPrivateLocked) {
-      <!-- Reading Stats -->
+
+      <!-- Stats Row -->
       @if (readingStats) {
-        <div class="reading-stats-grid">
+        <div class="stats-row">
           <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-label">{{ copy.booksReadThisYearLabel }}</span>
-              <span class="stat-value-inline">
-                {{ readingStats.booksReadThisYear }}/{{ readingStats.booksGoal }}
-              </span>
+            <div class="stat-label">{{ copy.booksReadThisYearLabel }}</div>
+            <div class="stat-value">
+              {{ readingStats.booksReadThisYear }}<span class="stat-denom"> / {{ readingStats.booksGoal }}</span>
             </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" [style.width.%]="goalPercent"></div>
-              </div>
+            <div class="progress-track">
+              <div class="progress-fill" [style.width.%]="goalPercent"></div>
             </div>
-            <div class="progress-footer">
-              <p class="progress-percentage">{{ goalProgressText }}</p>
+            <div class="progress-row">
+              <span class="progress-label">{{ goalProgressText }}</span>
               @if (isOwnProfile) {
                 @if (editingGoal) {
-                  <div class="goal-edit" (click)="$event.stopPropagation()">
-                    <input
-                      class="goal-input"
-                      type="number"
-                      [(ngModel)]="goalInput"
-                      min="1"
-                      max="999"
-                    />
+                  <span class="goal-edit" (click)="$event.stopPropagation()">
+                    <input class="goal-input" type="number" [(ngModel)]="goalInput" min="1" max="999" />
                     <button class="goal-save-btn" [disabled]="savingGoal" (click)="saveGoal()">
                       {{ savingGoal ? copy.savingMsg : copy.saveBtn }}
                     </button>
                     <button class="goal-cancel-btn" (click)="cancelGoalEdit()">{{ copy.cancelBtn }}</button>
-                  </div>
+                  </span>
                 } @else {
-                  <button class="goal-edit-btn" (click)="startEditGoal()">{{ copy.editGoalBtn }}</button>
+                  <button class="edit-goal-btn" (click)="startEditGoal()">{{ copy.editGoalBtn }}</button>
                 }
               }
             </div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-label">{{ copy.totalRatedLabel }}</span>
-            </div>
-            <div class="stat-value">
-              {{ mostLikedBooks.length + inBetweenBooks.length + leastLikedBooks.length }}
-            </div>
-            <p class="stat-description">{{ copy.booksWithRatingsDesc }}</p>
+            <div class="stat-label">{{ copy.totalRatedLabel }}</div>
+            <div class="stat-value">{{ mostLikedBooks.length + inBetweenBooks.length + leastLikedBooks.length }}</div>
+            <div class="stat-sub">{{ copy.booksWithRatingsDesc }}</div>
           </div>
 
           <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-label">{{ copy.friendsTitle }}</span>
-            </div>
+            <div class="stat-label">{{ copy.friendsTitle }}</div>
             <div class="stat-value">{{ friendCount }}</div>
-            <p class="stat-description">{{ copy.friendCountDesc }}</p>
+            <div class="stat-sub">{{ copy.friendCountDesc }}</div>
           </div>
         </div>
       }
 
-      <!-- Currently Reading -->
-      @if (currentlyReadingBooks.length > 0) {
-        <section class="books-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.currentlyReadingTitle }}</h3>
-            <p class="section-description">{{ copy.currentlyReadingDesc }}</p>
-          </div>
-          <div class="books-grid">
-            @for (book of currentlyReadingBooks; track book.userBookId) {
-              <div class="book-card">
-                <div class="book-cover-container"
-                  [class.book-cover-container--clickable]="book.googleBooksId"
-                  (click)="openBook(book)"
-                  [attr.role]="book.googleBooksId ? 'button' : null"
-                  [attr.tabindex]="book.googleBooksId ? 0 : null"
-                  (keydown.enter)="openBook(book)">
-                  @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
-                  } @else {
-                    <div class="book-cover book-cover--placeholder">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                      </svg>
-                    </div>
-                  }
-                  <div class="reading-badge">{{ copy.readingBadge }}</div>
-                </div>
-                <div class="book-info">
-                  <h4 class="book-title">{{ book.title }}</h4>
-                  <p class="book-author">{{ book.author }}</p>
-                </div>
-              </div>
-            }
-          </div>
-        </section>
-      }
-
-      <!-- Recent Posts -->
-      @if (recentPosts.length > 0) {
-        <section class="posts-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.recentPostsTitle }}</h3>
-          </div>
-          <div class="profile-posts">
-            @for (post of recentPosts; track post.id) {
-              <div class="profile-post-card">
-                <div class="profile-post-book">
-                  @if (post.bookCover) {
-                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="profile-post-cover" loading="lazy" />
-                  }
-                  <span class="profile-post-book-title">{{ post.bookTitle }}</span>
-                </div>
-                <p class="profile-post-content">{{ post.content }}</p>
-                <div class="profile-post-footer">
-                  <span class="profile-post-time">{{ timeAgo(post.createdAt, lang) }}</span>
-                  <span class="profile-post-stats">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                    {{ post.likeCount }}
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    {{ post.commentCount }}
-                  </span>
-                </div>
-              </div>
-            }
-          </div>
-        </section>
-      }
-
-      <!-- Find Friends Search (own profile only) -->
-      @if (isOwnProfile) {
-        <section class="find-friends-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.findFriendsTitle }}</h3>
-          </div>
-          <div class="search-bar">
-            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              class="search-input"
-              type="text"
-              [placeholder]="copy.findFriendsSearchPlaceholder"
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onSearchInput()"
-            />
-            @if (searchQuery) {
-              <button class="search-clear" (click)="clearSearch()" aria-label="Clear">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            }
-          </div>
-
-          @if (searchLoading) {
-            <div class="search-state">{{ copy.searchingMsg }}</div>
-          } @else if (searchResults.length > 0) {
-            <div class="search-results">
-              @for (user of searchResults; track user.id) {
-                <div class="search-result-card">
-                  <div class="request-avatar">
-                    @if (user.avatarUrl) {
-                      <img [src]="user.avatarUrl" [alt]="user.name" loading="lazy" />
-                    } @else {
-                      <span>{{ user.name[0].toUpperCase() }}</span>
-                    }
-                  </div>
-                  <div class="request-info">
-                    <span class="request-name">{{ user.name }}</span>
-                    @if (user.username) {
-                      <p class="request-username">&#64;{{ user.username }}</p>
-                    }
-                  </div>
-                  <div class="request-actions">
-                    <a class="btn btn-outline btn-sm" [routerLink]="['/profile', user.id]">{{ copy.viewBtn }}</a>
-                    @if (sentRequestIds.has(user.id)) {
-                      <span class="sent-label">{{ copy.sentLabel }}</span>
-                    } @else {
-                      <button class="btn btn-primary btn-sm" (click)="sendRequestFromSearch(user)">
-                        {{ copy.addFriendBtn }}
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          } @else if (searchQuery.trim() && !searchLoading) {
-            <div class="search-state">{{ copy.noUsersFoundMsg }} "{{ searchQuery }}"</div>
-          }
-        </section>
-      }
-
       <!-- Incoming Friend Requests (own profile only) -->
       @if (isOwnProfile && incomingRequests.length > 0) {
-        <section class="friends-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.friendRequestsTitle }}</h3>
-            <span class="section-badge">{{ incomingRequests.length }}</span>
+        <div class="friends-card">
+          <div class="sec-hdr">
+            <div class="sec-title">{{ copy.friendRequestsTitle }} <span class="sec-count">{{ incomingRequests.length }}</span></div>
           </div>
           <div class="requests-list">
             @for (req of incomingRequests; track req.friendshipId) {
@@ -476,39 +296,40 @@
               </div>
             }
           </div>
-        </section>
+        </div>
       }
 
-      <!-- Friends List (own profile only) -->
+      <!-- Friends Card (own profile only) -->
       @if (isOwnProfile && friends.length > 0) {
-        <section class="friends-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.friendsTitle }}</h3>
-            <span class="section-count">{{ friends.length }}</span>
+        <div class="friends-card">
+          <div class="sec-hdr">
+            <div class="sec-title">{{ copy.friendsTitle }} <span class="sec-count">{{ friends.length }}</span></div>
+            @if (friends.length > friendChipLimit) {
+              <button class="see-all" (click)="toggleFriendsExpanded()">
+                {{ friendsExpanded ? copy.showLessBtn : copy.seeAllBtn }}
+              </button>
+            }
           </div>
-          <div class="friends-grid">
-            @for (friend of friends; track friend.friendshipId) {
-              <a class="friend-card" [routerLink]="['/profile', friend.userId]">
-                <div class="friend-avatar">
-                  @if (friend.avatarUrl) {
-                    <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
-                  } @else {
-                    <span>{{ friend.name[0].toUpperCase() }}</span>
-                  }
+          <div class="friends-list">
+            @for (friend of displayedFriends; track friend.friendshipId) {
+              <a class="friend-chip" [routerLink]="['/profile', friend.userId]">
+                <span class="f-av">
+                  <span class="f-av-inner">
+                    @if (friend.avatarUrl) {
+                      <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
+                    } @else {
+                      {{ friend.name[0].toUpperCase() }}
+                    }
+                  </span>
                   @if (isOnline(friend.userId)) {
-                    <span class="presence-dot presence-dot--avatar" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
+                    <span class="online" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
                   }
-                </div>
-                <div class="friend-info">
-                  <p class="friend-name">{{ friend.name }}</p>
-                  @if (friend.username) {
-                    <p class="friend-username">&#64;{{ friend.username }}</p>
-                  }
-                </div>
+                </span>
+                <span class="f-name">{{ friend.name }}</span>
               </a>
             }
           </div>
-        </section>
+        </div>
       }
 
       @if (isOwnProfile && friends.length === 0 && incomingRequests.length === 0) {
@@ -524,26 +345,70 @@
         </div>
       }
 
+      <!-- Currently Reading -->
+      @if (currentlyReadingBooks.length > 0) {
+        <section class="shelf-section">
+          <div class="shelf-sec-hdr">
+            <span class="shelf-sec-icon shelf-sec-icon--reading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+              </svg>
+            </span>
+            <span class="shelf-sec-title">{{ copy.currentlyReadingTitle }}</span>
+            <span class="shelf-sec-sub">{{ copy.currentlyReadingDesc }}</span>
+            <span class="shelf-sec-count">{{ bookCountLabel(currentlyReadingBooks.length) }}</span>
+          </div>
+          <div class="books-row">
+            @for (book of currentlyReadingBooks; track book.userBookId) {
+              <div class="book-card" (click)="openBook(book)"
+                [attr.role]="book.googleBooksId ? 'button' : null"
+                [attr.tabindex]="book.googleBooksId ? 0 : null"
+                (keydown.enter)="openBook(book)">
+                <div class="book-cover-wrap">
+                  @if (book.coverUrl) {
+                    <img [src]="book.coverUrl" [alt]="book.title" loading="lazy" />
+                  } @else {
+                    <div class="book-cover-ph">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                    </div>
+                  }
+                  <span class="book-status-badge badge-reading">{{ copy.readingBadge }}</span>
+                </div>
+                <div class="book-title-text">{{ book.title }}</div>
+                <div class="book-author-text">{{ book.author }}</div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
       <!-- Most Liked -->
       @if (mostLikedBooks.length > 0) {
-        <section class="books-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.mostLiked }}</h3>
-            <p class="section-description">{{ copy.mostLikedDesc }}</p>
+        <section class="shelf-section">
+          <div class="shelf-sec-hdr">
+            <span class="shelf-sec-icon shelf-sec-icon--star">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </span>
+            <span class="shelf-sec-title">{{ copy.mostLiked }}</span>
+            <span class="shelf-sec-sub">{{ copy.mostLikedDesc }}</span>
+            <span class="shelf-sec-count">{{ bookCountLabel(mostLikedBooks.length) }}</span>
           </div>
-          <div class="books-grid">
+          <div class="books-row">
             @for (book of mostLikedBooks; track book.userBookId) {
-              <div class="book-card">
-                <div class="book-cover-container"
-                  [class.book-cover-container--clickable]="book.googleBooksId"
-                  (click)="openBook(book)"
-                  [attr.role]="book.googleBooksId ? 'button' : null"
-                  [attr.tabindex]="book.googleBooksId ? 0 : null"
-                  (keydown.enter)="openBook(book)">
+              <div class="book-card" (click)="openBook(book)"
+                [attr.role]="book.googleBooksId ? 'button' : null"
+                [attr.tabindex]="book.googleBooksId ? 0 : null"
+                (keydown.enter)="openBook(book)">
+                <div class="book-cover-wrap">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
+                    <img [src]="book.coverUrl" [alt]="book.title" loading="lazy" />
                   } @else {
-                    <div class="book-cover book-cover--placeholder">
+                    <div class="book-cover-ph">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -551,23 +416,12 @@
                     </div>
                   }
                 </div>
-                <div class="book-info">
-                  <h4 class="book-title">{{ book.title }}</h4>
-                  <p class="book-author">{{ book.author }}</p>
-                  <div class="stars">
-                    @for (star of [1,2,3,4,5]; track star) {
-                      <svg
-                        class="star"
-                        [class.star--filled]="star <= book.rating"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                    }
-                  </div>
+                <div class="book-title-text">{{ book.title }}</div>
+                <div class="book-author-text">{{ book.author }}</div>
+                <div class="book-stars-row">
+                  @for (star of [1,2,3,4,5]; track star) {
+                    <span class="bstar" [class.e]="star > book.rating">★</span>
+                  }
                 </div>
               </div>
             }
@@ -577,24 +431,28 @@
 
       <!-- In Between -->
       @if (inBetweenBooks.length > 0) {
-        <section class="books-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.inBetween }}</h3>
-            <p class="section-description">{{ copy.inBetweenDesc }}</p>
+        <section class="shelf-section">
+          <div class="shelf-sec-hdr">
+            <span class="shelf-sec-icon shelf-sec-icon--check">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </span>
+            <span class="shelf-sec-title">{{ copy.inBetween }}</span>
+            <span class="shelf-sec-sub">{{ copy.inBetweenDesc }}</span>
+            <span class="shelf-sec-count">{{ bookCountLabel(inBetweenBooks.length) }}</span>
           </div>
-          <div class="books-grid">
+          <div class="books-row">
             @for (book of inBetweenBooks; track book.userBookId) {
-              <div class="book-card">
-                <div class="book-cover-container"
-                  [class.book-cover-container--clickable]="book.googleBooksId"
-                  (click)="openBook(book)"
-                  [attr.role]="book.googleBooksId ? 'button' : null"
-                  [attr.tabindex]="book.googleBooksId ? 0 : null"
-                  (keydown.enter)="openBook(book)">
+              <div class="book-card" (click)="openBook(book)"
+                [attr.role]="book.googleBooksId ? 'button' : null"
+                [attr.tabindex]="book.googleBooksId ? 0 : null"
+                (keydown.enter)="openBook(book)">
+                <div class="book-cover-wrap">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
+                    <img [src]="book.coverUrl" [alt]="book.title" loading="lazy" />
                   } @else {
-                    <div class="book-cover book-cover--placeholder">
+                    <div class="book-cover-ph">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -602,23 +460,12 @@
                     </div>
                   }
                 </div>
-                <div class="book-info">
-                  <h4 class="book-title">{{ book.title }}</h4>
-                  <p class="book-author">{{ book.author }}</p>
-                  <div class="stars">
-                    @for (star of [1,2,3,4,5]; track star) {
-                      <svg
-                        class="star"
-                        [class.star--filled]="star <= book.rating"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                    }
-                  </div>
+                <div class="book-title-text">{{ book.title }}</div>
+                <div class="book-author-text">{{ book.author }}</div>
+                <div class="book-stars-row">
+                  @for (star of [1,2,3,4,5]; track star) {
+                    <span class="bstar" [class.e]="star > book.rating">★</span>
+                  }
                 </div>
               </div>
             }
@@ -628,24 +475,28 @@
 
       <!-- Least Liked -->
       @if (leastLikedBooks.length > 0) {
-        <section class="books-section">
-          <div class="section-header">
-            <h3 class="section-title">{{ copy.leastLiked }}</h3>
-            <p class="section-description">{{ copy.leastLikedDesc }}</p>
+        <section class="shelf-section">
+          <div class="shelf-sec-hdr">
+            <span class="shelf-sec-icon shelf-sec-icon--x">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </span>
+            <span class="shelf-sec-title">{{ copy.leastLiked }}</span>
+            <span class="shelf-sec-sub">{{ copy.leastLikedDesc }}</span>
+            <span class="shelf-sec-count">{{ bookCountLabel(leastLikedBooks.length) }}</span>
           </div>
-          <div class="books-grid">
+          <div class="books-row">
             @for (book of leastLikedBooks; track book.userBookId) {
-              <div class="book-card">
-                <div class="book-cover-container"
-                  [class.book-cover-container--clickable]="book.googleBooksId"
-                  (click)="openBook(book)"
-                  [attr.role]="book.googleBooksId ? 'button' : null"
-                  [attr.tabindex]="book.googleBooksId ? 0 : null"
-                  (keydown.enter)="openBook(book)">
+              <div class="book-card" (click)="openBook(book)"
+                [attr.role]="book.googleBooksId ? 'button' : null"
+                [attr.tabindex]="book.googleBooksId ? 0 : null"
+                (keydown.enter)="openBook(book)">
+                <div class="book-cover-wrap">
                   @if (book.coverUrl) {
-                    <img [src]="book.coverUrl" [alt]="book.title" class="book-cover" loading="lazy" />
+                    <img [src]="book.coverUrl" [alt]="book.title" loading="lazy" />
                   } @else {
-                    <div class="book-cover book-cover--placeholder">
+                    <div class="book-cover-ph">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -653,23 +504,12 @@
                     </div>
                   }
                 </div>
-                <div class="book-info">
-                  <h4 class="book-title">{{ book.title }}</h4>
-                  <p class="book-author">{{ book.author }}</p>
-                  <div class="stars">
-                    @for (star of [1,2,3,4,5]; track star) {
-                      <svg
-                        class="star"
-                        [class.star--filled]="star <= book.rating"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                    }
-                  </div>
+                <div class="book-title-text">{{ book.title }}</div>
+                <div class="book-author-text">{{ book.author }}</div>
+                <div class="book-stars-row">
+                  @for (star of [1,2,3,4,5]; track star) {
+                    <span class="bstar" [class.e]="star > book.rating">★</span>
+                  }
                 </div>
               </div>
             }
@@ -677,7 +517,7 @@
         </section>
       }
 
-      @if (mostLikedBooks.length === 0 && inBetweenBooks.length === 0 && leastLikedBooks.length === 0) {
+      @if (currentlyReadingBooks.length === 0 && mostLikedBooks.length === 0 && inBetweenBooks.length === 0 && leastLikedBooks.length === 0) {
         <div class="empty-shelves">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -687,102 +527,6 @@
           <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooks }}</a>
         </div>
       }
-      }
-
-      <!-- Edit Profile Panel -->
-      @if (editingProfile) {
-        <div class="edit-overlay" (click)="cancelEditProfile()"></div>
-        <div class="edit-panel" (click)="$event.stopPropagation()">
-          <div class="edit-panel-header">
-            <h3 class="edit-panel-title">{{ copy.editPanelTitle }}</h3>
-            <button class="edit-panel-close" (click)="cancelEditProfile()" aria-label="Close">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          </div>
-          <div class="edit-panel-body">
-            <label class="edit-field">
-              <span class="edit-label">{{ copy.displayName }}</span>
-              <input class="edit-input" type="text" [(ngModel)]="editName" [placeholder]="copy.namePlaceholder" maxlength="60" />
-            </label>
-            <label class="edit-field">
-              <span class="edit-label">{{ copy.username }}</span>
-              <div class="edit-input-prefix-wrap">
-                <span class="edit-input-prefix">&#64;</span>
-                <input class="edit-input edit-input--prefixed" type="text" [(ngModel)]="editUsername" [placeholder]="copy.usernamePlaceholder" maxlength="30" />
-              </div>
-            </label>
-            <label class="edit-field">
-              <span class="edit-label">{{ copy.bio }}</span>
-              <textarea class="edit-textarea" [(ngModel)]="editBio" [placeholder]="copy.bioPlaceholder" rows="4" maxlength="300"></textarea>
-              <span class="edit-char-count">{{ editBio.length }}/300</span>
-            </label>
-
-            <!-- Favorite genres -->
-            <div class="edit-field">
-              <span class="edit-label">{{ copy.favoriteGenres }}</span>
-              <p class="edit-genres-hint">{{ copy.favoriteGenresHint }}</p>
-              @if (loadingGenres) {
-                <div class="edit-genres-loading">
-                  @for (i of [1,2,3,4,5,6]; track i) { <span class="skeleton edit-genre-skel"></span> }
-                </div>
-              } @else {
-                <div class="edit-genre-grid">
-                  @for (genre of allGenres; track genre.id) {
-                    <button
-                      type="button"
-                      class="edit-genre-chip"
-                      [class.edit-genre-chip--selected]="isGenreSelected(genre.id)"
-                      [attr.aria-pressed]="isGenreSelected(genre.id)"
-                      (click)="toggleEditGenre(genre.id)"
-                    >
-                      @if (isGenreSelected(genre.id)) {
-                        <svg class="edit-genre-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                          <path d="M20 6 9 17l-5-5"/>
-                        </svg>
-                      }
-                      {{ genre.name | genreName:lang }}
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-
-            <!-- Privacy -->
-            <div class="edit-field">
-              <label class="privacy-toggle">
-                <span class="privacy-toggle-text">
-                  <span class="edit-label">{{ copy.privateAccountLabel }}</span>
-                  <span class="privacy-toggle-hint">{{ copy.privateAccountHint }}</span>
-                </span>
-                <input type="checkbox" class="privacy-toggle-input" [(ngModel)]="editIsPrivate" />
-                <span class="privacy-toggle-switch" aria-hidden="true"></span>
-              </label>
-            </div>
-
-            <!-- Danger zone -->
-            <div class="danger-zone">
-              <span class="danger-zone-title">{{ copy.dangerZone }}</span>
-              <p class="danger-zone-text">{{ copy.deleteAccountWarning }}</p>
-              @if (deleteAccountError) {
-                <p class="danger-zone-error">{{ deleteAccountError }}</p>
-              }
-              <button class="btn btn-delete-account" [disabled]="deletingAccount" (click)="deleteAccount()">
-                {{ deletingAccount ? copy.deletingAccount : copy.deleteAccount }}
-              </button>
-            </div>
-          </div>
-          @if (editProfileError) {
-            <p class="edit-panel-error">{{ editProfileError }}</p>
-          }
-          <div class="edit-panel-footer">
-            <button class="btn btn-outline" (click)="cancelEditProfile()">{{ copy.cancelEdit }}</button>
-            <button class="btn btn-primary" [disabled]="savingProfile || !editName.trim()" (click)="saveProfile()">
-              {{ savingProfile ? copy.saving : copy.saveChanges }}
-            </button>
-          </div>
-        </div>
       }
 
       <!-- Footer -->
@@ -795,6 +539,118 @@
       </footer>
 
     </div>
+
+    <!-- Edit Profile Modal (drawer) -->
+    @if (editingProfile) {
+      <div class="modal-overlay">
+        <div class="overlay-bg" (click)="cancelEditProfile()"></div>
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <span class="modal-title">{{ copy.editPanelTitle }}</span>
+            <button class="modal-close" (click)="cancelEditProfile()" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal-body">
+
+            <div class="form-group">
+              <label class="form-label">{{ copy.displayName }}</label>
+              <input class="form-input" type="text" [(ngModel)]="editName" [placeholder]="copy.namePlaceholder" maxlength="60" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">{{ copy.username }}</label>
+              <input class="form-input" type="text" [(ngModel)]="editUsername" [placeholder]="copy.usernamePlaceholder" maxlength="30" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">{{ copy.email }}</label>
+              <input class="form-input readonly" type="text" [value]="profile.email" readonly />
+              <div class="input-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {{ copy.emailReadonlyNote }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">{{ copy.bio }}</label>
+              <textarea class="form-textarea" [(ngModel)]="editBio" [placeholder]="copy.bioPlaceholder" maxlength="300"></textarea>
+              <div class="char-row"><span class="char-count">{{ editBio.length }} / 300</span></div>
+            </div>
+
+            <div class="section-sep"></div>
+
+            <div class="form-group">
+              <label class="form-label">{{ copy.favoriteGenres }}</label>
+              <div class="genres-label">{{ copy.favoriteGenresHint }}</div>
+              @if (loadingGenres) {
+                <div class="genres-wrap">
+                  @for (i of [1,2,3,4,5,6]; track i) { <span class="skeleton edit-genre-skel"></span> }
+                </div>
+              } @else {
+                <div class="genres-wrap">
+                  @for (genre of allGenres; track genre.id) {
+                    <button
+                      type="button"
+                      class="gpill"
+                      [class.on]="isGenreSelected(genre.id)"
+                      [attr.aria-pressed]="isGenreSelected(genre.id)"
+                      (click)="toggleEditGenre(genre.id)"
+                    >{{ genre.name | genreName:lang }}</button>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-name">{{ copy.privateAccountLabel }}</div>
+                <div class="toggle-desc">{{ copy.privateAccountHint }}</div>
+              </div>
+              <button
+                type="button"
+                class="toggle-switch"
+                [class.on]="editIsPrivate"
+                role="switch"
+                [attr.aria-checked]="editIsPrivate"
+                [attr.aria-label]="copy.privateAccountLabel"
+                (click)="editIsPrivate = !editIsPrivate"
+              >
+                <span class="toggle-knob"></span>
+              </button>
+            </div>
+
+            <div class="danger-zone">
+              <div class="dz-label">{{ copy.dangerZone }}</div>
+              <div class="dz-text">{{ copy.deleteAccountWarning }}</div>
+              @if (deleteAccountError) {
+                <p class="danger-zone-error">{{ deleteAccountError }}</p>
+              }
+              <button class="dz-btn" [disabled]="deletingAccount" (click)="deleteAccount()">
+                {{ deletingAccount ? copy.deletingAccount : copy.deleteAccount }}
+              </button>
+            </div>
+
+          </div>
+
+          @if (editProfileError) {
+            <p class="modal-error">{{ editProfileError }}</p>
+          }
+
+          <div class="modal-footer">
+            <button class="btn-cancel" (click)="cancelEditProfile()">{{ copy.cancelEdit }}</button>
+            <button class="btn-save" [disabled]="savingProfile || !editName.trim()" (click)="saveProfile()">
+              {{ savingProfile ? copy.saving : copy.saveChanges }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   }
 
   @if (showReportModal) {

@@ -126,6 +126,9 @@ export class ProfilePageComponent implements OnInit {
 
   onlineIds = new Set<string>();
 
+  readonly friendChipLimit = 12;
+  friendsExpanded = false;
+
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
     this.presenceService.onlineUserIds$.pipe(takeUntilDestroyed()).subscribe(ids => this.onlineIds = ids);
@@ -133,6 +136,18 @@ export class ProfilePageComponent implements OnInit {
 
   isOnline(userId: string | null | undefined): boolean {
     return !!userId && this.onlineIds.has(userId);
+  }
+
+  get displayedFriends(): FriendUser[] {
+    return this.friendsExpanded ? this.friends : this.friends.slice(0, this.friendChipLimit);
+  }
+
+  toggleFriendsExpanded(): void {
+    this.friendsExpanded = !this.friendsExpanded;
+  }
+
+  bookCountLabel(n: number): string {
+    return `${n} ${n === 1 ? this.copy.bookUnit : this.copy.booksUnit}`;
   }
 
   // Online/offline status is only visible between accepted friends — not for
@@ -561,6 +576,7 @@ export class ProfilePageComponent implements OnInit {
     this.selectedGenreIds = new Set(this.genres.map((g) => g.id));
     this.editProfileError = null;
     this.editingProfile = true;
+    document.body.style.overflow = 'hidden';
     this.loadAllGenres();
   }
 
@@ -590,6 +606,7 @@ export class ProfilePageComponent implements OnInit {
 
   cancelEditProfile(): void {
     this.editingProfile = false;
+    document.body.style.overflow = '';
   }
 
   async deleteAccount(): Promise<void> {
@@ -628,6 +645,10 @@ export class ProfilePageComponent implements OnInit {
 
   async saveProfile(): Promise<void> {
     if (!this.currentUserId || this.savingProfile) return;
+    if (this.selectedGenreIds.size < 3) {
+      this.editProfileError = this.copy.genresMinError;
+      return;
+    }
     this.savingProfile = true;
     this.editProfileError = null;
     try {
@@ -654,6 +675,7 @@ export class ProfilePageComponent implements OnInit {
         .map((g) => ({ id: g.id, name: g.name }));
 
       this.editingProfile = false;
+      document.body.style.overflow = '';
     } catch (error) {
       // The only unique-constrained field we update is username, so a 23505
       // means the chosen username is taken. Anything else is a generic failure.
