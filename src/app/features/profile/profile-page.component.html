@@ -328,6 +328,10 @@
                 <span class="f-name">{{ friend.name }}</span>
               </a>
             }
+            <a class="friend-chip find-readers-chip" routerLink="/community">
+              <span class="fr-plus">+</span>
+              <span class="f-name">{{ copy.findReadersBtn }}</span>
+            </a>
           </div>
         </div>
       }
@@ -347,7 +351,7 @@
 
       <!-- Currently Reading -->
       @if (currentlyReadingBooks.length > 0) {
-        <section class="shelf-section">
+        <section class="shelf-section" id="shelves">
           <div class="shelf-sec-hdr">
             <span class="shelf-sec-icon shelf-sec-icon--reading">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -387,7 +391,7 @@
 
       <!-- Most Liked -->
       @if (mostLikedBooks.length > 0) {
-        <section class="shelf-section">
+        <section class="shelf-section" id="reviews">
           <div class="shelf-sec-hdr">
             <span class="shelf-sec-icon shelf-sec-icon--star">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -526,6 +530,55 @@
           <p>{{ copy.noRatedBooks }}</p>
           <a routerLink="/books/search" class="btn btn-primary">{{ copy.findBooks }}</a>
         </div>
+      }
+
+      <!-- Recent Activity -->
+      @if (recentPosts.length > 0) {
+        <section class="shelf-section" id="activity">
+          <div class="shelf-sec-hdr">
+            <span class="shelf-sec-icon shelf-sec-icon--activity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+              </svg>
+            </span>
+            <span class="shelf-sec-title">{{ copy.recentPostsTitle }}</span>
+            <span class="shelf-sec-count">{{ recentPosts.length }}</span>
+          </div>
+          <div class="activity-list">
+            @for (post of displayedPosts; track post.id) {
+              <article class="activity-card" role="button" tabindex="0"
+                (click)="openPost(post)" (keydown.enter)="openPost(post)">
+                @if (post.bookCover) {
+                  <img class="activity-cover" [src]="post.bookCover" [alt]="post.bookTitle" loading="lazy" (error)="post.bookCover = ''" />
+                }
+                <div class="activity-body">
+                  <div class="activity-book">{{ post.bookTitle }}</div>
+                  <p class="activity-text">{{ post.content }}</p>
+                  <div class="activity-foot">
+                    <span>{{ timeAgo(post.createdAt, lang) }}</span>
+                    <span class="activity-stat">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                      {{ post.likeCount }}
+                    </span>
+                    <span class="activity-stat">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      {{ post.commentCount }}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+          @if (recentPosts.length > recentPostsPreviewCount) {
+            <button type="button" class="activity-see-more" (click)="togglePostsExpanded()">
+              {{ postsExpanded ? copy.showLessBtn : copy.seeAllBtn }}
+            </button>
+          }
+        </section>
       }
       }
 

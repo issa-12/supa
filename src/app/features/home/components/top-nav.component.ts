@@ -160,11 +160,15 @@ interface NavSearchBook {
           [compact]="false"
         />
 
-        <div class="avatar-wrap" (click)="$event.stopPropagation()">
+        <div class="avatar-wrap" [class.avatar-wrap--active]="isProfileActive" (click)="$event.stopPropagation()">
+          @if (isProfileActive) {
+            <span class="avatar-active-label">{{ copy.myProfile }}</span>
+          }
           <img
             [src]="avatarUrl || avatarFallback"
             alt="Profile"
             class="nav-avatar"
+            [attr.aria-current]="isProfileActive ? 'page' : null"
             (click)="toggleUserMenu()"
           />
           @if (userMenuOpen) {
@@ -498,6 +502,16 @@ interface NavSearchBook {
 
     .avatar-wrap {
       position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar-active-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      white-space: nowrap;
     }
 
     .nav-avatar {
@@ -507,11 +521,17 @@ interface NavSearchBook {
       object-fit: cover;
       border: 2px solid var(--surface-alt);
       cursor: pointer;
-      transition: transform 0.2s ease;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       display: block;
       margin-inline-start: 6px;
 
       &:hover { transform: scale(1.05); }
+    }
+
+    // On the profile page: terracotta ring around the avatar to signal "you are here".
+    .avatar-wrap--active .nav-avatar {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-soft);
     }
 
     .user-menu {
@@ -558,24 +578,29 @@ interface NavSearchBook {
 
       // The shared selector defaults to --auth-foreground (only defined on the
       // auth pages) and a 46px tall, 162px wide control. Re-shape it to a compact
-      // pill that fits the nav and turns terracotta on hover.
+      // icon-only button (globe only — no language label or chevron) that matches
+      // the other nav icons and turns terracotta on hover.
       ::ng-deep .language-button {
-        height: 38px;
+        width: 40px;
+        height: 40px;
         min-width: auto;
-        padding: 0 14px;
-        gap: 6px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--surface);
+        padding: 0;
+        gap: 0;
+        border-radius: 9px;
+        border: none;
+        background: transparent;
         color: var(--muted-foreground);
-        font-size: 12px;
-        font-weight: 500;
-        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        transition: background 0.15s, color 0.15s;
+
+        // Hide the language name and the dropdown chevron — keep just the globe.
+        span:not([class]) { display: none; }
+        .language-button__chevron { display: none; }
+        // Size the globe to match the other 20px nav icons.
+        svg { width: 19px; height: 19px; }
 
         &:hover {
-          background: var(--primary-soft);
-          color: var(--primary);
-          border-color: rgba(217, 119, 87, 0.4);
+          background: var(--surface-alt);
+          color: var(--foreground);
         }
         &:active { transform: scale(0.95); }
       }
@@ -594,8 +619,8 @@ interface NavSearchBook {
       /* logo mark only — the word-mark eats too much width on phones */
       .brand-text { display: none; }
       .nav-actions { gap: 4px; }
-      /* the full language name is too wide on phones — hide its label, keep globe */
-      .nav-language-selector ::ng-deep .language-button span:not([class]) { display: none; }
+      /* keep just the terracotta ring on phones — the text label eats width */
+      .avatar-active-label { display: none; }
       /* search drops onto its own full-width row so the action icons fit */
       .search-wrap {
         order: 3;
@@ -632,6 +657,14 @@ export class TopNavComponent implements OnInit, OnDestroy {
   get avatarFallback(): string {
     const initial = encodeURIComponent(this.userName?.[0]?.toUpperCase() || 'U');
     return `https://ui-avatars.com/api/?name=${initial}&background=E9783F&color=fff&size=44`;
+  }
+
+  // The avatar is the entry point to YOUR OWN profile, so highlight it
+  // (terracotta ring + label) only on the bare /profile route. Another user's
+  // profile is /profile/:id and must not light it up. router.url updates on
+  // NavigationEnd, which triggers change detection, so this getter stays live.
+  get isProfileActive(): boolean {
+    return this.router.url.split('?')[0].split('#')[0] === '/profile';
   }
 
   // Language support

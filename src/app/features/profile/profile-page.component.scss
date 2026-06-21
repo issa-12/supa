@@ -28,9 +28,9 @@ $border-soft: rgba(100, 70, 50, 0.10);
 .profile-content {
   flex: 1;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 40px 48px 80px;
+  padding: 32px 48px 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -42,6 +42,9 @@ $border-soft: rgba(100, 70, 50, 0.10);
     user-select: none;
   }
 }
+
+// Anchored sections account for the sticky nav when scrolled to.
+section[id] { scroll-margin-top: 80px; }
 
 // ── Profile header card ──────────────────────────────────────────
 .profile-card {
@@ -170,7 +173,6 @@ $border-soft: rgba(100, 70, 50, 0.10);
 .profile-since {
   font-size: 13px;
   color: $text-4;
-  font-style: italic;
   margin: 0;
 }
 
@@ -525,6 +527,35 @@ $border-soft: rgba(100, 70, 50, 0.10);
   color: var(--foreground);
 }
 
+// Dashed "add" chip that sits with the friends so the card never feels empty.
+.find-readers-chip {
+  background: transparent;
+  border: 1px dashed rgba(193, 85, 58, 0.35);
+  color: var(--primary);
+
+  &:hover {
+    background: $brand-light;
+    border-color: var(--primary);
+  }
+
+  .fr-plus {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--primary);
+    background: $brand-light;
+    flex-shrink: 0;
+  }
+
+  .f-name { color: var(--primary); font-weight: 600; }
+}
+
 // Incoming requests list (reuses the friends card shell)
 .requests-list {
   display: flex;
@@ -611,6 +642,7 @@ $border-soft: rgba(100, 70, 50, 0.10);
   &--star { background: #edf7f0; svg { stroke: #2a6644; } }
   &--check { background: var(--background); svg { stroke: $text-3; } }
   &--x { background: #fef0ee; svg { stroke: var(--primary-dark); } }
+  &--activity { background: $brand-light; svg { stroke: var(--primary); } }
 }
 
 .shelf-sec-title {
@@ -622,7 +654,6 @@ $border-soft: rgba(100, 70, 50, 0.10);
 .shelf-sec-sub {
   font-size: 13px;
   color: $text-4;
-  font-style: italic;
   margin-inline-start: 4px;
 }
 
@@ -638,27 +669,22 @@ $border-soft: rgba(100, 70, 50, 0.10);
 }
 
 .books-row {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-
-  &::-webkit-scrollbar { height: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: $cream-mid; border-radius: 2px; }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 22px 18px;
 }
 
 .book-card {
-  flex-shrink: 0;
-  width: 160px;
+  width: 100%;
+  min-width: 0;
   cursor: pointer;
 
   &:hover .book-cover-wrap { transform: translateY(-3px); }
 }
 
 .book-cover-wrap {
-  width: 160px;
-  height: 224px;
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -741,6 +767,104 @@ $border-soft: rgba(100, 70, 50, 0.10);
 
   svg { opacity: 0.35; }
   p { font-size: 15px; margin: 0; }
+}
+
+// ── Recent activity ──────────────────────────────────────────────
+.activity-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.activity-card {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 0.5px solid $border-soft;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(193, 85, 58, 0.3);
+    box-shadow: 0 6px 18px rgba(40, 20, 10, 0.08);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+.activity-see-more {
+  display: block;
+  margin: 16px auto 0;
+  padding: 9px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: $brand-light;
+    border-color: rgba(193, 85, 58, 0.4);
+  }
+}
+
+.activity-cover {
+  width: 46px;
+  height: 68px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(40, 20, 10, 0.12);
+}
+
+.activity-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-book {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+  overflow-wrap: break-word;
+}
+
+.activity-text {
+  font-size: 13px;
+  color: $text-2;
+  line-height: 1.55;
+  margin: 0 0 8px;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.activity-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: $text-4;
+}
+
+.activity-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  svg { width: 13px; height: 13px; }
 }
 
 // ── Footer ───────────────────────────────────────────────────────
@@ -1188,7 +1312,7 @@ $border-soft: rgba(100, 70, 50, 0.10);
 .skel-tag { height: 28px; width: 72px; border-radius: 999px; }
 .skel-stat-card { min-height: 100px; border-radius: 16px; }
 .skel-section-h { height: 20px; width: 160px; border-radius: var(--radius-sm); margin-bottom: 16px; }
-.skel-book-cover { width: 160px; height: 224px; border-radius: 10px; }
+.skel-book-cover { width: 100%; aspect-ratio: 2 / 3; border-radius: 10px; }
 .skel-book-title { height: 13px; width: 85%; border-radius: var(--radius-sm); margin-top: 8px; }
 .skel-book-author { height: 11px; width: 60%; border-radius: var(--radius-sm); margin-top: 6px; }
 
@@ -1324,13 +1448,14 @@ $border-soft: rgba(100, 70, 50, 0.10);
 
 // ── Responsive ───────────────────────────────────────────────────
 @media (max-width: 768px) {
-  .profile-content { padding: 28px 20px 64px; }
+  .profile-content { padding: 24px 20px 56px; }
   .profile-card { padding: 24px; }
   .stats-row { gap: 12px; }
   .stat-card { padding: 16px 18px; }
   .stat-value { font-size: 26px; }
   .edit-profile-btn { position: static; margin-bottom: 18px; align-self: flex-start; }
   .profile-card { display: flex; flex-direction: column; }
+  .books-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 }
 
 @media (max-width: 600px) {
@@ -1343,8 +1468,7 @@ $border-soft: rgba(100, 70, 50, 0.10);
 @media (max-width: 480px) {
   .profile-content { padding: 20px 12px 56px; }
   .profile-card { padding: 20px; border-radius: 16px; }
-  .book-card,
-  .book-cover-wrap { width: 132px; }
-  .book-cover-wrap { height: 188px; }
+  .books-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
+  .activity-list { grid-template-columns: 1fr; }
   .shelf-sec-sub { width: 100%; margin-inline-start: 0; }
 }

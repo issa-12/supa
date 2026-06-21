@@ -738,4 +738,24 @@ export class ProfilePageComponent implements OnInit {
       this.router.navigate(['/books', book.googleBooksId]);
     }
   }
+
+  // Recent activity: show a single row by default, expand to the rest on demand.
+  readonly recentPostsPreviewCount = 3;
+  postsExpanded = false;
+
+  get displayedPosts(): ActivityPost[] {
+    return this.postsExpanded
+      ? this.recentPosts
+      : this.recentPosts.slice(0, this.recentPostsPreviewCount);
+  }
+
+  togglePostsExpanded(): void {
+    this.postsExpanded = !this.postsExpanded;
+  }
+
+  // No standalone post page exists — open the post inside the community feed,
+  // which scrolls to it and expands its comments (see ?post= handling there).
+  openPost(post: ActivityPost): void {
+    this.router.navigate(['/community'], { queryParams: { post: post.id } });
+  }
 }

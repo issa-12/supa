@@ -219,7 +219,7 @@
       } @else {
         <div class="posts-list">
           @for (post of posts; track post.id) {
-            <article class="post-card">
+            <article class="post-card" [id]="'post-' + post.id" [class.post-card--highlight]="highlightedPostId === post.id">
 
               <!-- Post header -->
               <div class="post-header">

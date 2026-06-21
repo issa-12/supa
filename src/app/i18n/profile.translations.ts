@@ -31,6 +31,7 @@ export interface ProfileCopy {
   friendsTitle: string;
   seeAllBtn: string;
   showLessBtn: string;
+  findReadersBtn: string;
   bookUnit: string;
   booksUnit: string;
   onlineLabel: string;
@@ -183,6 +184,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friendsTitle: 'Friends',
     seeAllBtn: 'See all',
     showLessBtn: 'Show less',
+    findReadersBtn: 'Find readers',
     bookUnit: 'book',
     booksUnit: 'books',
     onlineLabel: 'Online',
@@ -333,6 +335,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friendsTitle: 'الأصدقاء',
     seeAllBtn: 'عرض الكل',
     showLessBtn: 'عرض أقل',
+    findReadersBtn: 'ابحث عن قراء',
     bookUnit: 'كتاب',
     booksUnit: 'كتب',
     onlineLabel: 'متصل',
@@ -483,6 +486,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friendsTitle: 'Amis',
     seeAllBtn: 'Voir tout',
     showLessBtn: 'Voir moins',
+    findReadersBtn: 'Trouver des lecteurs',
     bookUnit: 'livre',
     booksUnit: 'livres',
     onlineLabel: 'En ligne',
