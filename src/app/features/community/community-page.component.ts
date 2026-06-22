@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../core/services/activity.service';
 import { LikesService } from '../../core/services/likes.service';
 import { BookService } from '../../core/services/book.service';
@@ -38,6 +38,7 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   private readonly likesService = inject(LikesService);
   private readonly bookService = inject(BookService);
   private readonly supabaseService = inject(SupabaseService);
+  private readonly route = inject(ActivatedRoute);
   private readonly translationService = inject(TranslationService);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -60,6 +61,11 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   activeTab: 'all' | 'friends' | 'mine' | 'trending' = 'all';
   activeTag: string | null = null;
   openCommentPostIds = new Set<number>();
+
+  // When arriving via /community?post=<id> (e.g. from a profile's Recent Posts),
+  // scroll to that post and open its comments once the feed has loaded.
+  private focusPostId: number | null = null;
+  highlightedPostId: number | null = null;
 
   composeOpen = false;
   postContent = '';
@@ -99,7 +105,26 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
       this.currentUserInitial = (this.currentUserName[0] ?? 'R').toUpperCase();
     }
 
+    const postParam = this.route.snapshot.queryParamMap.get('post');
+    this.focusPostId = postParam ? Number(postParam) || null : null;
+
     await Promise.all([this.loadPosts(), this.loadTrendingTags()]);
+
+    if (this.focusPostId !== null) this.focusOnPost(this.focusPostId);
+  }
+
+  // Open the target post's comments and scroll it into view. Best-effort: the
+  // post must be in the loaded feed (recent posts on the default "all" tab are).
+  private focusOnPost(postId: number): void {
+    if (!this.posts.some((p) => p.id === postId)) return;
+    this.openCommentPostIds = new Set(this.openCommentPostIds).add(postId);
+    this.highlightedPostId = postId;
+    // Wait a frame for the post (and its now-open comments) to render.
+    setTimeout(() => {
+      document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+    // Fade the highlight after a few seconds so it reads as a transient cue.
+    setTimeout(() => { this.highlightedPostId = null; }, 2600);
     void this.setupRealtime();
   }
 

@@ -29,6 +29,11 @@ export interface ProfileCopy {
   friends: string;
   friendsBtn: string;
   friendsTitle: string;
+  seeAllBtn: string;
+  showLessBtn: string;
+  findReadersBtn: string;
+  bookUnit: string;
+  booksUnit: string;
   onlineLabel: string;
   offlineLabel: string;
   dangerZone: string;
@@ -90,6 +95,9 @@ export interface ProfileCopy {
   namePlaceholder: string;
   username: string;
   usernamePlaceholder: string;
+  email: string;
+  emailReadonlyNote: string;
+  genresMinError: string;
   bio: string;
   bioPlaceholder: string;
   favoriteGenres: string;
@@ -174,6 +182,11 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friends: 'Friends',
     friendsBtn: 'Friends',
     friendsTitle: 'Friends',
+    seeAllBtn: 'See all',
+    showLessBtn: 'Show less',
+    findReadersBtn: 'Find readers',
+    bookUnit: 'book',
+    booksUnit: 'books',
     onlineLabel: 'Online',
     offlineLabel: 'Offline',
     dangerZone: 'Danger zone',
@@ -235,6 +248,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     namePlaceholder: 'Your name',
     username: 'Username',
     usernamePlaceholder: 'username',
+    email: 'Email',
+    emailReadonlyNote: 'Email cannot be changed. Contact support if needed.',
+    genresMinError: 'Please select at least 3 genres.',
     bio: 'Bio',
     bioPlaceholder: 'Tell readers about yourself…',
     favoriteGenres: 'Favorite genres',
@@ -317,6 +333,11 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friends: 'الأصدقاء',
     friendsBtn: 'الأصدقاء',
     friendsTitle: 'الأصدقاء',
+    seeAllBtn: 'عرض الكل',
+    showLessBtn: 'عرض أقل',
+    findReadersBtn: 'ابحث عن قراء',
+    bookUnit: 'كتاب',
+    booksUnit: 'كتب',
     onlineLabel: 'متصل',
     offlineLabel: 'غير متصل',
     dangerZone: 'منطقة الخطر',
@@ -378,6 +399,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     namePlaceholder: 'اسمك',
     username: 'اسم المستخدم',
     usernamePlaceholder: 'اسم المستخدم',
+    email: 'البريد الإلكتروني',
+    emailReadonlyNote: 'لا يمكن تغيير البريد الإلكتروني. تواصل مع الدعم إذا لزم الأمر.',
+    genresMinError: 'يرجى اختيار 3 أنواع على الأقل.',
     bio: 'السيرة الذاتية',
     bioPlaceholder: 'أخبر القراء عن نفسك…',
     favoriteGenres: 'الأنواع المفضلة',
@@ -460,6 +484,11 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     friends: 'Amis',
     friendsBtn: 'Amis',
     friendsTitle: 'Amis',
+    seeAllBtn: 'Voir tout',
+    showLessBtn: 'Voir moins',
+    findReadersBtn: 'Trouver des lecteurs',
+    bookUnit: 'livre',
+    booksUnit: 'livres',
     onlineLabel: 'En ligne',
     offlineLabel: 'Hors ligne',
     dangerZone: 'Zone de danger',
@@ -521,6 +550,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     namePlaceholder: 'Votre nom',
     username: 'Nom d\'utilisateur',
     usernamePlaceholder: 'nom_utilisateur',
+    email: 'E-mail',
+    emailReadonlyNote: 'L\'e-mail ne peut pas être modifié. Contactez le support si nécessaire.',
+    genresMinError: 'Veuillez sélectionner au moins 3 genres.',
     bio: 'Biographie',
     bioPlaceholder: 'Parlez-nous de vous…',
     favoriteGenres: 'Genres favoris',

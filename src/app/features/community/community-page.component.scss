@@ -575,9 +575,16 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.4s ease;
+  scroll-margin-top: 80px;
 
   &:hover { border-color: rgba(100, 70, 50, 0.22); }
+
+  // Transient cue when deep-linked via /community?post=<id>.
+  &--highlight {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
 }
 
 .post-header {
