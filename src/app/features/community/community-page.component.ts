@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../core/services/activity.service';
 import { LikesService } from '../../core/services/likes.service';
 import { BookService } from '../../core/services/book.service';
-import { SupabaseService } from '../../core/services/supabase.service';
+import { SupabaseService, RealtimeSubscription } from '../../core/services/supabase.service';
 import { PostCommentsComponent } from '../home/components/post-comments.component';
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { timeAgo } from '../../core/util/time-ago';
@@ -32,7 +32,7 @@ interface TrendingTag {
   templateUrl: './community-page.component.html',
   styleUrl: './community-page.component.scss',
 })
-export class CommunityPageComponent implements OnInit {
+export class CommunityPageComponent implements OnInit, OnDestroy {
   private readonly activityService = inject(ActivityService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly likesService = inject(LikesService);
@@ -81,6 +81,10 @@ export class CommunityPageComponent implements OnInit {
   tagSearchQuery = '';
   private tagSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private realtimeSub: RealtimeSubscription | null = null;
+  private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
+
   get canPost(): boolean {
     return this.postContent.trim().length > 0 && this.selectedBook !== null;
   }
@@ -121,6 +125,63 @@ export class CommunityPageComponent implements OnInit {
     }, 150);
     // Fade the highlight after a few seconds so it reads as a transient cue.
     setTimeout(() => { this.highlightedPostId = null; }, 2600);
+    void this.setupRealtime();
+  }
+
+  // Live-update the community feed when anyone posts/removes a post. The raw
+  // event only signals "posts changed", so we silently re-fetch the first page
+  // of the current tab/tag — the backend keeps all block/privacy/moderation
+  // filtering authoritative. (Mirrors the home feed.)
+  private async setupRealtime(): Promise<void> {
+    if (this.realtimeSub) return;
+    const sub = await this.supabaseService.createRealtimeSubscription('community-feed', {
+      tables: ['posts'],
+      onChange: () => this.scheduleRealtimeRefresh(),
+      onReconnect: () => this.scheduleRealtimeRefresh(),
+    });
+    if (this.destroyed) { void sub.teardown(); return; }
+    this.realtimeSub = sub;
+  }
+
+  private scheduleRealtimeRefresh(): void {
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    this.realtimeTimer = setTimeout(() => {
+      this.realtimeTimer = null;
+      void this.silentRefresh();
+    }, 700);
+  }
+
+  // Re-fetch the first page without the loading spinner or clearing the list
+  // (avoids flicker; `track post.id` preserves open comment panels).
+  private async silentRefresh(): Promise<void> {
+    if (!this.currentUserId) return;
+    // Don't yank the user back to the top if they've paged past the first page —
+    // resetting to page 0 would drop their loaded pages. They'll get fresh
+    // content on their next tab switch / manual action instead.
+    if (this.page > 1) return;
+    try {
+      const scope =
+        this.activeTab === 'friends' ? 'friends' :
+        this.activeTab === 'mine' ? 'mine' : undefined;
+      const fresh =
+        this.activeTab === 'trending'
+          ? await this.activityService.getCommunityTrendingPosts(this.currentUserId)
+          : await this.activityService.getCommunityPosts(
+              this.currentUserId,
+              this.activeTag ?? undefined,
+              0,
+              scope,
+            );
+      this.posts = fresh;
+      this.page = 1;
+      this.hasMore = fresh.length >= 20 && this.activeTab !== 'trending';
+    } catch { /* silently ignore */ }
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    void this.realtimeSub?.teardown();
   }
 
   async loadPosts(append = false): Promise<void> {

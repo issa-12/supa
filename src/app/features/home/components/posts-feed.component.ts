@@ -1,10 +1,10 @@
-import { Component, ElementRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { BookService } from '../../../core/services/book.service';
-import { SupabaseService } from '../../../core/services/supabase.service';
+import { SupabaseService, RealtimeSubscription } from '../../../core/services/supabase.service';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
@@ -726,7 +726,7 @@ interface BookSearchResult {
     }
   `],
 })
-export class PostsFeedComponent implements OnInit, OnChanges {
+export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   @Input() currentUserId: string | null = null;
   @Input() currentUserAvatar: string | null = null;
   @Input() currentUserName: string | null = null;
@@ -759,6 +759,10 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   postError: string | null = null;
 
   private bookSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private realtimeSub: RealtimeSubscription | null = null;
+  private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+  private realtimeStarted = false;
+  private destroyed = false;
 
   get currentUserInitial(): string {
     return (this.currentUserName ?? 'R')[0].toUpperCase();
@@ -773,13 +777,17 @@ export class PostsFeedComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
-    if (this.currentUserId) this.loadFeed();
+    if (this.currentUserId) {
+      this.loadFeed();
+      void this.setupRealtime();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     const id = changes['currentUserId'];
     if (id && id.currentValue && id.currentValue !== id.previousValue) {
       this.loadFeed();
+      void this.setupRealtime();
     }
   }
 
@@ -795,16 +803,16 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     }
   }
 
-  private loadFeed(): void {
-    this.loading = true;
+  private loadFeed(silent = false): void {
+    if (!silent) this.loading = true;
     this.activityService.getFriendActivity(this.currentUserId!, 30).subscribe({
       next: (posts) => { this.posts = posts; this.loading = false; },
       error: () => { this.loading = false; },
     });
   }
 
-  private loadTrending(): void {
-    this.loading = true;
+  private loadTrending(silent = false): void {
+    if (!silent) this.loading = true;
     this.activityService.getTrendingPosts(this.currentUserId!, 20).subscribe({
       next: (posts) => {
         this.trendingPosts = posts;
@@ -813,6 +821,34 @@ export class PostsFeedComponent implements OnInit, OnChanges {
       },
       error: () => { this.trendingPosts = []; this.loading = false; },
     });
+  }
+
+  // Live-update the feed when anyone the viewer can see posts (or removes a
+  // post). The raw event only says "posts changed", so we re-fetch the current
+  // tab — that keeps all the server-side friend/privacy/moderation filtering
+  // authoritative instead of trying to merge a raw row client-side. The refresh
+  // is silent (no spinner) and `track post.id` preserves open comment panels.
+  private async setupRealtime(): Promise<void> {
+    // Synchronous guard: ngOnChanges (first change) and ngOnInit both call this
+    // before the first await resolves, which would otherwise open two channels.
+    if (this.realtimeStarted) return;
+    this.realtimeStarted = true;
+    const sub = await this.supabaseService.createRealtimeSubscription('home-feed', {
+      tables: ['posts'],
+      onChange: () => this.scheduleRealtimeRefresh(),
+      onReconnect: () => this.scheduleRealtimeRefresh(),
+    });
+    if (this.destroyed) { void sub.teardown(); return; }
+    this.realtimeSub = sub;
+  }
+
+  private scheduleRealtimeRefresh(): void {
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    this.realtimeTimer = setTimeout(() => {
+      this.realtimeTimer = null;
+      if (this.activeTab === 'friends') this.loadFeed(true);
+      else this.loadTrending(true);
+    }, 700);
   }
 
   openCompose(): void {
@@ -928,6 +964,13 @@ export class PostsFeedComponent implements OnInit, OnChanges {
     this.activityService.deletePost(post.id).subscribe({
       error: () => { this.posts = prev; },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    if (this.bookSearchTimer) clearTimeout(this.bookSearchTimer);
+    void this.realtimeSub?.teardown();
   }
 
   readonly timeAgo = timeAgo;

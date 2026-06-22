@@ -340,10 +340,13 @@ export class AuthPageComponent {
         case 'MISSING_FIELDS':
           return this.text.requiredFields;
         default:
-          return error.message || this.text.genericError;
+          // Unknown code: show a friendly message rather than leaking a raw
+          // upstream string (e.g. "Invalid API key" / "TypeError: fetch failed").
+          return this.text.genericError;
       }
     }
-    return error instanceof Error ? error.message : this.text.genericError;
+    // Non-API errors (network, etc.) also get the friendly fallback.
+    return this.text.genericError;
   }
 
   // Login errors: Supabase returns raw English strings; translate the known ones.

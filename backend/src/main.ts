@@ -6,12 +6,28 @@ loadEnvFile('.env');
 loadEnvFile('.env.local');
 
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
+
+  // OpenAPI / Swagger UI for the public API. Served at /api/docs (the JSON at
+  // /api/docs-json) — reachable through the nginx /api proxy. Documents both the
+  // API-key-authenticated public endpoints and the JWT key-management endpoints.
+  const openApiConfig = new DocumentBuilder()
+    .setTitle('ReadTrack Public API')
+    .setDescription(
+      'Public REST API for ReadTrack. Authenticate public endpoints with a consumer API key sent in the `X-API-Key` header. Manage keys via the JWT-authenticated /api/keys endpoints.',
+    )
+    .setVersion('1.0')
+    .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'apiKey')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'jwt')
+    .build();
+  const document = SwaggerModule.createDocument(app, openApiConfig);
+  SwaggerModule.setup('api/docs', app, document);
 
   // Baseline security headers directly on the backend (defense-in-depth — nginx
   // also sets these on the public surface, but port 3000 shouldn't be bare).
