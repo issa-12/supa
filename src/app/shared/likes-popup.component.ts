@@ -37,17 +37,20 @@ const LIKES_COPY = {
             <div class="lp-row">
               @if (user.userId !== currentUserId) {
                 @if (pendingIds.has(user.userId)) {
-                  <span class="lp-badge lp-badge--pending">{{ copy.pending }}</span>
+                  <span class="lp-icon-btn lp-icon-btn--pending" [title]="copy.pending">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
                 } @else if (user.isFriend) {
-                  <span class="lp-badge lp-badge--friend">
-                    <iconify-icon icon="lucide:users" style="font-size:10px"></iconify-icon>
-                    {{ copy.friend }}
+                  <span class="lp-icon-btn lp-icon-btn--friend" [title]="copy.friend">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
                   </span>
                 } @else {
-                  <button class="lp-add-btn" (click)="addFriend(user.userId)">+ {{ copy.add }}</button>
+                  <button class="lp-icon-btn lp-icon-btn--add" [title]="copy.add" (click)="addFriend(user.userId)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                  </button>
                 }
               } @else {
-                <span class="lp-badge-placeholder"></span>
+                <span class="lp-icon-placeholder"></span>
               }
               <a class="lp-row-link" [routerLink]="['/profile', user.userId]" (click)="closed.emit()">
                 <span class="lp-av">
@@ -91,7 +94,6 @@ const LIKES_COPY = {
       flex-direction: column;
       overflow: hidden;
       animation: lp-in 0.15s ease;
-      direction: ltr;
     }
 
     @keyframes lp-in {
@@ -106,7 +108,6 @@ const LIKES_COPY = {
       padding: 12px 14px 10px;
       border-bottom: 1px solid var(--border, #e5e0d8);
       flex-shrink: 0;
-      direction: ltr;
     }
 
     .lp-title {
@@ -161,6 +162,7 @@ const LIKES_COPY = {
       align-items: center;
       gap: 8px;
       padding: 5px 4px;
+      direction: ltr;
     }
 
     .lp-row-link {
@@ -214,46 +216,39 @@ const LIKES_COPY = {
       color: var(--muted-foreground);
     }
 
-    .lp-badge {
+    .lp-icon-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: 3px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 999px;
-      padding: 3px 9px;
+      justify-content: center;
       flex-shrink: 0;
-      white-space: nowrap;
+      border: none;
+      cursor: default;
+
+      &--add {
+        background: rgba(193,85,58,0.12);
+        color: var(--primary, #C1553A);
+        cursor: pointer;
+        transition: background 0.15s;
+        &:hover { background: rgba(193,85,58,0.22); }
+      }
 
       &--friend {
-        color: var(--primary, #C1553A);
         background: rgba(193,85,58,0.1);
+        color: var(--primary, #C1553A);
       }
 
       &--pending {
-        color: #7A6A5A;
         background: rgba(122,106,90,0.1);
+        color: #7A6A5A;
       }
     }
 
-    .lp-badge-placeholder {
-      width: 58px;
+    .lp-icon-placeholder {
+      width: 28px;
       flex-shrink: 0;
-    }
-
-    .lp-add-btn {
-      background: var(--primary, #C1553A);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
-      cursor: pointer;
-      flex-shrink: 0;
-      white-space: nowrap;
-      transition: background 0.15s;
-      &:hover { background: #A8432A; }
     }
   `],
 })

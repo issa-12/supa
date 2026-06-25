@@ -265,10 +265,14 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   }
 
   onTagSearchInput(): void {
-    if (this.tagSearchTimer) clearTimeout(this.tagSearchTimer);
-    const q = this.tagSearchQuery.trim().replace(/^#/, '');
-    if (!q) { this.clearTagFilter(); return; }
-    this.tagSearchTimer = setTimeout(() => this.filterByTag(q), 500);
+    if (!this.tagSearchQuery.trim()) this.clearTagFilter();
+  }
+
+  onTagSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      const q = this.tagSearchQuery.trim().replace(/^#/, '');
+      if (q) { this.filterByTag(q); this.tagSearchQuery = ''; }
+    }
   }
 
   loadMore(): void { this.loadPosts(true); }
