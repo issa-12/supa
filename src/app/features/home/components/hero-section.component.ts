@@ -216,10 +216,10 @@ interface Book {
       margin: 12px 0 0;
     }
 
-    // Straight cover pinned to the far-right edge, vertically centred.
+    // Straight cover pinned to the inline end edge, vertically centred.
     .hero-cover {
       position: absolute;
-      right: 40px;
+      inset-inline-end: 40px;
       top: 50%;
       transform: translateY(-50%);
       width: 140px;

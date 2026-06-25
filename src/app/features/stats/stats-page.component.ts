@@ -238,11 +238,11 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return dateInputToDayNumber(this.to || this.maximumDate);
   }
 
-  get selectedRangePercent(): { left: number; width: number } {
+  get selectedRangePercent(): { start: number; width: number } {
     const span = Math.max(1, this.maximumDateValue - this.minimumDateValue);
-    const left = ((this.fromDateValue - this.minimumDateValue) / span) * 100;
-    const right = ((this.toDateValue - this.minimumDateValue) / span) * 100;
-    return { left, width: Math.max(0, right - left) };
+    const start = ((this.fromDateValue - this.minimumDateValue) / span) * 100;
+    const end = ((this.toDateValue - this.minimumDateValue) / span) * 100;
+    return { start, width: Math.max(0, end - start) };
   }
 
   constructor() {

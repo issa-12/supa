@@ -49,7 +49,7 @@ export class ShelfComponent implements OnInit {
   // clipped by the horizontal scroll row's overflow.
   openMenuBook: UserBook | null = null;
   openMenuStatusName: string | null = null;
-  menuPos = { top: 0, left: 0 };
+  menuPos = { top: 0, inlineStart: 0 };
   savingId: number | null = null;
 
   progressEditId: number | null = null;
@@ -222,7 +222,8 @@ export class ShelfComponent implements OnInit {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const width = 170;
     const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
-    this.menuPos = { left, top: rect.top - 6 };
+    const inlineStart = this.lang === 'ar' ? window.innerWidth - left - width : left;
+    this.menuPos = { inlineStart, top: rect.top - 6 };
   }
 
   closeMenu(): void {

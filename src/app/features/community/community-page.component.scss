@@ -154,7 +154,7 @@
   cursor: pointer;
   transition: background 0.15s;
   width: 100%;
-  text-align: left;
+  text-align: start;
 
   &:hover { background: #FAF0ED; }
   &--active { background: #FAF0ED; }
@@ -202,7 +202,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
 
   &:hover .compose-placeholder { color: var(--foreground); }
 }
@@ -713,11 +713,11 @@
   background: #F5EFE6;
   border-radius: 10px;
   border: 0.5px solid rgba(100, 70, 50, 0.12);
-  border-left: 3px solid rgba(193, 85, 58, 0.35);
+  border-inline-start: 3px solid rgba(193, 85, 58, 0.35);
   text-decoration: none;
   transition: background 0.15s;
 
-  &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); border-left-color: rgba(193, 85, 58, 0.35); }
+  &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); border-inline-start-color: rgba(193, 85, 58, 0.35); }
 }
 
 .post-book-cover {

@@ -324,8 +324,7 @@ interface NavSearchBook {
     .search-dropdown {
       position: absolute;
       top: calc(100% + 8px);
-      left: 0;
-      right: 0;
+      inset-inline: 0;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -365,7 +364,7 @@ interface NavSearchBook {
       background: none;
       border: none;
       cursor: pointer;
-      text-align: left;
+      text-align: start;
       transition: background 0.12s;
 
       &:hover { background: var(--primary-soft); }
@@ -475,7 +474,7 @@ interface NavSearchBook {
         content: '';
         position: absolute;
         bottom: 3px;
-        left: 50%;
+        inset-inline-start: 50%;
         transform: translateX(-50%);
         width: 4px;
         height: 4px;

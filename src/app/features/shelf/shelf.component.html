@@ -217,7 +217,7 @@
   <!-- Card action menu — rendered at page root with position:fixed so the
        horizontal scroll rows can't clip it. -->
   @if (openMenuBook) {
-    <div class="dropdown" [style.left.px]="menuPos.left" [style.top.px]="menuPos.top" (click)="$event.stopPropagation()">
+    <div class="dropdown" [style.inset-inline-start.px]="menuPos.inlineStart" [style.top.px]="menuPos.top" (click)="$event.stopPropagation()">
       <p class="dropdown-label">{{ copy.dropdownMoveTo }}</p>
       @for (status of SHELF_STATUSES; track status.name) {
         @if (status.name !== openMenuStatusName) {

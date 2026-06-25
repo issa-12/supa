@@ -266,7 +266,7 @@ interface BookSearchResult {
       background: none;
       border: none;
       cursor: pointer;
-      text-align: left;
+      text-align: start;
       padding: 0;
       font-family: inherit;
 
@@ -555,16 +555,17 @@ interface BookSearchResult {
       background: transparent;
       border-bottom: 1px solid var(--border);
       // Transparent accent rail by default → terracotta on hover (no layout shift).
-      border-left: 2px solid transparent;
-      padding: 16px 2px 16px 12px;
+      border-inline-start: 2px solid transparent;
+      padding-block: 16px;
+      padding-inline: 12px 2px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      transition: border-left-color 0.15s, background 0.15s;
+      transition: border-inline-start-color 0.15s, background 0.15s;
 
       &:last-child { border-bottom: none; }
       &:hover {
-        border-left-color: rgba(193, 85, 58, 0.25);
+        border-inline-start-color: rgba(193, 85, 58, 0.25);
         background: rgba(193, 85, 58, 0.02);
       }
     }

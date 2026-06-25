@@ -129,8 +129,7 @@ img {
 .offline-banner {
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   z-index: 9999;
   background: #2e241d;
   color: #fff;

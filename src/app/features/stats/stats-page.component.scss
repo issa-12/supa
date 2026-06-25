@@ -92,7 +92,7 @@
   position: absolute;
   z-index: 20;
   top: calc(100% + 8px);
-  right: 0;
+  inset-inline-end: 0;
   width: 260px;
   padding: 8px;
   border: 1px solid var(--border);
@@ -110,7 +110,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    text-align: left;
+    text-align: start;
     cursor: pointer;
 
     &:hover { background: var(--background); }
@@ -246,7 +246,8 @@
 
 .date-range-slider {
   width: auto;
-  margin: 0 0 0 49px;
+  margin: 0;
+  margin-inline-start: 49px;
   padding: 2px 2px 0;
 }
 
@@ -276,8 +277,7 @@
     content: '';
     position: absolute;
     top: 10px;
-    right: 0;
-    left: 0;
+    inset-inline: 0;
     height: 5px;
     border-radius: var(--radius-full);
     background: var(--border);
@@ -386,7 +386,7 @@
 
 .board-date {
   position: absolute;
-  left: 50%;
+  inset-inline-start: 50%;
   transform: translateX(-50%);
   color: var(--foreground);
   font-size: 13px;
@@ -395,7 +395,7 @@
 }
 
 .refresh-meta {
-  margin-left: auto;
+  margin-inline-start: auto;
   gap: 8px;
 
   button {
@@ -655,7 +655,7 @@
 
   &:hover { background: var(--background); }
   img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
-  > iconify-icon { margin-left: auto; color: var(--muted-foreground); }
+  > iconify-icon { margin-inline-start: auto; color: var(--muted-foreground); }
 }
 
 .reader-rank {
@@ -797,7 +797,7 @@
   color: var(--primary);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: end;
   flex: 0 0 auto;
   font-size: 13px;
   font-weight: 800;
@@ -822,7 +822,7 @@
   color: var(--muted-foreground);
   font-size: 12px;
 
-  strong { margin-left: auto; color: var(--foreground); }
+  strong { margin-inline-start: auto; color: var(--foreground); }
 }
 
 .sentiment-dot {
@@ -886,7 +886,7 @@
   .page-header { align-items: flex-start; }
   .download-menu { width: 100%; }
   .download-menu summary { width: 100%; }
-  .download-menu__panel { left: 0; right: 0; width: auto; }
+  .download-menu__panel { inset-inline: 0; width: auto; }
   .filter-panel,
   .summary-grid,
   .chart-grid { grid-template-columns: minmax(0, 1fr); }
@@ -894,7 +894,7 @@
     grid-template-columns: 42px minmax(0, 1fr) 14px minmax(0, 1fr);
     > button { margin: 0; }
   }
-  .date-range-slider { width: auto; margin-left: 49px; }
+  .date-range-slider { width: auto; margin-inline-start: 49px; }
   .activity-overview,
   .sentiment-list { grid-template-columns: minmax(0, 1fr); }
   .chart-card--wide { grid-column: auto; }

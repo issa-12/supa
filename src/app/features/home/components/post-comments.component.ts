@@ -48,7 +48,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                     }
                   </div>
                   @for (reply of comment.replies; track reply.id) {
-                    <div class="comment" style="margin-top: 8px;">
+                    <div class="comment comment--reply">
                       <div class="comment-avatar comment-avatar--sm">
                         @if (reply.userAvatar) { <img [src]="reply.userAvatar" [alt]="reply.userName" loading="lazy" /> }
                         @else { <span>{{ reply.userName[0].toUpperCase() }}</span> }
@@ -67,7 +67,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                           @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(reply)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button> }
                         </div>
                         @for (deep of reply.replies; track deep.id) {
-                          <div class="comment" style="padding-left: 24px; margin-top: 8px;">
+                          <div class="comment comment--deep-reply">
                             <div class="comment-avatar comment-avatar--sm">
                               @if (deep.userAvatar) { <img [src]="deep.userAvatar" [alt]="deep.userName" loading="lazy" /> }
                               @else { <span>{{ deep.userName[0].toUpperCase() }}</span> }
@@ -188,6 +188,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       display: flex;
       gap: 8px;
       align-items: flex-start;
+    }
+
+    .comment--reply,
+    .comment--deep-reply {
+      margin-top: 8px;
+    }
+
+    .comment--deep-reply {
+      padding-inline-start: 24px;
     }
 
     .comment-avatar {
