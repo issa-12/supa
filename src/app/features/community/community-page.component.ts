@@ -127,15 +127,31 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
 
     await Promise.all([this.loadPosts(), this.loadTrendingTags()]);
 
-    if (this.focusPostId !== null) this.focusOnPost(this.focusPostId);
+    if (this.focusPostId !== null) await this.focusOnPost(this.focusPostId);
   }
 
   // Open the target post's comments and scroll it into view.
-  private focusOnPost(postId: number): void {
-    if (!this.posts.some((p) => p.id === postId)) return;
+  // If not in the first page, loads more pages until found (up to 4 extra pages).
+  private async focusOnPost(postId: number): Promise<void> {
+    const matches = (p: ActivityPost) => Number(p.id) === Number(postId);
+
+    if (!this.posts.some(matches)) {
+      // Post not in first page — keep loading until found
+      for (let pg = 1; pg <= 4; pg++) {
+        if (!this.currentUserId) break;
+        const more = await this.activityService.getCommunityPosts(this.currentUserId, undefined, pg);
+        if (!more.length) break;
+        this.posts = [...this.posts, ...more];
+        if (more.some(matches)) break;
+      }
+    }
+
+    if (!this.posts.some(matches)) return; // still not found — give up
+
     this.openCommentPostIds = new Set(this.openCommentPostIds).add(postId);
     this.highlightedPostId = postId;
-    // Retry scroll — Angular needs at least one render cycle after state change.
+
+    // Retry scroll until the element is rendered (Angular needs at least one CD cycle).
     const tryScroll = (attempts: number) => {
       const el = document.getElementById(`post-${postId}`);
       if (el) {
@@ -144,7 +160,7 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
         setTimeout(() => tryScroll(attempts - 1), 100);
       }
     };
-    setTimeout(() => tryScroll(5), 100);
+    setTimeout(() => tryScroll(8), 50);
     setTimeout(() => { this.highlightedPostId = null; }, 2600);
     void this.setupRealtime();
   }
