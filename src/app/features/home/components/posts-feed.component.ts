@@ -294,7 +294,7 @@ interface BookSearchResult {
       background: transparent;
       font-size: 14px;
       color: var(--foreground);
-      resize: vertical;
+      resize: none;
       outline: none;
       font-family: inherit;
       box-sizing: border-box;

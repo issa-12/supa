@@ -250,12 +250,26 @@
           </div>
         }
 
-        <!-- Notes & Review (only if book is on shelf) -->
+        <!-- My Notes (only if book is on shelf) -->
         @if (userBook) {
-          <div class="two-col-cards">
-            <div class="note-card">
-              <div class="note-card-title">{{ copy.myNotes }}</div>
-              <div class="note-card-sub">{{ copy.notesHint }}</div>
+          <div class="note-card">
+            <div class="note-card-header">
+              <div>
+                <div class="note-card-title">{{ copy.myNotes }}</div>
+                <div class="note-card-sub">{{ copy.notesHint }}</div>
+              </div>
+              @if (savedNote && !editingNote) {
+                <button class="icon-edit-btn" (click)="startEditNote()" [attr.aria-label]="copy.editReview">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              }
+            </div>
+            @if (savedNote && !editingNote) {
+              <p class="note-saved-text">{{ savedNote }}</p>
+            } @else {
               <textarea
                 [(ngModel)]="note"
                 class="note-textarea"
@@ -264,54 +278,108 @@
               ></textarea>
               <div class="note-footer">
                 <span class="char-count" [class.char-count--warn]="note.length > 450">{{ note.length }} / 500</span>
-                <button class="save-btn" [class.save-btn--saved]="noteSaved" (click)="saveNote()" [disabled]="noteSaving">
-                  {{ noteSaved ? copy.saved : noteSaving ? copy.saving : copy.saveNotes }}
-                </button>
+                <div class="note-edit-actions">
+                  @if (savedNote) {
+                    <button class="save-btn save-btn--outline" (click)="cancelEditNote()" [disabled]="noteSaving">{{ copy.cancelEdit }}</button>
+                  }
+                  <button class="save-btn" [class.save-btn--saved]="noteSaved" (click)="saveNote()" [disabled]="noteSaving || !note.trim()">
+                    {{ noteSaved ? copy.saved : noteSaving ? copy.saving : copy.saveNotes }}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div class="note-card">
-              <div class="note-card-title">{{ copy.myReview }}</div>
-              <div class="note-card-sub">{{ copy.reviewHint }}</div>
-
-              @if (savedReview && !editingReview) {
-                <!-- Posted state -->
-                <div class="posted-review">
-                  <p class="posted-review-text">{{ savedReview }}</p>
-                  <button class="save-btn save-btn--outline" (click)="startEditReview()">{{ copy.editReview }}</button>
-                </div>
-              } @else {
-                <!-- Editing / first-time state -->
-                <textarea
-                  [(ngModel)]="reviewText"
-                  class="note-textarea"
-                  [placeholder]="copy.reviewPlaceholder"
-                  maxlength="1000"
-                ></textarea>
-                <div class="note-footer">
-                  <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }} / 1000</span>
-                  <div class="review-edit-actions">
-                    @if (savedReview) {
-                      <button class="save-btn save-btn--outline" (click)="cancelEditReview()" [disabled]="reviewSaving">{{ copy.cancelEdit }}</button>
-                    }
-                    <button class="save-btn" (click)="saveReview()" [disabled]="reviewSaving || !reviewText.trim()">
-                      {{ reviewSaving ? copy.saving : (savedReview ? copy.updateReview : copy.postReview) }}
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
+            }
           </div>
         }
 
-        <!-- Community Reviews -->
-        @if (communityReviews.length > 0) {
+        <!-- Reviews section: own review pinned on top, then community -->
+        @if (userBook || communityReviews.length > 0) {
           <div class="card">
             <div class="card-header">
               <div class="card-title">{{ copy.communityReviews }}</div>
               <div class="card-sub">{{ copy.communityReviewsSubtitle }}</div>
             </div>
             <div class="card-body">
+
+              <!-- Own review pinned at top -->
+              @if (userBook) {
+                <div class="review-item review-item--own">
+                  <div class="review-header">
+                    <div class="r-avatar-wrap">
+                      @if (currentUserAvatar) {
+                        <img [src]="currentUserAvatar" [alt]="currentUserName" class="r-avatar" loading="lazy" />
+                      } @else {
+                        <span class="r-avatar r-avatar--initials">{{ (currentUserName || 'Me')[0].toUpperCase() }}</span>
+                      }
+                    </div>
+                    <div class="r-meta">
+                      <div class="r-name-row">
+                        <span class="r-name">{{ currentUserName || copy.myReview }}</span>
+                        <span class="r-own-badge">{{ copy.myReview }}</span>
+                      </div>
+                      @if (userBook.rating) {
+                        <div class="r-stars-row">
+                          @for (n of starsRange(); track n) {
+                            <span class="r-star" [class.e]="n > userBook.rating!">★</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <button class="icon-edit-btn" (click)="startEditReview()" [attr.aria-label]="copy.editReview">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  @if (editingReview) {
+                    <textarea
+                      [(ngModel)]="reviewText"
+                      class="note-textarea"
+                      [placeholder]="copy.reviewPlaceholder"
+                      maxlength="1000"
+                    ></textarea>
+                    <div class="note-footer">
+                      <span class="char-count" [class.char-count--warn]="reviewText.length > 900">{{ reviewText.length }} / 1000</span>
+                      <div class="review-edit-actions">
+                        @if (savedReview) {
+                          <button class="save-btn save-btn--outline" (click)="cancelEditReview()" [disabled]="reviewSaving">{{ copy.cancelEdit }}</button>
+                        }
+                        <button class="save-btn" (click)="saveReview()" [disabled]="reviewSaving || !reviewText.trim()">
+                          {{ reviewSaving ? copy.saving : (savedReview ? copy.updateReview : copy.postReview) }}
+                        </button>
+                      </div>
+                    </div>
+                  } @else if (savedReview) {
+                    <p class="r-text">{{ savedReview }}</p>
+                    <div class="r-actions">
+                      @if (myReviewUserBookId !== null) {
+                        <button class="r-action" [class.r-action--liked]="myReviewReaction === 'like'" (click)="toggleMyReviewReaction(true)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                          </svg>
+                          {{ myReviewLikeCount }}
+                        </button>
+                        <button class="r-action" [class.r-action--disliked]="myReviewReaction === 'dislike'" (click)="toggleMyReviewReaction(false)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+                          </svg>
+                          {{ myReviewDislikeCount }}
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <button class="write-review-btn" (click)="startEditReview()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      {{ copy.postReview }}
+                    </button>
+                  }
+                </div>
+              }
+
+              <!-- Community reviews -->
               @for (review of communityReviews; track review.userId) {
                 <div class="review-item">
                   <div class="review-header">
@@ -340,29 +408,28 @@
                       class="r-action"
                       [class.r-action--liked]="review.myReaction === 'like'"
                       [disabled]="review.reactionSaving"
-                      [attr.aria-label]="copy.likeReview"
                       (click)="toggleReviewReaction(review, true)"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                         <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
                       </svg>
-                      {{ copy.likeReview }}@if (review.likeCount > 0) { · {{ review.likeCount }}}
+                      {{ review.likeCount }}
                     </button>
                     <button
                       class="r-action"
                       [class.r-action--disliked]="review.myReaction === 'dislike'"
                       [disabled]="review.reactionSaving"
-                      [attr.aria-label]="copy.dislikeReview"
                       (click)="toggleReviewReaction(review, false)"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                         <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
                       </svg>
-                      {{ copy.dislikeReview }}@if (review.dislikeCount > 0) { · {{ review.dislikeCount }}}
+                      {{ review.dislikeCount }}
                     </button>
                   </div>
                 </div>
               }
+
             </div>
           </div>
         }

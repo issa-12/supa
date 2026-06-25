@@ -43,6 +43,8 @@ body {
   overflow-x: clip;
 }
 
+textarea { resize: none; }
+
 body {
   background: #f4ede5;
   font-family: 'PT Serif', Georgia, 'Times New Roman', serif;

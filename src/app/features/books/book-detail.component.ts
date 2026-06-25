@@ -91,13 +91,23 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   recommendFeedback: { userId: string; success: boolean; alreadyHad?: boolean } | null = null;
 
   note = '';
+  savedNote = '';
+  editingNote = false;
   noteSaving = false;
   noteSaved = false;
 
-  reviewText = '';        // editing buffer (bound to the textarea)
-  savedReview = '';       // the persisted review — shown as a posted card
+  reviewText = '';
+  savedReview = '';
   editingReview = false;
   reviewSaving = false;
+
+  currentUserName: string | null = null;
+  currentUserAvatar: string | null = null;
+
+  myReviewUserBookId: number | null = null;
+  myReviewReaction: 'like' | 'dislike' | null = null;
+  myReviewLikeCount = 0;
+  myReviewDislikeCount = 0;
 
   communityReviews: CommunityReview[] = [];
 
@@ -129,12 +139,19 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       this.userId = user.data.user?.id ?? null;
 
       if (this.userId) {
-        this.userBook = await firstValueFrom(
-          this.bookService.getUserBookByGoogleId(this.userId, googleId),
-        );
+        const supabase = await this.supabaseService.getClient();
+        const [ubResult, profileResult] = await Promise.all([
+          firstValueFrom(this.bookService.getUserBookByGoogleId(this.userId, googleId)),
+          supabase.from('users').select('name, profile_picture_url').eq('id', this.userId).single(),
+        ]);
+        this.userBook = ubResult;
+        this.currentUserName = (profileResult.data?.['name'] as string) ?? null;
+        this.currentUserAvatar = (profileResult.data?.['profile_picture_url'] as string) ?? null;
         this.note = this.userBook?.note ?? '';
+        this.savedNote = this.note;
         this.savedReview = this.userBook?.reviewText ?? '';
         this.reviewText = this.savedReview;
+        this.editingReview = !this.savedReview;
       }
 
       if (this.book.dbBookId) {
@@ -384,6 +401,16 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  startEditNote(): void {
+    this.note = this.savedNote;
+    this.editingNote = true;
+  }
+
+  cancelEditNote(): void {
+    this.note = this.savedNote;
+    this.editingNote = false;
+  }
+
   async saveNote(): Promise<void> {
     if (!this.userBook || this.noteSaving) return;
     this.noteSaving = true;
@@ -391,6 +418,8 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       this.userBook = await firstValueFrom(
         this.bookService.saveNote(this.userBook.id, this.note),
       );
+      this.savedNote = this.note;
+      this.editingNote = false;
       this.noteSaved = true;
       setTimeout(() => { this.noteSaved = false; }, 2000);
     } catch (err) {
@@ -463,10 +492,45 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  async toggleMyReviewReaction(wantLike: boolean): Promise<void> {
+    if (!this.userId || this.myReviewUserBookId === null) return;
+    const prev = { reaction: this.myReviewReaction, likes: this.myReviewLikeCount, dislikes: this.myReviewDislikeCount };
+    const target: 'like' | 'dislike' = wantLike ? 'like' : 'dislike';
+    if (this.myReviewReaction === 'like') this.myReviewLikeCount--;
+    if (this.myReviewReaction === 'dislike') this.myReviewDislikeCount--;
+    if (this.myReviewReaction === target) {
+      this.myReviewReaction = null;
+    } else {
+      if (wantLike) this.myReviewLikeCount++; else this.myReviewDislikeCount++;
+      this.myReviewReaction = target;
+    }
+    try {
+      await firstValueFrom(
+        this.likesService.toggleReviewReaction(this.myReviewUserBookId, this.userId, this.userId, prev.reaction, wantLike),
+      );
+    } catch {
+      this.myReviewReaction = prev.reaction;
+      this.myReviewLikeCount = prev.likes;
+      this.myReviewDislikeCount = prev.dislikes;
+    }
+  }
+
   private async loadCommunityReviews(bookId: number): Promise<void> {
     if (!this.userId) return;
     try {
-      this.communityReviews = await this.bookService.getCommunityReviews(bookId, this.userId);
+      const all = await this.bookService.getCommunityReviews(bookId, this.userId);
+      // Separate own review (shown pinned above) from community list
+      const ownIdx = all.findIndex(r => r.userId === this.userId);
+      if (ownIdx !== -1) {
+        const own = all[ownIdx];
+        this.myReviewUserBookId = own.userBookId;
+        this.myReviewReaction = own.myReaction;
+        this.myReviewLikeCount = own.likeCount;
+        this.myReviewDislikeCount = own.dislikeCount;
+        this.communityReviews = all.filter((_, i) => i !== ownIdx);
+      } else {
+        this.communityReviews = all;
+      }
     } catch {
       // non-critical
     }
