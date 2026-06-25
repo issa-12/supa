@@ -1,6 +1,14 @@
 import { Component, Input, Output, EventEmitter, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LikesService, LikerUser } from '../core/services/likes.service';
+import { FriendshipService } from '../core/services/friendship.service';
+import { TranslationService } from '../i18n';
+
+const LIKES_COPY = {
+  en: { likes: 'likes', friend: 'Friend', add: 'Add', pending: 'Pending', empty: 'No likes yet.' },
+  ar: { likes: 'إعجابات', friend: 'صديق', add: 'إضافة', pending: 'بانتظار', empty: 'لا إعجابات بعد.' },
+  fr: { likes: "j'aime", friend: 'Ami', add: 'Ajouter', pending: 'En attente', empty: 'Aucun j\'aime.' },
+};
 
 @Component({
   selector: 'app-likes-popup',
@@ -11,8 +19,8 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
     <div class="lp-backdrop" (click)="closed.emit()"></div>
     <div class="lp-card" (click)="$event.stopPropagation()">
       <div class="lp-header">
-        <iconify-icon icon="lucide:heart" style="font-size:14px;color:#C1553A"></iconify-icon>
-        <span class="lp-title">{{ count }} {{ count === 1 ? 'like' : 'likes' }}</span>
+        <iconify-icon icon="lucide:heart" style="font-size:14px;color:#C1553A;flex-shrink:0"></iconify-icon>
+        <span class="lp-title">{{ count }}&nbsp;{{ copy.likes }}</span>
         <button class="lp-close" (click)="closed.emit()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -21,32 +29,40 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
       </div>
       <div class="lp-body">
         @if (loading) {
-          <div class="lp-spinner-wrap">
-            <div class="lp-spinner"></div>
-          </div>
+          <div class="lp-spinner-wrap"><div class="lp-spinner"></div></div>
         } @else if (likers.length === 0) {
-          <p class="lp-empty">No likes yet.</p>
+          <p class="lp-empty">{{ copy.empty }}</p>
         } @else {
           @for (user of likers; track user.userId) {
-            <a class="lp-row" [routerLink]="['/profile', user.userId]" (click)="closed.emit()">
-              <span class="lp-av">
-                @if (user.avatarUrl) {
-                  <img [src]="user.avatarUrl" [alt]="user.name" loading="lazy" (error)="user.avatarUrl = null" />
+            <div class="lp-row">
+              @if (user.userId !== currentUserId) {
+                @if (pendingIds.has(user.userId)) {
+                  <span class="lp-badge lp-badge--pending">{{ copy.pending }}</span>
+                } @else if (user.isFriend) {
+                  <span class="lp-badge lp-badge--friend">
+                    <iconify-icon icon="lucide:users" style="font-size:10px"></iconify-icon>
+                    {{ copy.friend }}
+                  </span>
                 } @else {
-                  {{ user.name[0].toUpperCase() }}
+                  <button class="lp-add-btn" (click)="addFriend(user.userId)">+ {{ copy.add }}</button>
                 }
-              </span>
-              <span class="lp-info">
-                <span class="lp-name">{{ user.name }}</span>
-                @if (user.username) { <span class="lp-handle">&#64;{{ user.username }}</span> }
-              </span>
-              @if (user.isFriend) {
-                <span class="lp-friend-badge">
-                  <iconify-icon icon="lucide:users" style="font-size:11px"></iconify-icon>
-                  Friend
-                </span>
+              } @else {
+                <span class="lp-badge-placeholder"></span>
               }
-            </a>
+              <a class="lp-row-link" [routerLink]="['/profile', user.userId]" (click)="closed.emit()">
+                <span class="lp-av">
+                  @if (user.avatarUrl) {
+                    <img [src]="user.avatarUrl" [alt]="user.name" loading="lazy" (error)="user.avatarUrl = null" />
+                  } @else {
+                    {{ user.name[0].toUpperCase() }}
+                  }
+                </span>
+                <span class="lp-info">
+                  <span class="lp-name">{{ user.name }}</span>
+                  @if (user.username) { <span class="lp-handle">&#64;{{ user.username }}</span> }
+                </span>
+              </a>
+            </div>
           }
         }
       </div>
@@ -65,8 +81,8 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 280px;
-      max-height: 360px;
+      width: 300px;
+      max-height: 380px;
       background: var(--surface, #fff);
       border: 1px solid var(--border, #e5e0d8);
       border-radius: 14px;
@@ -75,6 +91,7 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
       flex-direction: column;
       overflow: hidden;
       animation: lp-in 0.15s ease;
+      direction: ltr;
     }
 
     @keyframes lp-in {
@@ -89,6 +106,7 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
       padding: 12px 14px 10px;
       border-bottom: 1px solid var(--border, #e5e0d8);
       flex-shrink: 0;
+      direction: ltr;
     }
 
     .lp-title {
@@ -141,10 +159,19 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
     .lp-row {
       display: flex;
       align-items: center;
+      gap: 8px;
+      padding: 5px 4px;
+    }
+
+    .lp-row-link {
+      display: flex;
+      align-items: center;
       gap: 10px;
-      padding: 7px 6px;
-      border-radius: 10px;
+      flex: 1;
+      min-width: 0;
       text-decoration: none;
+      border-radius: 10px;
+      padding: 4px 6px;
       transition: background 0.13s;
       &:hover { background: var(--surface-alt, #f5f0e8); }
     }
@@ -187,17 +214,46 @@ import { LikesService, LikerUser } from '../core/services/likes.service';
       color: var(--muted-foreground);
     }
 
-    .lp-friend-badge {
+    .lp-badge {
       display: flex;
       align-items: center;
       gap: 3px;
       font-size: 11px;
       font-weight: 600;
-      color: var(--primary, #C1553A);
-      background: rgba(193,85,58,0.1);
       border-radius: 999px;
-      padding: 2px 8px;
+      padding: 3px 9px;
       flex-shrink: 0;
+      white-space: nowrap;
+
+      &--friend {
+        color: var(--primary, #C1553A);
+        background: rgba(193,85,58,0.1);
+      }
+
+      &--pending {
+        color: #7A6A5A;
+        background: rgba(122,106,90,0.1);
+      }
+    }
+
+    .lp-badge-placeholder {
+      width: 58px;
+      flex-shrink: 0;
+    }
+
+    .lp-add-btn {
+      background: var(--primary, #C1553A);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
+      transition: background 0.15s;
+      &:hover { background: #A8432A; }
     }
   `],
 })
@@ -209,9 +265,17 @@ export class LikesPopupComponent implements OnInit {
   @Output() closed = new EventEmitter<void>();
 
   private readonly likesService = inject(LikesService);
+  private readonly friendshipService = inject(FriendshipService);
+  private readonly translationService = inject(TranslationService);
 
   likers: LikerUser[] = [];
   loading = true;
+  pendingIds = new Set<string>();
+
+  get copy() {
+    const lang = this.translationService.getCurrentLanguage();
+    return LIKES_COPY[lang] ?? LIKES_COPY['en'];
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -220,5 +284,13 @@ export class LikesPopupComponent implements OnInit {
         : await this.likesService.getCommentLikers(this.entityId, this.currentUserId);
     } catch { /* ignore */ }
     finally { this.loading = false; }
+  }
+
+  async addFriend(userId: string): Promise<void> {
+    if (this.pendingIds.has(userId)) return;
+    try {
+      await this.friendshipService.sendRequest(userId);
+      this.pendingIds = new Set([...this.pendingIds, userId]);
+    } catch { /* ignore */ }
   }
 }

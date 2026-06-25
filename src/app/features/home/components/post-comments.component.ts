@@ -301,6 +301,7 @@ import { detectLang } from '../../../core/util/detect-lang';
       align-items: center;
       gap: 16px;
       margin-top: 6px;
+      direction: ltr;
     }
 
     .meta-btn {
