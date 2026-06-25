@@ -77,21 +77,21 @@ export class LikesService {
 
     const [usersRes, friendshipsRes, statusRes, pendingRes] = await Promise.all([
       supabase.from('users').select('id, name, profile_picture_url, username').in('id', userIds),
-      supabase.from('friendship').select('user_id1, user_id2, status_id')
+      supabase.from('friendship').select('user_id1, user_id2, status_id, requester_id')
         .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`),
-      supabase.from('friendship_status').select('id').eq('status_name', 'accepted').single(),
-      supabase.from('friendship_status').select('id').eq('status_name', 'pending').single(),
+      supabase.from('friendship_status').select('status_id').eq('status_name', 'accepted').single(),
+      supabase.from('friendship_status').select('status_id').eq('status_name', 'pending').single(),
     ]);
 
-    const acceptedId = statusRes.data?.['id'];
-    const pendingStatusId = pendingRes.data?.['id'];
+    const acceptedId = statusRes.data?.['status_id'];
+    const pendingStatusId = pendingRes.data?.['status_id'];
     const friendIds = new Set<string>();
     const pendingIds = new Set<string>();
     for (const f of friendshipsRes.data ?? []) {
       const other = (f['user_id1'] === currentUserId ? f['user_id2'] : f['user_id1']) as string;
       if (!userIds.includes(other)) continue;
       if (f['status_id'] === acceptedId) friendIds.add(other);
-      else if (f['status_id'] === pendingStatusId && f['user_id1'] === currentUserId) pendingIds.add(other);
+      else if (f['status_id'] === pendingStatusId && f['requester_id'] === currentUserId) pendingIds.add(other);
     }
 
     const userMap = new Map((usersRes.data ?? []).map(u => [u['id'] as string, u]));

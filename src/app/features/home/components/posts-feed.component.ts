@@ -1,6 +1,6 @@
 import { Component, ElementRef, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { BookService } from '../../../core/services/book.service';
@@ -163,22 +163,19 @@ interface BookSearchResult {
       } @else {
         <div class="posts-list">
           @for (post of (activeTab === 'friends' ? posts : trendingPosts); track post.id) {
-            <article class="post-card post-card--preview" [routerLink]="['/community']" [queryParams]="{ post: post.id }">
+            <article class="post-card" (click)="navigateToPost(post.id)" style="cursor:pointer">
               <div class="post-header">
-                <div class="post-avatar">
-                  @if (post.userAvatar) {
-                    <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
-                  } @else {
-                    <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
-                  }
-                </div>
-                <div class="post-meta-col">
+                <a class="post-author-link" [routerLink]="['/profile', post.userId]" (click)="$event.stopPropagation()">
+                  <div class="post-avatar">
+                    @if (post.userAvatar) {
+                      <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
+                    } @else {
+                      <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
+                    }
+                  </div>
                   <span class="post-author">{{ post.userName }}</span>
-                  <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
-                </div>
-                @if (post.bookTitle) {
-                  <span class="post-book-badge">{{ post.bookTitle }}</span>
-                }
+                </a>
+                <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
               </div>
 
               <p class="post-content">{{ post.content }}</p>
@@ -191,9 +188,18 @@ interface BookSearchResult {
                 </div>
               }
 
+              @if (post.bookTitle) {
+                <div class="post-book">
+                  @if (post.bookCover) {
+                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" loading="lazy" />
+                  }
+                  <span class="post-book-title">{{ post.bookTitle }}</span>
+                </div>
+              }
+
               <div class="post-footer">
-                <span class="post-stat">
-                  <svg width="13" height="13" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" [style.color]="post.isLikedByMe ? '#E9783F' : 'currentColor'">
+                <span class="post-stat" [class.post-stat--liked]="post.isLikedByMe">
+                  <svg width="13" height="13" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                   {{ post.likeCount }}
@@ -682,38 +688,15 @@ interface BookSearchResult {
       text-overflow: ellipsis;
     }
 
-    .post-card--preview {
+    .post-card {
       cursor: pointer;
-      text-decoration: none;
-      display: block;
-      &:hover { background: var(--surface-alt, #f5f0e8); }
-    }
-
-    .post-meta-col {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .post-book-badge {
-      font-size: 11px;
-      color: var(--primary);
-      background: rgba(233,120,63,0.1);
-      border-radius: 999px;
-      padding: 2px 8px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 110px;
-      flex-shrink: 0;
+      &:hover { background: rgba(100, 70, 50, 0.03); }
     }
 
     .post-footer {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
       border-top: 0.5px solid rgba(100, 70, 50, 0.08);
       padding-top: 8px;
     }
@@ -721,16 +704,12 @@ interface BookSearchResult {
     .post-stat {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 12px;
+      gap: 5px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--muted-foreground);
       svg { flex-shrink: 0; }
-    }
-
-    .post-content {
-      overflow-wrap: break-word;
-      word-break: break-word;
+      &--liked { color: #C1553A; }
     }
 
     @media (max-width: 1024px) {
@@ -743,6 +722,7 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   @Input() currentUserAvatar: string | null = null;
   @Input() currentUserName: string | null = null;
 
+  private readonly router = inject(Router);
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly bookService = inject(BookService);
@@ -870,6 +850,10 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
       if (this.activeTab === 'friends') this.loadFeed(true);
       else this.loadTrending(true);
     }, 700);
+  }
+
+  navigateToPost(postId: number): void {
+    this.router.navigate(['/community'], { queryParams: { post: postId } });
   }
 
   openCompose(): void {

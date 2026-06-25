@@ -152,6 +152,7 @@ export class BookDetailComponent implements OnInit, OnDestroy {
         this.savedReview = this.userBook?.reviewText ?? '';
         this.reviewText = this.savedReview;
         this.editingReview = !this.savedReview;
+        this.myReviewUserBookId = this.userBook?.id ?? null;
       }
 
       if (this.book.dbBookId) {
@@ -518,8 +519,12 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   private async loadCommunityReviews(bookId: number): Promise<void> {
     if (!this.userId) return;
     try {
-      const all = await this.bookService.getCommunityReviews(bookId, this.userId);
-      // Separate own review (shown pinned above) from community list
+      const [all, friendsData] = await Promise.all([
+        this.bookService.getCommunityReviews(bookId, this.userId),
+        this.friendshipService.getFriends(),
+      ]);
+      const friendIds = new Set(friendsData.map((f: FriendUser) => f.userId));
+
       const ownIdx = all.findIndex(r => r.userId === this.userId);
       if (ownIdx !== -1) {
         const own = all[ownIdx];
@@ -527,9 +532,9 @@ export class BookDetailComponent implements OnInit, OnDestroy {
         this.myReviewReaction = own.myReaction;
         this.myReviewLikeCount = own.likeCount;
         this.myReviewDislikeCount = own.dislikeCount;
-        this.communityReviews = all.filter((_, i) => i !== ownIdx);
+        this.communityReviews = all.filter((r, i) => i !== ownIdx && friendIds.has(r.userId));
       } else {
-        this.communityReviews = all;
+        this.communityReviews = all.filter(r => friendIds.has(r.userId));
       }
     } catch {
       // non-critical

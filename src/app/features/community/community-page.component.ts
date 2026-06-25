@@ -130,17 +130,21 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
     if (this.focusPostId !== null) this.focusOnPost(this.focusPostId);
   }
 
-  // Open the target post's comments and scroll it into view. Best-effort: the
-  // post must be in the loaded feed (recent posts on the default "all" tab are).
+  // Open the target post's comments and scroll it into view.
   private focusOnPost(postId: number): void {
     if (!this.posts.some((p) => p.id === postId)) return;
     this.openCommentPostIds = new Set(this.openCommentPostIds).add(postId);
     this.highlightedPostId = postId;
-    // Wait a frame for the post (and its now-open comments) to render.
-    setTimeout(() => {
-      document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-    // Fade the highlight after a few seconds so it reads as a transient cue.
+    // Retry scroll — Angular needs at least one render cycle after state change.
+    const tryScroll = (attempts: number) => {
+      const el = document.getElementById(`post-${postId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (attempts > 0) {
+        setTimeout(() => tryScroll(attempts - 1), 100);
+      }
+    };
+    setTimeout(() => tryScroll(5), 100);
     setTimeout(() => { this.highlightedPostId = null; }, 2600);
     void this.setupRealtime();
   }
