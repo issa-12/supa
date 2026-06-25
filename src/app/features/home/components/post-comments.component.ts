@@ -106,7 +106,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         <div class="add-comment">
           <div class="comment-avatar">
             @if (currentUserAvatar) {
-              <img [src]="currentUserAvatar" alt="You" loading="lazy" />
+              <img [src]="currentUserAvatar" [alt]="copy.currentUserAlt" loading="lazy" />
             } @else {
               <span>{{ userInitial }}</span>
             }

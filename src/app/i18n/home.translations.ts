@@ -1,6 +1,10 @@
 import { LanguageCode } from './language.model';
 
 export interface HomeCopy {
+  loadProfileError: string;
+  currentUserAlt: string;
+  coverAlt: string;
+  byAuthor: string;
   // Hero section
   heroPill: string;
   heroEyebrow: string;
@@ -69,6 +73,10 @@ export interface HomeCopy {
 
 export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
   en: {
+    loadProfileError: 'Failed to load user profile.',
+    currentUserAlt: 'You',
+    coverAlt: '{{ title }} cover',
+    byAuthor: 'by {{ author }}',
     heroPill: 'Recommended for you',
     heroEyebrow: 'Recommended for you',
     heroEyebrowPrefix: 'Because you like',
@@ -127,6 +135,10 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     deletePostConfirm: 'Delete this post?',
   },
   ar: {
+    loadProfileError: 'فشل تحميل ملف المستخدم.',
+    currentUserAlt: 'أنت',
+    coverAlt: 'غلاف {{ title }}',
+    byAuthor: 'بقلم {{ author }}',
     heroPill: 'موصى به لك',
     heroEyebrow: 'موصى به لك',
     heroEyebrowPrefix: 'لأنك تحب',
@@ -185,6 +197,10 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
     deletePostConfirm: 'حذف هذا المنشور؟',
   },
   fr: {
+    loadProfileError: 'Impossible de charger le profil utilisateur.',
+    currentUserAlt: 'Vous',
+    coverAlt: 'Couverture de {{ title }}',
+    byAuthor: 'par {{ author }}',
     heroPill: 'Recommandé pour vous',
     heroEyebrow: 'Recommandé pour vous',
     heroEyebrowPrefix: 'Parce que vous aimez',

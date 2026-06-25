@@ -1,6 +1,7 @@
 import { LanguageCode } from './language.model';
 
 export interface CommentsCopy {
+  currentUserAlt: string;
   inputPlaceholder: string;
   commentPlaceholder: string;
   replyPlaceholder: string;
@@ -17,6 +18,7 @@ export interface CommentsCopy {
 
 export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
   en: {
+    currentUserAlt: 'You',
     inputPlaceholder: 'Write a comment…',
     commentPlaceholder: 'Write a comment…',
     replyPlaceholder: 'Reply to {{ name }}…',
@@ -31,6 +33,7 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     hideComments: 'Hide comments',
   },
   ar: {
+    currentUserAlt: 'أنت',
     inputPlaceholder: 'اكتب تعليق…',
     commentPlaceholder: 'اكتب تعليق…',
     replyPlaceholder: 'رد على {{ name }}…',
@@ -45,6 +48,7 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     hideComments: 'إخفاء التعليقات',
   },
   fr: {
+    currentUserAlt: 'Vous',
     inputPlaceholder: 'Écrire un commentaire…',
     commentPlaceholder: 'Écrire un commentaire…',
     replyPlaceholder: 'Répondre à {{ name }}…',

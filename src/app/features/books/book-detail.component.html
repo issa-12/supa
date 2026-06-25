@@ -23,7 +23,7 @@
     <div class="page-wrap">
 
       <!-- Breadcrumb -->
-      <nav class="breadcrumb" aria-label="Breadcrumb">
+      <nav class="breadcrumb" [attr.aria-label]="copy.breadcrumbAria">
         <a routerLink="/home">{{ copy.breadcrumbHome }}</a>
         <span class="breadcrumb-sep">›</span>
         <a routerLink="/books/search">{{ copy.breadcrumbBooks }}</a>

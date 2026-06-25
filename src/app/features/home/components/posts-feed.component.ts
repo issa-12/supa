@@ -34,7 +34,7 @@ interface BookSearchResult {
             <button class="compose-input-row" (click)="openCompose()">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+            <img [src]="currentUserAvatar" [alt]="copy.currentUserAlt" loading="lazy" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -45,7 +45,7 @@ interface BookSearchResult {
             <div class="compose-input-row compose-input-row--open">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+                  <img [src]="currentUserAvatar" [alt]="copy.currentUserAlt" loading="lazy" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -70,7 +70,7 @@ interface BookSearchResult {
                     <span class="selected-book-title">{{ selectedBook.title }}</span>
                     <span class="selected-book-author">{{ selectedBook.author }}</span>
                   </div>
-                  <button class="clear-book" (click)="clearBook()" aria-label="Remove book">
+                  <button class="clear-book" (click)="clearBook()" [attr.aria-label]="copy.feedAriaRemoveBook">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
@@ -175,7 +175,7 @@ interface BookSearchResult {
                 </a>
                 <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
                 @if (post.userId === currentUserId) {
-                  <button class="post-delete" (click)="deletePost(post)" aria-label="Delete post">
+                  <button class="post-delete" (click)="deletePost(post)" [attr.aria-label]="copy.feedAriaDeletePost">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                     </svg>

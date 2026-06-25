@@ -126,7 +126,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Failed to load user profile:', err);
-          this.error = 'Failed to load user profile';
+          this.error = this.copy.loadProfileError;
           this.isLoading = false;
         },
       });

@@ -4,63 +4,63 @@
   <main class="stats-main">
     <section class="page-header">
       <div class="page-header-left">
-        <a class="back-btn" routerLink="/home" aria-label="Go back">
+        <a class="back-btn" routerLink="/home" [attr.aria-label]="copy.backAria">
           <iconify-icon icon="lucide:arrow-left"></iconify-icon>
         </a>
         <div>
-          <h1 class="page-title">Analytics dashboard</h1>
+          <h1 class="page-title">{{ copy.title }}</h1>
         </div>
       </div>
 
       <details #downloadMenu class="download-menu">
         <summary class="button button--primary">
           <iconify-icon icon="lucide:download"></iconify-icon>
-          Download data
+          {{ copy.downloadData }}
           <iconify-icon icon="lucide:chevron-down"></iconify-icon>
         </summary>
         <div class="download-menu__panel">
           <button type="button" (click)="exportCsv()" [disabled]="!dashboard || scope !== 'personal'">
             <iconify-icon icon="lucide:file-spreadsheet"></iconify-icon>
             <span>
-              <strong>CSV data</strong>
-              <small>{{ scope === 'personal' ? 'Your filtered records only' : 'Available for My data only' }}</small>
+              <strong>{{ copy.csvData }}</strong>
+              <small>{{ scope === 'personal' ? copy.csvPersonalOnly : copy.csvAvailablePersonal }}</small>
             </span>
           </button>
           <button type="button" (click)="exportPdf()" [disabled]="!dashboard || isExportingPdf">
             <iconify-icon icon="lucide:camera"></iconify-icon>
             <span>
-              <strong>{{ isExportingPdf ? 'Capturing…' : 'PDF view' }}</strong>
-              <small>Visual copy of this dashboard</small>
+              <strong>{{ isExportingPdf ? copy.pdfCapturing : copy.pdfView }}</strong>
+              <small>{{ copy.pdfDescription }}</small>
             </span>
           </button>
         </div>
       </details>
     </section>
 
-    <section class="filter-panel" aria-label="Analytics filters">
+    <section class="filter-panel" [attr.aria-label]="copy.filtersAria">
       @if (dateRange !== 'custom') {
         <div class="filter-field filter-field--range">
-          <label for="stats-range">Date range</label>
+          <label for="stats-range">{{ copy.dateRange }}</label>
           <select
             id="stats-range"
             [(ngModel)]="dateRange"
             (ngModelChange)="onDateRangeChange($event)"
             [class.preset-active]="dateRange !== 'lifetime'"
           >
-            <option value="lifetime">All time</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="custom">Custom dates</option>
+            <option value="lifetime">{{ copy.allTime }}</option>
+            <option value="7d">{{ copy.last7Days }}</option>
+            <option value="30d">{{ copy.last30Days }}</option>
+            <option value="custom">{{ copy.customDates }}</option>
           </select>
         </div>
       } @else {
         <div class="custom-range-column">
           <div class="custom-range-inline">
-            <button type="button" (click)="leaveCustomDates()" aria-label="Back to date range options">
+            <button type="button" (click)="leaveCustomDates()" [attr.aria-label]="copy.backDateAria">
               <iconify-icon icon="lucide:arrow-left"></iconify-icon>
             </button>
             <div class="filter-field">
-              <label for="stats-from">From</label>
+              <label for="stats-from">{{ copy.from }}</label>
               <input
                 id="stats-from"
                 type="date"
@@ -70,9 +70,9 @@
                 (ngModelChange)="onCustomDateChange()"
               />
             </div>
-            <span class="date-separator">to</span>
+            <span class="date-separator">{{ copy.to }}</span>
             <div class="filter-field">
-              <label for="stats-to">To</label>
+              <label for="stats-to">{{ copy.to }}</label>
               <input
                 id="stats-to"
                 type="date"
@@ -86,11 +86,11 @@
 
           <div class="date-range-slider">
             <div class="date-range-slider__selected">
-              Viewing <strong>{{ from }}</strong> to <strong>{{ to }}</strong>
+              {{ copy.viewing }} <strong>{{ from }}</strong> {{ copy.to.toLowerCase() }} <strong>{{ to }}</strong>
             </div>
             <div class="date-range-slider__labels">
-              <span>Earliest: {{ minimumDate }}</span>
-              <span>Latest: {{ maximumDate }}</span>
+              <span>{{ copy.earliest }}: {{ minimumDate }}</span>
+              <span>{{ copy.latest }}: {{ maximumDate }}</span>
             </div>
             <div class="date-range-slider__track">
               <span
@@ -100,7 +100,7 @@
               ></span>
               <input
                 type="range"
-                aria-label="Custom range start date"
+                [attr.aria-label]="copy.rangeStartAria"
                 [min]="minimumDateValue"
                 [max]="maximumDateValue"
                 [ngModel]="fromDateValue"
@@ -108,7 +108,7 @@
               />
               <input
                 type="range"
-                aria-label="Custom range end date"
+                [attr.aria-label]="copy.rangeEndAria"
                 [min]="minimumDateValue"
                 [max]="maximumDateValue"
                 [ngModel]="toDateValue"
@@ -120,7 +120,7 @@
       }
 
       <div class="filter-field">
-        <label for="stats-scope">Scope</label>
+        <label for="stats-scope">{{ copy.scope }}</label>
         <select id="stats-scope" [(ngModel)]="scope" (ngModelChange)="onFilterChange()">
           @for (option of scopeOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
@@ -129,7 +129,7 @@
       </div>
 
       <div class="filter-field">
-        <label for="stats-status">Status</label>
+        <label for="stats-status">{{ copy.status }}</label>
         <select id="stats-status" [(ngModel)]="status" (ngModelChange)="onFilterChange()">
           @for (option of statusOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
@@ -138,10 +138,10 @@
       </div>
 
       <div class="filter-action">
-        <span aria-hidden="true">Action</span>
+        <span aria-hidden="true">{{ copy.action }}</span>
         <button class="button button--secondary reset-button" type="button" (click)="resetFilters()">
           <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
-          Reset Filters
+          {{ copy.resetFilters }}
         </button>
       </div>
 
@@ -155,20 +155,20 @@
       @if (isLoading && dashboard) {
         <div class="dashboard-refreshing" role="status" aria-live="polite">
           <div class="spinner"></div>
-          <strong>Updating dashboard…</strong>
+          <strong>{{ copy.updatingDashboard }}</strong>
         </div>
       }
       <div class="board-meta">
         <span class="board-date">{{ currentDateLabel }}</span>
         <div class="refresh-meta" data-export-hide>
           @if (lastUpdated) {
-            <span>Updated {{ lastUpdated | date:'shortTime' }}</span>
+            <span>{{ copy.updated }} {{ lastUpdated | date:'shortTime' }}</span>
           }
           <span class="live-status live-status--{{ realtimeStatus }}">
             <i></i>
-            {{ realtimeStatus === 'live' ? 'Live' : realtimeStatus === 'connecting' ? 'Connecting' : 'Offline' }}
+            {{ realtimeStatus === 'live' ? copy.live : realtimeStatus === 'connecting' ? copy.connecting : copy.offline }}
           </span>
-          <button type="button" (click)="refresh()" [disabled]="isLoading" aria-label="Refresh analytics">
+          <button type="button" (click)="refresh()" [disabled]="isLoading" [attr.aria-label]="copy.refreshAria">
             <iconify-icon icon="lucide:refresh-cw" [class.spinning]="isLoading"></iconify-icon>
           </button>
         </div>
@@ -177,32 +177,32 @@
       @if (isLoading && !dashboard) {
         <div class="dashboard-loading" aria-live="polite">
           <div class="spinner"></div>
-          <p>Loading analytics…</p>
+          <p>{{ copy.loadingAnalytics }}</p>
         </div>
       } @else if (dashboard) {
         <section class="visual-section-heading">
-          <h2>Reading and rating</h2>
+          <h2>{{ copy.readingAndRating }}</h2>
         </section>
 
-        <section class="summary-grid" aria-label="Analytics summary">
+        <section class="summary-grid" [attr.aria-label]="copy.summaryAria">
           <article class="summary-card">
             <span class="summary-icon coral"><iconify-icon icon="lucide:library"></iconify-icon></span>
-            <div><span>Books tracked</span><strong>{{ dashboard.summary.booksTracked }}</strong></div>
+            <div><span>{{ copy.booksTracked }}</span><strong>{{ dashboard.summary.booksTracked }}</strong></div>
           </article>
           <article class="summary-card">
             <span class="summary-icon teal"><iconify-icon icon="lucide:circle-check"></iconify-icon></span>
-            <div><span>Completed</span><strong>{{ dashboard.summary.booksCompleted }}</strong></div>
+            <div><span>{{ copy.completed }}</span><strong>{{ dashboard.summary.booksCompleted }}</strong></div>
           </article>
           <article class="summary-card">
             <span class="summary-icon gold"><iconify-icon icon="lucide:star"></iconify-icon></span>
             <div>
-              <span>Average rating</span>
+              <span>{{ copy.averageRating }}</span>
               <strong>{{ dashboard.summary.averageRating === null ? '—' : (dashboard.summary.averageRating | number:'1.1-1') }}</strong>
             </div>
           </article>
           <article class="summary-card">
             <span class="summary-icon violet"><iconify-icon icon="lucide:message-square-text"></iconify-icon></span>
-            <div><span>Reviews</span><strong>{{ dashboard.summary.reviewsWritten }}</strong></div>
+            <div><span>{{ copy.reviews }}</span><strong>{{ dashboard.summary.reviewsWritten }}</strong></div>
           </article>
         </section>
 
@@ -210,29 +210,29 @@
           <article class="stat-card chart-card chart-card--wide">
             <div class="card-heading">
               <div>
-                <h2>Completion timeline</h2>
-                <p>Books marked as read during the selected range</p>
+                <h2>{{ copy.completionTimeline }}</h2>
+                <p>{{ copy.completionSubtitle }}</p>
               </div>
               <iconify-icon icon="lucide:line-chart"></iconify-icon>
             </div>
             <div class="chart-wrap chart-wrap--line">
-              <canvas #timelineCanvas role="img" aria-label="Line chart of books completed over time"></canvas>
+              <canvas #timelineCanvas role="img" [attr.aria-label]="copy.completionChartAria"></canvas>
             </div>
           </article>
 
           <article class="stat-card chart-card">
             <div class="card-heading">
-              <div><h2>Status breakdown</h2><p>Current shelf states in this dataset</p></div>
+              <div><h2>{{ copy.statusBreakdown }}</h2><p>{{ copy.statusSubtitle }}</p></div>
               <iconify-icon icon="lucide:pie-chart"></iconify-icon>
             </div>
             <div class="chart-wrap chart-wrap--donut">
-              <canvas #statusCanvas role="img" aria-label="Donut chart of reading statuses"></canvas>
+              <canvas #statusCanvas role="img" [attr.aria-label]="copy.statusChartAria"></canvas>
             </div>
-            <div class="chart-legend" aria-label="Toggle status series">
+            <div class="chart-legend" [attr.aria-label]="copy.toggleStatusAria">
               @for (bucket of dashboard.statusDistribution; track trackByKey($index, bucket); let index = $index) {
                 <button type="button" (click)="toggleStatusSegment(index)">
                   <span class="legend-dot legend-dot--{{ index % 4 }}"></span>
-                  {{ bucket.label }} <strong>{{ bucket.count }}</strong>
+                  {{ bucketLabel(bucket) }} <strong>{{ bucket.count }}</strong>
                 </button>
               }
             </div>
@@ -240,23 +240,23 @@
 
           <article class="stat-card chart-card">
             <div class="card-heading">
-              <div><h2>Rating distribution</h2><p>How the selected books were rated</p></div>
+              <div><h2>{{ copy.ratingDistribution }}</h2><p>{{ copy.ratingSubtitle }}</p></div>
               <iconify-icon icon="lucide:bar-chart-3"></iconify-icon>
             </div>
             <div class="chart-wrap">
-              <canvas #ratingCanvas role="img" aria-label="Bar chart of one to five star ratings"></canvas>
+              <canvas #ratingCanvas role="img" [attr.aria-label]="copy.ratingChartAria"></canvas>
             </div>
           </article>
 
           @if (showComparativeInsights) {
           <article class="stat-card chart-card chart-card--wide">
             <div class="card-heading">
-              <div><h2>Top books</h2><p>Most common books in the filtered dataset</p></div>
+              <div><h2>{{ copy.topBooks }}</h2><p>{{ copy.topBooksSubtitle }}</p></div>
               <iconify-icon icon="lucide:trophy"></iconify-icon>
             </div>
             @if (dashboard.topBooks.length) {
               <div class="chart-wrap chart-wrap--ranking">
-                <canvas #topBooksCanvas role="img" aria-label="Horizontal bar ranking of top books"></canvas>
+                <canvas #topBooksCanvas role="img" [attr.aria-label]="copy.topBooksChartAria"></canvas>
               </div>
               <div class="top-book-links">
                 @for (book of dashboard.topBooks; track book.rank) {
@@ -268,7 +268,7 @@
                 }
               </div>
             } @else {
-              <p class="empty-state">No books match these filters.</p>
+              <p class="empty-state">{{ copy.noBooks }}</p>
             }
           </article>
           }
@@ -277,8 +277,8 @@
           <article class="stat-card insight-card">
             <div class="card-heading">
               <div>
-                <h2>Trending genres</h2>
-                <p>Most selected genre preferences in this scope</p>
+                <h2>{{ copy.trendingGenres }}</h2>
+                <p>{{ copy.trendingGenresSubtitle }}</p>
               </div>
               <iconify-icon icon="lucide:tags"></iconify-icon>
             </div>
@@ -295,7 +295,7 @@
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No genre preferences in this scope.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noGenres }}</p>
             }
           </article>
           }
@@ -303,7 +303,7 @@
           @if (showComparativeInsights) {
           <article class="stat-card insight-card">
             <div class="card-heading">
-              <div><h2>Top readers</h2><p>Most completed books in the selected range</p></div>
+              <div><h2>{{ copy.topReaders }}</h2><p>{{ copy.topReadersSubtitle }}</p></div>
               <iconify-icon icon="lucide:medal"></iconify-icon>
             </div>
             @if (dashboard.topReaders.length) {
@@ -314,21 +314,21 @@
                     <img [src]="reader.avatarUrl || avatarFallback(reader.name)" [alt]="reader.name" />
                     <span class="reader-details">
                       <strong>{{ reader.name }}</strong>
-                      <small>{{ reader.booksRead }} completed</small>
+                      <small>{{ reader.booksRead }} {{ copy.completedUnit }}</small>
                     </span>
                     <iconify-icon icon="lucide:chevron-right"></iconify-icon>
                   </a>
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No completed books in this range.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noCompleted }}</p>
             }
           </article>
           }
 
           <div class="insight-section-heading">
             <div>
-              <h2>Conversation and engagement</h2>
+              <h2>{{ copy.conversationAndEngagement }}</h2>
             </div>
           </div>
 
@@ -337,31 +337,31 @@
               <span class="activity-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>
               </span>
-              <div><strong>{{ dashboard.communitySummary.posts }}</strong><span>Posts</span></div>
+              <div><strong>{{ dashboard.communitySummary.posts }}</strong><span>{{ copy.posts }}</span></div>
             </div>
             <div class="activity-metric">
               <span class="activity-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.4 9.4 0 0 1-4-.9L3 21l1.8-4.6A8.5 8.5 0 1 1 21 11.5z"/></svg>
               </span>
-              <div><strong>{{ dashboard.communitySummary.comments }}</strong><span>Comments</span></div>
+              <div><strong>{{ dashboard.communitySummary.comments }}</strong><span>{{ copy.comments }}</span></div>
             </div>
             <div class="activity-metric">
               <span class="activity-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
               </span>
-              <div><strong>{{ dashboard.communitySummary.reactions }}</strong><span>Reactions</span></div>
+              <div><strong>{{ dashboard.communitySummary.reactions }}</strong><span>{{ copy.reactions }}</span></div>
             </div>
             <div class="activity-metric">
               <span class="activity-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="m14 7 3 3-5 5-4 1 1-4z"/></svg>
               </span>
-              <div><strong>{{ dashboard.communitySummary.reviews }}</strong><span>Book reviews</span></div>
+              <div><strong>{{ dashboard.communitySummary.reviews }}</strong><span>{{ copy.bookReviews }}</span></div>
             </div>
           </article>
 
           <article class="stat-card metric-list-card">
             <div class="card-heading">
-              <div><h2>Most discussed books</h2><p>Posts plus comments attached to each book</p></div>
+              <div><h2>{{ copy.mostDiscussedBooks }}</h2><p>{{ copy.mostDiscussedSubtitle }}</p></div>
               <iconify-icon icon="lucide:message-square-more"></iconify-icon>
             </div>
             @if (dashboard.mostDiscussedBooks.length) {
@@ -370,19 +370,19 @@
                   <a [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
                     <span class="metric-rank">{{ book.rank }}</span>
                     <span class="metric-copy"><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
-                    <span class="metric-value">{{ book.value }} <small>items</small></span>
+                    <span class="metric-value">{{ book.value }} <small>{{ copy.itemsUnit }}</small></span>
                   </a>
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No book discussions in this range.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noDiscussions }}</p>
             }
           </article>
 
           @if (showComparativeInsights) {
           <article class="stat-card metric-list-card">
             <div class="card-heading">
-              <div><h2>Most reviewed books</h2><p>Books receiving the most written reviews</p></div>
+              <div><h2>{{ copy.mostReviewedBooks }}</h2><p>{{ copy.mostReviewedSubtitle }}</p></div>
               <iconify-icon icon="lucide:notebook-tabs"></iconify-icon>
             </div>
             @if (dashboard.mostReviewedBooks.length) {
@@ -391,18 +391,18 @@
                   <a [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
                     <span class="metric-rank">{{ book.rank }}</span>
                     <span class="metric-copy"><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
-                    <span class="metric-value">{{ book.value }} <small>reviews</small></span>
+                    <span class="metric-value">{{ book.value }} <small>{{ copy.reviewsUnit }}</small></span>
                   </a>
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No written reviews in this range.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noWrittenReviews }}</p>
             }
           </article>
 
           <article class="stat-card metric-list-card">
             <div class="card-heading">
-              <div><h2>Highest-rated books</h2><p>Average rating with its rating count shown</p></div>
+              <div><h2>{{ copy.highestRatedBooks }}</h2><p>{{ copy.highestRatedSubtitle }}</p></div>
               <iconify-icon icon="lucide:star"></iconify-icon>
             </div>
             @if (dashboard.highestRatedBooks.length) {
@@ -411,19 +411,19 @@
                   <a [routerLink]="book.googleBooksId ? ['/books', book.googleBooksId] : null">
                     <span class="metric-rank">{{ book.rank }}</span>
                     <span class="metric-copy"><strong>{{ book.title }}</strong><small>{{ book.author }}</small></span>
-                    <span class="metric-value metric-value--rating">{{ book.value | number:'1.1-1' }} ★ <small>{{ book.secondaryValue }} ratings</small></span>
+                    <span class="metric-value metric-value--rating">{{ book.value | number:'1.1-1' }} ★ <small>{{ book.secondaryValue }} {{ copy.ratingsUnit }}</small></span>
                   </a>
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No ratings in this range.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noRatings }}</p>
             }
           </article>
           }
 
           <article class="stat-card insight-card">
             <div class="card-heading">
-              <div><h2>Conversation sentiment</h2><p>AI labels stored with community posts</p></div>
+              <div><h2>{{ copy.conversationSentiment }}</h2><p>{{ copy.sentimentSubtitle }}</p></div>
               <iconify-icon icon="lucide:smile-plus"></iconify-icon>
             </div>
             @if (dashboard.sentimentDistribution.length) {
@@ -431,20 +431,20 @@
                 @for (sentiment of dashboard.sentimentDistribution; track sentiment.key) {
                   <div class="sentiment-row">
                     <span class="sentiment-dot sentiment-dot--{{ sentiment.key }}"></span>
-                    <span>{{ sentiment.label }}</span>
+                    <span>{{ bucketLabel(sentiment) }}</span>
                     <strong>{{ sentiment.count }}</strong>
                   </div>
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No classified posts in this range.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noClassifiedPosts }}</p>
             }
           </article>
 
           @if (showComparativeInsights) {
           <article class="stat-card insight-card">
             <div class="card-heading">
-              <div><h2>Top contributors</h2><p>Posts, comments, and reviews created</p></div>
+              <div><h2>{{ copy.topContributors }}</h2><p>{{ copy.topContributorsSubtitle }}</p></div>
               <iconify-icon icon="lucide:users-round"></iconify-icon>
             </div>
             @if (dashboard.topContributors.length) {
@@ -453,13 +453,13 @@
                   <a class="reader-row" [routerLink]="['/profile', user.userId]">
                     <span class="reader-rank" [class.reader-rank--winner]="user.rank === 1">{{ user.rank }}</span>
                     <img [src]="user.avatarUrl || avatarFallback(user.name)" [alt]="user.name" />
-                    <span class="reader-details"><strong>{{ user.name }}</strong><small>{{ user.contributions }} contributions</small></span>
+                    <span class="reader-details"><strong>{{ user.name }}</strong><small>{{ user.contributions }} {{ copy.contributionsUnit }}</small></span>
                     <iconify-icon icon="lucide:chevron-right"></iconify-icon>
                   </a>
                 }
               </div>
             } @else {
-              <p class="empty-state empty-state--compact">No contributions in this range.</p>
+              <p class="empty-state empty-state--compact">{{ copy.noContributions }}</p>
             }
           </article>
           }

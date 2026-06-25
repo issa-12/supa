@@ -169,7 +169,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       this.startIndex = response.nextStartIndex;
       this.moreAvailable = response.hasMore;
     } catch (err) {
-      this.searchError = err instanceof Error ? err.message : 'Search failed. Please try again.';
+      this.searchError = this.copy.searchFailed;
       this.results = [];
     } finally {
       this.isSearching = false;
@@ -224,12 +224,12 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       const supabase = await this.supabaseService.getClient();
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) throw new Error('Not signed in.');
+      if (!user) throw new Error(this.copy.notSignedIn);
 
       await this.bookService.addGoogleBookToShelf(book, user.id, status.id);
       this.addedBooks.set(book.googleId, status.label);
     } catch (err) {
-      this.addError = err instanceof Error ? err.message : 'Could not add book. Try again.';
+      this.addError = this.copy.addFailed;
     } finally {
       this.addingBookId = null;
     }

@@ -32,6 +32,7 @@ export interface ShelfCopy {
   progressPagePlaceholder: string;
   progressTotalPlaceholder: string;
   confirmRemove: string;
+  thisBook: string;
   ariaGoHome: string;
   ariaFindBooks: string;
   currentlyReadingLabel: string;
@@ -45,15 +46,22 @@ export interface ShelfCopy {
   declineBtn: string;
   addBookBtn: string;
   booksAcrossShelves: string;
+  booksAcrossShelvesOne: string;
+  booksAcrossShelvesOther: string;
   seeAllLink: string;
   seeAllCount: string;
   moreBooks: string;
   pendingRecommendations: string;
+  pendingRecommendationsOne: string;
+  pendingRecommendationsOther: string;
   fromPrefix: string;
+  friendFallback: string;
   andOthers: string;
   viewAllBtn: string;
   dismissBtn: string;
   sectionCount: string;
+  sectionCountOne: string;
+  sectionCountOther: string;
 }
 
 export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
@@ -89,6 +97,7 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     progressPagePlaceholder: 'Page',
     progressTotalPlaceholder: 'Total',
     confirmRemove: 'Remove "{{ title }}" from your shelf?',
+    thisBook: 'this book',
     ariaGoHome: 'Go home',
     ariaFindBooks: 'Find books',
     currentlyReadingLabel: 'Currently Reading',
@@ -102,15 +111,22 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     declineBtn: 'Decline',
     addBookBtn: 'Add book',
     booksAcrossShelves: '{count} books across all shelves',
+    booksAcrossShelvesOne: '{count} book across all shelves',
+    booksAcrossShelvesOther: '{count} books across all shelves',
     seeAllLink: 'See all',
     seeAllCount: 'See all {count}',
     moreBooks: '+{count} more',
     pendingRecommendations: '{count} pending recommendations',
+    pendingRecommendationsOne: '{count} pending recommendation',
+    pendingRecommendationsOther: '{count} pending recommendations',
     fromPrefix: 'From',
+    friendFallback: 'a friend',
     andOthers: 'and others',
     viewAllBtn: 'View all',
     dismissBtn: 'Dismiss',
     sectionCount: '{count} books',
+    sectionCountOne: '{count} book',
+    sectionCountOther: '{count} books',
   },
   ar: {
     title: 'مكتبتي',
@@ -144,6 +160,7 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     progressPagePlaceholder: 'الصفحة',
     progressTotalPlaceholder: 'الإجمالي',
     confirmRemove: 'إزالة "{{ title }}" من رفك؟',
+    thisBook: 'هذا الكتاب',
     ariaGoHome: 'الرجوع للرئيسية',
     ariaFindBooks: 'ابحث عن الكتب',
     currentlyReadingLabel: 'قيد القراءة حالياً',
@@ -157,19 +174,26 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     declineBtn: 'رفض',
     addBookBtn: 'إضافة كتاب',
     booksAcrossShelves: '{count} كتاب في جميع الرفوف',
+    booksAcrossShelvesOne: 'كتاب واحد في جميع الرفوف',
+    booksAcrossShelvesOther: '{count} كتاب في جميع الرفوف',
     seeAllLink: 'عرض الكل',
     seeAllCount: 'عرض الكل ({count})',
     moreBooks: '+{count} المزيد',
     pendingRecommendations: '{count} توصيات معلّقة',
+    pendingRecommendationsOne: 'توصية واحدة معلّقة',
+    pendingRecommendationsOther: '{count} توصيات معلّقة',
     fromPrefix: 'من',
+    friendFallback: 'صديق',
     andOthers: 'وآخرين',
     viewAllBtn: 'عرض الكل',
     dismissBtn: 'تجاهل',
     sectionCount: '{count} كتاب',
+    sectionCountOne: 'كتاب واحد',
+    sectionCountOther: '{count} كتاب',
   },
   fr: {
-    title: 'Ma Bibliothèque',
-    myLibraryTitle: 'Ma Bibliothèque',
+    title: 'Ma bibliothèque',
+    myLibraryTitle: 'Ma bibliothèque',
     emptyTitle: 'Votre bibliothèque est vide',
     emptyLibraryTitle: 'Votre bibliothèque est vide',
     emptyHint: 'Recherchez des livres et ajoutez-les à votre bibliothèque.',
@@ -184,8 +208,8 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     wantToReadFilter: 'À lire',
     filterRead: 'Lus',
     readFilter: 'Lus',
-    sortDateAdded: 'Date d\'ajout',
-    dateAddedSort: 'Date d\'ajout',
+    sortDateAdded: 'Date d’ajout',
+    dateAddedSort: 'Date d’ajout',
     sortTitleAZ: 'Titre A–Z',
     titleAZSort: 'Titre A–Z',
     sortRating: 'Note',
@@ -199,27 +223,35 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     progressPagePlaceholder: 'Page',
     progressTotalPlaceholder: 'Total',
     confirmRemove: 'Supprimer "{{ title }}" de votre bibliothèque ?',
-    ariaGoHome: 'Aller à l\'accueil',
+    thisBook: 'ce livre',
+    ariaGoHome: 'Aller à l’accueil',
     ariaFindBooks: 'Trouver des livres',
     currentlyReadingLabel: 'En cours de lecture',
     wantToReadLabel: 'À lire',
     alreadyReadLabel: 'Déjà lu',
     failedToLoadShelfMsg: 'Impossible de charger la bibliothèque',
-    friendRecommendationsLabel: 'Recommandations d\'amis',
+    friendRecommendationsLabel: 'Recommandations d’amis',
     recommendationsFilter: 'Recommandations',
     recommendedByPrefix: 'Recommandé par',
     acceptBtn: 'Accepter',
     declineBtn: 'Refuser',
     addBookBtn: 'Ajouter un livre',
     booksAcrossShelves: '{count} livres sur toutes les étagères',
+    booksAcrossShelvesOne: '{count} livre sur toutes les étagères',
+    booksAcrossShelvesOther: '{count} livres sur toutes les étagères',
     seeAllLink: 'Voir tout',
     seeAllCount: 'Voir les {count}',
     moreBooks: '+{count} de plus',
     pendingRecommendations: '{count} recommandations en attente',
+    pendingRecommendationsOne: '{count} recommandation en attente',
+    pendingRecommendationsOther: '{count} recommandations en attente',
     fromPrefix: 'De',
-    andOthers: 'et d\'autres',
+    friendFallback: 'un ami',
+    andOthers: 'et d’autres',
     viewAllBtn: 'Voir tout',
     dismissBtn: 'Ignorer',
     sectionCount: '{count} livres',
+    sectionCountOne: '{count} livre',
+    sectionCountOther: '{count} livres',
   },
 };

@@ -8,7 +8,7 @@
       <div class="hero-titles">
         <h1 class="hero-title">{{ copy.myLibraryTitle }}</h1>
         @if (!isLoading && sections.length > 0) {
-          <p class="hero-sub">{{ copy.booksAcrossShelves.replace('{count}', totalBooks.toString()) }}</p>
+          <p class="hero-sub">{{ formatBooksAcrossShelves(totalBooks) }}</p>
         }
       </div>
       <div class="hero-actions" (click)="$event.stopPropagation()">
@@ -113,7 +113,7 @@
           </div>
           <div class="rec-info">
             <div class="rec-label">{{ copy.friendRecommendationsLabel }}</div>
-            <div class="rec-text">{{ copy.pendingRecommendations.replace('{count}', recommendations.length.toString()) }}</div>
+            <div class="rec-text">{{ formatPendingRecommendations(recommendations.length) }}</div>
             @if (recommenderSummary) {
               <div class="rec-sub">{{ copy.fromPrefix }} {{ recommenderSummary }}</div>
             }
@@ -138,7 +138,7 @@
                 @default { <iconify-icon icon="lucide:book" class="section-icon"></iconify-icon> }
               }
               <h2 class="section-title">{{ sectionLabel(section.statusName) }}</h2>
-              <span class="section-count">{{ copy.sectionCount.replace('{count}', section.books.length.toString()) }}</span>
+              <span class="section-count">{{ formatSectionCount(section.books.length) }}</span>
             </div>
             @if (showSeeAll(section)) {
               <button class="see-all" (click)="activeFilter = section.statusName">
@@ -172,7 +172,7 @@
                   <div class="bauthor">{{ book.book?.author }}</div>
 
                   @if (section.statusName === 'recommended_by_friend') {
-                    <div class="brec-by">{{ copy.recommendedByPrefix }} {{ book.recommendedByName || 'a friend' }}</div>
+                    <div class="brec-by">{{ copy.recommendedByPrefix }} {{ book.recommendedByName || copy.friendFallback }}</div>
                     <div class="rec-card-actions" (click)="$event.stopPropagation()">
                       <button class="rec-accept" (click)="acceptRecommendation(book, $event)" [disabled]="savingId === book.id">{{ copy.acceptBtn }}</button>
                       <button class="rec-decline" (click)="declineRecommendation(book, $event)" [disabled]="savingId === book.id">{{ copy.declineBtn }}</button>

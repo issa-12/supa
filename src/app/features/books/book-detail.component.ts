@@ -116,8 +116,8 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       const [bookRes, user] = await Promise.all([
         fetch(`/api/books/${googleId}`).then(async (r) => {
           if (!r.ok) {
-            const body = (await r.json().catch(() => ({}))) as { message?: string };
-            throw new Error(body.message ?? 'Failed to load book.');
+            await r.json().catch(() => ({}));
+            throw new Error(this.copy.loadFailed);
           }
           return r.json() as Promise<BookDetail>;
         }),

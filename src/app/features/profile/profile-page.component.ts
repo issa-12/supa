@@ -242,7 +242,7 @@ export class ProfilePageComponent implements OnInit {
         }
       }
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to load profile.';
+      this.error = this.copy.profileNotFoundMsg;
     } finally {
       this.isLoading = false;
     }
@@ -273,8 +273,7 @@ export class ProfilePageComponent implements OnInit {
     } catch (err) {
       // The backend returns a specific reason (e.g. blocked / already exists);
       // surface it so the user isn't told to "try again" on an unretryable error.
-      const msg = err instanceof Error ? err.message : '';
-      this.friendActionError = msg || this.copy.friendActionFailed;
+      this.friendActionError = this.copy.friendActionFailed;
       // Our local view of the relationship is stale — re-sync the button state.
       void this.refreshFriendshipStatus();
     } finally {
@@ -409,7 +408,7 @@ export class ProfilePageComponent implements OnInit {
       this.reportSuccess = this.copy.reportSubmitted;
       window.setTimeout(() => this.closeReportModal(), 1800);
     } catch (err) {
-      this.reportError = err instanceof Error ? err.message : this.copy.reportError;
+      this.reportError = this.copy.reportError;
     } finally {
       this.reportSubmitting = false;
     }

@@ -38,7 +38,7 @@ interface ContinueReadingBook {
             <img
               class="continue-cover"
               [src]="book.coverUrl"
-              [alt]="book.title + ' Cover'"
+              [alt]="copy.coverAlt.replace('{{ title }}', book.title)"
               loading="lazy"
               (error)="book.coverUrl = null"
             />

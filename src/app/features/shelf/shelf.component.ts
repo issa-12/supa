@@ -84,7 +84,7 @@ export class ShelfComponent implements OnInit {
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user.id));
       this.buildSections(allBooks);
     } catch (err) {
-      this.error = err instanceof Error ? err.message : this.copy.failedToLoadShelfMsg;
+      this.error = this.copy.failedToLoadShelfMsg;
     } finally {
       this.isLoading = false;
     }
@@ -118,6 +118,21 @@ export class ShelfComponent implements OnInit {
 
   get totalBooks(): number {
     return this.sections.reduce((n, s) => n + s.books.length, 0);
+  }
+
+  formatBooksAcrossShelves(count: number): string {
+    const template = count === 1 ? this.copy.booksAcrossShelvesOne : this.copy.booksAcrossShelvesOther;
+    return template.replace('{count}', count.toString());
+  }
+
+  formatPendingRecommendations(count: number): string {
+    const template = count === 1 ? this.copy.pendingRecommendationsOne : this.copy.pendingRecommendationsOther;
+    return template.replace('{count}', count.toString());
+  }
+
+  formatSectionCount(count: number): string {
+    const template = count === 1 ? this.copy.sectionCountOne : this.copy.sectionCountOther;
+    return template.replace('{count}', count.toString());
   }
 
   get hasRecommendations(): boolean {
@@ -257,7 +272,7 @@ export class ShelfComponent implements OnInit {
   }
 
   async removeBook(book: UserBook): Promise<void> {
-    const title = book.book?.title ?? 'this book';
+    const title = book.book?.title ?? this.copy.thisBook;
     const ok = await this.confirmDialog.confirm({
       message: this.copy.confirmRemove.replace('{{ title }}', title),
       danger: true,

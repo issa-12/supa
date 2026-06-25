@@ -157,6 +157,7 @@ interface NavSearchBook {
           class="nav-language-selector"
           [languages]="languages"
           [selectedLanguage]="selectedLanguage"
+          [label]="copy.languageLabel"
           [compact]="false"
         />
 
@@ -166,7 +167,7 @@ interface NavSearchBook {
           }
           <img
             [src]="avatarUrl || avatarFallback"
-            alt="Profile"
+            [alt]="copy.profileAvatarAlt"
             class="nav-avatar"
             [attr.aria-current]="isProfileActive ? 'page' : null"
             (click)="toggleUserMenu()"

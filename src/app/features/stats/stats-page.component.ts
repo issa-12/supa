@@ -19,7 +19,7 @@ import { jsPDF } from 'jspdf';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
-import { TranslationService } from '../../i18n';
+import { LanguageCode, STATS_DASHBOARD_COPY, TranslationService } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type StatsScope = 'personal' | 'friends' | 'community';
@@ -142,17 +142,23 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('ratingCanvas') ratingCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('topBooksCanvas') topBooksCanvas?: ElementRef<HTMLCanvasElement>;
 
-  readonly scopeOptions: Array<{ value: StatsScope; label: string }> = [
-    { value: 'personal', label: 'My data' },
-    { value: 'friends', label: 'Friends' },
-    { value: 'community', label: 'All data' },
-  ];
-  readonly statusOptions: Array<{ value: StatsStatus; label: string }> = [
-    { value: 'all', label: 'All statuses' },
-    { value: 'read', label: 'Read' },
-    { value: 'currently_reading', label: 'Currently reading' },
-    { value: 'want_to_read', label: 'Want to read' },
-  ];
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return STATS_DASHBOARD_COPY[this.lang]; }
+  get scopeOptions(): Array<{ value: StatsScope; label: string }> {
+    return [
+      { value: 'personal', label: this.copy.scopePersonal },
+      { value: 'friends', label: this.copy.scopeFriends },
+      { value: 'community', label: this.copy.scopeAll },
+    ];
+  }
+  get statusOptions(): Array<{ value: StatsStatus; label: string }> {
+    return [
+      { value: 'all', label: this.copy.statusAll },
+      { value: 'read', label: this.copy.statusRead },
+      { value: 'currently_reading', label: this.copy.statusCurrentlyReading },
+      { value: 'want_to_read', label: this.copy.statusWantToRead },
+    ];
+  }
 
   from = '';
   to = '';
@@ -173,28 +179,33 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private charts: Chart[] = [];
 
   get currentScopeLabel(): string {
-    return this.scopeOptions.find((option) => option.value === this.scope)?.label ?? 'My data';
+    return this.scopeOptions.find((option) => option.value === this.scope)?.label ?? this.copy.scopePersonal;
   }
 
   get currentDateLabel(): string {
     if (this.dateRange === 'lifetime') {
       return this.dashboard?.availableFrom
-        ? `All time · since ${formatDisplayDate(this.dashboard.availableFrom)}`
-        : 'All time';
+        ? this.copy.allTimeSince.replace(
+            '{{ date }}',
+            formatDisplayDate(this.dashboard.availableFrom, this.lang),
+          )
+        : this.copy.allTime;
     }
-    if (this.dateRange === '7d') return 'Last 7 days';
-    if (this.dateRange === '30d') return 'Last 30 days';
-    return this.from && this.to ? `${this.from} → ${this.to}` : 'Custom dates';
+    if (this.dateRange === '7d') return this.copy.last7Days;
+    if (this.dateRange === '30d') return this.copy.last30Days;
+    return this.from && this.to ? `${this.from} → ${this.to}` : this.copy.customDates;
   }
 
   get overviewDescription(): string {
     const scopeLabel =
       this.scope === 'personal'
-        ? 'your reading data'
+        ? this.copy.overviewPersonal
         : this.scope === 'friends'
-          ? 'your friends’ reading data'
-          : 'all public reading data';
-    return `Summary and visual trends for ${scopeLabel} during ${this.currentDateLabel.toLowerCase()}.`;
+          ? this.copy.overviewFriends
+          : this.copy.overviewAll;
+    return this.copy.overviewTemplate
+      .replace('{{ scope }}', scopeLabel)
+      .replace('{{ date }}', this.currentDateLabel.toLowerCase());
   }
 
   get showComparativeInsights(): boolean {
@@ -238,7 +249,10 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.translationService
       .getCurrentLanguage$()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.renderChartsSoon());
+      .subscribe((lang) => {
+        this.lang = lang;
+        this.renderChartsSoon();
+      });
   }
 
   ngOnInit(): void {
@@ -338,23 +352,23 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   exportCsv(): void {
     if (!this.dashboard || this.scope !== 'personal') return;
     const headers = [
-      'Reader',
-      'Book',
-      'Author',
-      'Status',
-      'Rating',
-      'Has review',
-      'Added at',
-      'Completed at',
-      'Activity at',
+      this.copy.csvReader,
+      this.copy.csvBook,
+      this.copy.csvAuthor,
+      this.copy.csvStatus,
+      this.copy.csvRating,
+      this.copy.csvHasReview,
+      this.copy.csvAddedAt,
+      this.copy.csvCompletedAt,
+      this.copy.csvActivityAt,
     ];
     const records = this.dashboard.rows.map((row) => [
       row.reader,
       row.title,
       row.author,
-      humanizeStatus(row.status),
+      this.statusLabel(row.status),
       row.rating ?? '',
-      row.hasReview ? 'Yes' : 'No',
+      row.hasReview ? this.copy.yes : this.copy.no,
       row.addedAt,
       row.completedAt ?? '',
       row.activityAt,
@@ -396,7 +410,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
       pdf.addImage(image, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       pdf.save(`readtrack-dashboard-${this.exportRangeName()}.pdf`);
     } catch {
-      this.error = 'The dashboard snapshot could not be exported.';
+      this.error = this.copy.errorPdf;
     } finally {
       this.isExportingPdf = false;
     }
@@ -411,6 +425,43 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   trackByKey(_: number, item: AnalyticsBucket): string {
     return item.key;
+  }
+
+  bucketLabel(bucket: AnalyticsBucket): string {
+    if (bucket.key === 'positive') return this.copy.sentimentPositive;
+    if (bucket.key === 'negative') return this.copy.sentimentNegative;
+    if (bucket.key === 'neutral') return this.copy.sentimentNeutral;
+    if (bucket.key === 'mixed') return this.copy.sentimentMixed;
+    if (bucket.key === 'unclassified') return this.copy.sentimentUnclassified;
+    return this.statusLabel(bucket.key);
+  }
+
+  statusLabel(status: string): string {
+    if (status === 'read') return this.copy.statusRead;
+    if (status === 'currently_reading') return this.copy.statusCurrentlyReading;
+    if (status === 'want_to_read') return this.copy.statusWantToRead;
+    if (status === 'recommended_by_friend') return this.copy.statusFriendRecommendations;
+    if (status === 'all') return this.copy.statusAll;
+    return status;
+  }
+
+  timelineLabel(bucket: AnalyticsBucket): string {
+    const date = new Date(`${bucket.key}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return bucket.label;
+    const rangeStart = new Date(
+      this.from || this.dashboard?.availableFrom || bucket.key,
+    );
+    const rangeEnd = new Date(this.to || new Date());
+    const rangeDays = Math.max(
+      1,
+      Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / 86_400_000),
+    );
+    const monthOnly = rangeDays > 180;
+    return new Intl.DateTimeFormat(this.lang, {
+      month: 'short',
+      day: monthOnly ? undefined : 'numeric',
+      year: monthOnly ? '2-digit' : undefined,
+    }).format(date);
   }
 
   avatarFallback(name: string): string {
@@ -470,7 +521,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async loadDashboard(silent = false): Promise<void> {
     if (this.dateRange === 'custom' && this.from > this.to) {
-      this.error = 'The start date must be before the end date.';
+      this.error = this.copy.errorDateOrder;
       return;
     }
     if (!silent) this.isLoading = true;
@@ -478,7 +529,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       const session = await this.supabaseService.getCurrentSession();
       if (!session?.access_token) {
-        this.error = 'Not authenticated.';
+        this.error = this.copy.errorNotAuthenticated;
         return;
       }
       const params = new URLSearchParams({ scope: this.scope, status: this.status });
@@ -488,8 +539,8 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(body?.message ?? 'Failed to load analytics.');
+        await response.json().catch(() => null);
+        throw new Error(this.copy.errorLoadAnalytics);
       }
       this.dashboard = (await response.json()) as AnalyticsDashboard;
       if (this.dateRange === 'custom') {
@@ -499,7 +550,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.lastUpdated = new Date(this.dashboard.generatedAt);
       this.renderChartsSoon();
     } catch (error) {
-      this.error = error instanceof Error ? error.message : 'Failed to load analytics.';
+      this.error = this.copy.errorLoadAnalytics;
     } finally {
       this.isLoading = false;
     }
@@ -539,10 +590,10 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
       new Chart(this.timelineCanvas.nativeElement, {
         type: 'line',
         data: {
-          labels: this.dashboard.completionTimeline.map((bucket) => bucket.label),
+          labels: this.dashboard.completionTimeline.map((bucket) => this.timelineLabel(bucket)),
           datasets: [
             {
-              label: 'Books completed',
+              label: this.copy.chartBooksCompleted,
               data: this.dashboard.completionTimeline.map((bucket) => bucket.count),
               borderColor: '#e9783f',
               backgroundColor: 'rgba(233, 120, 63, 0.18)',
@@ -564,7 +615,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
       new Chart(this.statusCanvas.nativeElement, {
         type: 'doughnut',
         data: {
-          labels: this.dashboard.statusDistribution.map((bucket) => bucket.label),
+          labels: this.dashboard.statusDistribution.map((bucket) => this.bucketLabel(bucket)),
           datasets: [
             {
               data: this.dashboard.statusDistribution.map((bucket) => bucket.count),
@@ -585,7 +636,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
           labels: this.dashboard.ratingDistribution.map((bucket) => bucket.key),
           datasets: [
             {
-              label: 'Ratings',
+              label: this.copy.chartRatings,
               data: this.dashboard.ratingDistribution.map((bucket) => bucket.count),
               backgroundColor: '#d8a657',
               borderRadius: 8,
@@ -596,7 +647,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
           ...commonOptions,
           scales: {
             y: { beginAtZero: true, ticks: { precision: 0 } },
-            x: { grid: { display: false }, title: { display: true, text: 'Stars' } },
+            x: { grid: { display: false }, title: { display: true, text: this.copy.chartStars } },
           },
         },
       }),
@@ -609,7 +660,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
           labels: this.dashboard.topBooks.map((book) => shorten(book.title, 24)),
           datasets: [
             {
-              label: 'Shelf entries',
+              label: this.copy.chartShelfEntries,
               data: this.dashboard.topBooks.map((book) => book.count),
               backgroundColor: '#4f8a8b',
               borderRadius: 7,
@@ -648,8 +699,8 @@ function formatDateInput(date: Date): string {
   ].join('-');
 }
 
-function formatDisplayDate(value: string): string {
-  return new Intl.DateTimeFormat('en', {
+function formatDisplayDate(value: string, language: LanguageCode): string {
+  return new Intl.DateTimeFormat(language, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -668,10 +719,6 @@ function clampDateInput(value: string, minimum: string, maximum: string): string
   if (value < minimum) return minimum;
   if (value > maximum) return maximum;
   return value;
-}
-
-function humanizeStatus(status: string): string {
-  return status.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function csvCell(value: string | number): string {

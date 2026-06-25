@@ -35,7 +35,7 @@ interface Book {
         </div>
 
         <h1 class="hero-title">{{ book.title }}</h1>
-        <div class="hero-author">by {{ book.author }}</div>
+        <div class="hero-author">{{ copy.byAuthor.replace('{{ author }}', book.author) }}</div>
 
         <p class="hero-desc">
           {{ descriptionPreview || copy.heroFallbackDescription }}
@@ -64,7 +64,7 @@ interface Book {
         <img
           class="hero-cover"
           [src]="book.coverUrl"
-          [alt]="book.title + ' Cover'"
+          [alt]="copy.coverAlt.replace('{{ title }}', book.title)"
           (error)="coverBroken = true"
         />
       } @else {

@@ -16,6 +16,7 @@ export interface NavCopy {
   apiKeys: string;
   logout: string;
   languageLabel: string;
+  profileAvatarAlt: string;
 }
 
 export const NAV_COPY: Record<LanguageCode, NavCopy> = {
@@ -35,6 +36,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     apiKeys: 'API Keys',
     logout: 'Logout',
     languageLabel: 'Change language',
+    profileAvatarAlt: 'Profile',
   },
   ar: {
     searchPlaceholder: 'ابحث عن الكتب أو المستخدمين…',
@@ -52,6 +54,7 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     apiKeys: 'مفاتيح API',
     logout: 'تسجيل الخروج',
     languageLabel: 'تغيير اللغة',
+    profileAvatarAlt: 'الملف الشخصي',
   },
   fr: {
     searchPlaceholder: 'Rechercher des livres ou des utilisateurs…',
@@ -69,5 +72,6 @@ export const NAV_COPY: Record<LanguageCode, NavCopy> = {
     apiKeys: 'Clés API',
     logout: 'Déconnexion',
     languageLabel: 'Changer de langue',
+    profileAvatarAlt: 'Profil',
   },
 };

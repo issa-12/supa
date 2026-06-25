@@ -114,10 +114,8 @@ export class EmailVerificationComponent {
         // replaceUrl so the verify-email page leaves history after success.
         void this.router.navigateByUrl('/home', { replaceUrl: true });
       }, 900);
-    } catch (error) {
-      this.errorMessage = error instanceof Error
-        ? error.message
-        : this.copy.verifyFailed;
+    } catch {
+      this.errorMessage = this.copy.verifyFailed;
     } finally {
       this.isSubmitting = false;
     }
@@ -139,10 +137,8 @@ export class EmailVerificationComponent {
       this.statusMessage = this.copy.codeResent;
       this.verificationForm.reset();
       this.focusCodeInput(0);
-    } catch (error) {
-      this.errorMessage = error instanceof Error
-        ? error.message
-        : this.copy.resendFailed;
+    } catch {
+      this.errorMessage = this.copy.resendFailed;
     } finally {
       this.isSubmitting = false;
     }

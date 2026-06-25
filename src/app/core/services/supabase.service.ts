@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import type {
   AuthResponse,
@@ -10,6 +10,7 @@ import type {
   SupabaseClient,
   User,
 } from '@supabase/supabase-js';
+import { APP_COPY, TranslationService } from '../../i18n';
 
 export type RealtimeStatus = 'connecting' | 'live' | 'offline';
 
@@ -87,6 +88,7 @@ export interface EmailVerificationRequest {
   providedIn: 'root'
 })
 export class SupabaseService {
+  private readonly translationService = inject(TranslationService);
   private readonly supabaseUrl = 'https://qgoermeodyyfrfoyvnvo.supabase.co';
   private readonly supabaseKey = 'sb_publishable_TIjb7yhm4CGQOcWgybqF8g_Fvq2kxYg';
   private supabaseClientPromise?: Promise<SupabaseClient>;
@@ -269,7 +271,10 @@ export class SupabaseService {
   private nameFromEmail(email: string): string {
     const fallbackName = email.split('@')[0]?.replace(/[._-]+/g, ' ').trim();
 
-    return fallbackName || 'ReadTrack Reader';
+    return (
+      fallbackName ||
+      APP_COPY[this.translationService.getCurrentLanguage()].defaultReader
+    );
   }
 
   private redirectUrl(): string {
