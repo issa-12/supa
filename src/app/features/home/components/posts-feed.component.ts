@@ -163,29 +163,25 @@ interface BookSearchResult {
       } @else {
         <div class="posts-list">
           @for (post of (activeTab === 'friends' ? posts : trendingPosts); track post.id) {
-            <article class="post-card">
+            <article class="post-card post-card--preview" [routerLink]="['/community']" [queryParams]="{ post: post.id }">
               <div class="post-header">
-                <a class="post-author-link" [routerLink]="['/profile', post.userId]">
-                  <div class="post-avatar">
-                    @if (post.userAvatar) {
-                      <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
-                    } @else {
-                      <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
-                    }
-                  </div>
+                <div class="post-avatar">
+                  @if (post.userAvatar) {
+                    <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
+                  } @else {
+                    <span>{{ (post.userName || '?').charAt(0).toUpperCase() }}</span>
+                  }
+                </div>
+                <div class="post-meta-col">
                   <span class="post-author">{{ post.userName }}</span>
-                </a>
-                <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
-                @if (post.userId === currentUserId) {
-                  <button class="post-delete" (click)="deletePost(post)" [attr.aria-label]="copy.feedAriaDeletePost">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                    </svg>
-                  </button>
+                  <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
+                </div>
+                @if (post.bookTitle) {
+                  <span class="post-book-badge">{{ post.bookTitle }}</span>
                 }
               </div>
 
-              <p class="post-content" [class.post-content--translated]="activeTranslations.has(post.id)">{{ getPostContent(post) }}</p>
+              <p class="post-content">{{ post.content }}</p>
 
               @if (post.tags && post.tags.length > 0) {
                 <div class="post-tags">
@@ -195,55 +191,20 @@ interface BookSearchResult {
                 </div>
               }
 
-              @if (post.bookTitle) {
-                <a class="post-book" [routerLink]="['/books/search']" [queryParams]="{ q: post.bookTitle }">
-                  @if (post.bookCover) {
-                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" (error)="post.bookCover = ''" loading="lazy" />
-                  }
-                  <span class="post-book-title">{{ post.bookTitle }}</span>
-                </a>
-              }
-
               <div class="post-footer">
-                <span class="action-like-group">
-                  <button class="action-btn action-btn--heart" [class.action-btn--liked]="post.isLikedByMe" (click)="onToggleLike(post)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                  </button>
-                  @if (post.likeCount > 0) {
-                    <button class="action-like-count" [class.action-btn--liked]="post.isLikedByMe" (click)="openLikesPopup('post', post.id, post.likeCount, $event)">{{ post.likeCount }}</button>
-                  } @else {
-                    <span class="action-like-count action-like-count--zero">0</span>
-                  }
+                <span class="post-stat">
+                  <svg width="13" height="13" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" [style.color]="post.isLikedByMe ? '#E9783F' : 'currentColor'">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  {{ post.likeCount }}
                 </span>
-                <button class="action-btn" [class.action-btn--active]="openCommentPostIds.has(post.id)" (click)="toggleComments(post.id)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <span class="post-stat">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                   {{ post.commentCount }}
-                </button>
-                <button class="action-btn action-btn--translate" [class.action-btn--active]="activeTranslations.has(post.id)" [disabled]="translatingIds.has(post.id)" (click)="translatePost(post)">
-                  @if (translatingIds.has(post.id)) {
-                    <span class="spinner-sm"></span>
-                    {{ copy.translating }}
-                  } @else {
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/>
-                    </svg>
-                    {{ activeTranslations.has(post.id) ? copy.showOriginalBtn : copy.translateBtn }}
-                  }
-                </button>
+                </span>
               </div>
-
-              @if (openCommentPostIds.has(post.id) && currentUserId) {
-                <app-post-comments
-                  [postId]="post.id"
-                  [currentUserId]="currentUserId"
-                  [currentUserAvatar]="currentUserAvatar"
-                  [currentUserName]="currentUserName"
-                />
-              }
             </article>
           }
         </div>
@@ -721,70 +682,55 @@ interface BookSearchResult {
       text-overflow: ellipsis;
     }
 
+    .post-card--preview {
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      &:hover { background: var(--surface-alt, #f5f0e8); }
+    }
+
+    .post-meta-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .post-book-badge {
+      font-size: 11px;
+      color: var(--primary);
+      background: rgba(233,120,63,0.1);
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 110px;
+      flex-shrink: 0;
+    }
+
     .post-footer {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       border-top: 0.5px solid rgba(100, 70, 50, 0.08);
       padding-top: 8px;
     }
 
-    .action-btn {
+    .post-stat {
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 13px;
+      gap: 4px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--muted-foreground);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 8px;
-      transition: background 0.15s, color 0.15s;
-
-      svg { flex-shrink: 0; transition: transform 0.15s ease; }
-      &:hover { background: var(--surface-alt); color: var(--foreground); }
-      // Liked: terracotta fill + a small pop when it becomes active.
-      &--liked { color: #C1553A; }
-      &--liked svg { transform: scale(1.15); }
-      &--active { color: var(--primary); }
-      &--heart { padding: 4px 6px; }
-
-    .action-like-group {
-      display: flex;
-      align-items: center;
-    }
-
-    .action-like-count {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted-foreground);
-      padding: 4px 6px 4px 2px;
-      border-radius: 6px;
-      transition: color 0.15s;
-      &:hover { color: var(--foreground); }
-      &.action-btn--liked { color: #C1553A; }
-      &--zero { font-size: 13px; font-weight: 600; color: var(--muted-foreground); padding: 4px 6px 4px 2px; }
-    }
-
-      &--translate {
-        margin-inline-start: auto;
-        font-size: 12px;
-        color: var(--muted-foreground);
-        opacity: 0.7;
-        &:hover { opacity: 1; color: var(--primary); background: none; }
-        &.action-btn--active { opacity: 1; color: var(--primary); }
-        &:disabled { opacity: 0.45; cursor: not-allowed; }
-      }
+      svg { flex-shrink: 0; }
     }
 
     .post-content {
-      transition: opacity 0.2s ease;
-      &--translated { opacity: 0.95; }
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     @media (max-width: 1024px) {

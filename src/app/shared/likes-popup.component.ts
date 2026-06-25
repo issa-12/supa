@@ -36,7 +36,7 @@ const LIKES_COPY = {
           @for (user of likers; track user.userId) {
             <div class="lp-row">
               @if (user.userId !== currentUserId) {
-                @if (pendingIds.has(user.userId)) {
+                @if (pendingIds.has(user.userId) || user.isPending) {
                   <span class="lp-icon-btn lp-icon-btn--pending" [title]="copy.pending">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>

@@ -9,6 +9,7 @@ export interface LikerUser {
   avatarUrl: string | null;
   username: string | null;
   isFriend: boolean;
+  isPending: boolean;
 }
 import { NotificationsService } from './notifications.service';
 
@@ -74,19 +75,23 @@ export class LikesService {
 
     const userIds = likes.map(l => l['user_id'] as string);
 
-    const [usersRes, friendshipsRes, statusRes] = await Promise.all([
+    const [usersRes, friendshipsRes, statusRes, pendingRes] = await Promise.all([
       supabase.from('users').select('id, name, profile_picture_url, username').in('id', userIds),
       supabase.from('friendship').select('user_id1, user_id2, status_id')
         .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`),
       supabase.from('friendship_status').select('id').eq('status_name', 'accepted').single(),
+      supabase.from('friendship_status').select('id').eq('status_name', 'pending').single(),
     ]);
 
     const acceptedId = statusRes.data?.['id'];
+    const pendingStatusId = pendingRes.data?.['id'];
     const friendIds = new Set<string>();
+    const pendingIds = new Set<string>();
     for (const f of friendshipsRes.data ?? []) {
-      if (f['status_id'] !== acceptedId) continue;
-      const other = f['user_id1'] === currentUserId ? f['user_id2'] : f['user_id1'];
-      if (userIds.includes(other)) friendIds.add(other as string);
+      const other = (f['user_id1'] === currentUserId ? f['user_id2'] : f['user_id1']) as string;
+      if (!userIds.includes(other)) continue;
+      if (f['status_id'] === acceptedId) friendIds.add(other);
+      else if (f['status_id'] === pendingStatusId && f['user_id1'] === currentUserId) pendingIds.add(other);
     }
 
     const userMap = new Map((usersRes.data ?? []).map(u => [u['id'] as string, u]));
@@ -98,6 +103,7 @@ export class LikesService {
         avatarUrl: (u?.['profile_picture_url'] as string) ?? null,
         username: (u?.['username'] as string) ?? null,
         isFriend: friendIds.has(uid),
+        isPending: pendingIds.has(uid),
       };
     });
   }
