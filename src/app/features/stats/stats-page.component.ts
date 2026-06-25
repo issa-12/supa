@@ -19,7 +19,7 @@ import { jsPDF } from 'jspdf';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
-import { LanguageCode, STATS_DASHBOARD_COPY, TranslationService } from '../../i18n';
+import { LanguageCode, STATS_DASHBOARD_COPY, TranslationService, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type StatsScope = 'personal' | 'friends' | 'community';
@@ -125,7 +125,7 @@ interface AnalyticsDashboard {
 @Component({
   selector: 'app-stats-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TopNavComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TopNavComponent, GenreNamePipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './stats-page.component.html',
   styleUrl: './stats-page.component.scss',

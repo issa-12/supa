@@ -910,3 +910,8 @@
   .stats-main { padding: 0; }
   .dashboard-board { background: #fff; }
 }
+
+:host-context([dir="rtl"]) {
+  .custom-range-inline > button iconify-icon { transform: scaleX(-1); }
+  .reader-row > iconify-icon { transform: scaleX(-1); }
+}

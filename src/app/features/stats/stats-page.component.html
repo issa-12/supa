@@ -287,7 +287,7 @@
                 @for (genre of dashboard.trendingGenres; track genre.name) {
                   <div class="genre-row">
                     <div class="genre-row__label">
-                      <span>{{ genre.name }}</span>
+                      <span>{{ genre.name | genreName:lang }}</span>
                       <strong>{{ genre.percentage }}%</strong>
                     </div>
                     <div class="genre-track"><span [style.width.%]="genre.percentage"></span></div>
