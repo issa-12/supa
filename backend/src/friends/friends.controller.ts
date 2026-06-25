@@ -76,6 +76,16 @@ export class FriendsController {
     return this.friendsService.getIncomingRequests(userId);
   }
 
+  @Get('user/:userId')
+  async getFriendsForUser(
+    @Headers('authorization') auth: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const token = extractToken(auth);
+    const callerId = await this.friendsService.verifyUser(token);
+    return this.friendsService.getFriendsForUser(callerId, targetUserId);
+  }
+
   @Get('status/:userId')
   async getFriendshipStatus(
     @Headers('authorization') auth: string,

@@ -2,6 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
+
+export interface LikerUser {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  username: string | null;
+  isFriend: boolean;
+}
 import { NotificationsService } from './notifications.service';
 
 @Injectable({ providedIn: 'root' })
@@ -54,6 +62,52 @@ export class LikesService {
         }
       }),
     ).pipe(catchError((err) => throwError(() => err)));
+  }
+
+  private async fetchLikers(table: 'post_likes' | 'comment_likes', idCol: string, id: number, currentUserId: string): Promise<LikerUser[]> {
+    const supabase = await this.supabaseService.getClient();
+
+    const { data: likes } = await supabase
+      .from(table).select(`user_id, created_at`).eq(idCol, id)
+      .order('created_at', { ascending: false }).limit(100);
+    if (!likes?.length) return [];
+
+    const userIds = likes.map(l => l['user_id'] as string);
+
+    const [usersRes, friendshipsRes, statusRes] = await Promise.all([
+      supabase.from('users').select('id, name, profile_picture_url, username').in('id', userIds),
+      supabase.from('friendship').select('user_id1, user_id2, status_id')
+        .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`),
+      supabase.from('friendship_status').select('id').eq('status_name', 'accepted').single(),
+    ]);
+
+    const acceptedId = statusRes.data?.['id'];
+    const friendIds = new Set<string>();
+    for (const f of friendshipsRes.data ?? []) {
+      if (f['status_id'] !== acceptedId) continue;
+      const other = f['user_id1'] === currentUserId ? f['user_id2'] : f['user_id1'];
+      if (userIds.includes(other)) friendIds.add(other as string);
+    }
+
+    const userMap = new Map((usersRes.data ?? []).map(u => [u['id'] as string, u]));
+    return userIds.map(uid => {
+      const u = userMap.get(uid) as Record<string, unknown> | undefined;
+      return {
+        userId: uid,
+        name: (u?.['name'] as string) ?? 'Reader',
+        avatarUrl: (u?.['profile_picture_url'] as string) ?? null,
+        username: (u?.['username'] as string) ?? null,
+        isFriend: friendIds.has(uid),
+      };
+    });
+  }
+
+  getPostLikers(postId: number, currentUserId: string): Promise<LikerUser[]> {
+    return this.fetchLikers('post_likes', 'post_id', postId, currentUserId);
+  }
+
+  getCommentLikers(commentId: number, currentUserId: string): Promise<LikerUser[]> {
+    return this.fetchLikers('comment_likes', 'comment_id', commentId, currentUserId);
   }
 
   toggleCommentLike(commentId: number, userId: string, commentOwnerId: string, currentlyLiked: boolean): Observable<void> {

@@ -229,6 +229,7 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
       gap: 10px;
+      direction: ltr;
       white-space: nowrap;
       cursor: pointer;
       text-decoration: none;

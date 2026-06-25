@@ -14,6 +14,8 @@ export interface CommentsCopy {
   commentFailed: string;
   viewAllComments: string;
   hideComments: string;
+  translateBtn: string;
+  showOriginalBtn: string;
 }
 
 export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
@@ -31,6 +33,8 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     commentFailed: 'Could not post comment. Please try again.',
     viewAllComments: 'View all {count} comments',
     hideComments: 'Hide comments',
+    translateBtn: 'Translate',
+    showOriginalBtn: 'Original',
   },
   ar: {
     currentUserAlt: 'أنت',
@@ -46,6 +50,8 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     commentFailed: 'تعذّر نشر التعليق. حاول مرة أخرى.',
     viewAllComments: 'عرض كل التعليقات ({count})',
     hideComments: 'إخفاء التعليقات',
+    translateBtn: 'ترجمة',
+    showOriginalBtn: 'الأصل',
   },
   fr: {
     currentUserAlt: 'Vous',
@@ -61,5 +67,7 @@ export const COMMENTS_COPY: Record<LanguageCode, CommentsCopy> = {
     commentFailed: 'Impossible de publier le commentaire. Veuillez réessayer.',
     viewAllComments: 'Voir les {count} commentaires',
     hideComments: 'Masquer les commentaires',
+    translateBtn: 'Traduire',
+    showOriginalBtn: 'Original',
   },
 };

@@ -8,7 +8,9 @@ import { SupabaseService, RealtimeSubscription } from '../../core/services/supab
 import { PostCommentsComponent } from '../home/components/post-comments.component';
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { timeAgo } from '../../core/util/time-ago';
+import { detectLang } from '../../core/util/detect-lang';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
+import { LikesPopupComponent } from '../../shared/likes-popup.component';
 import { TranslationService, COMMUNITY_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -27,7 +29,7 @@ interface TrendingTag {
 @Component({
   selector: 'app-community-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, PostCommentsComponent, TopNavComponent],
+  imports: [FormsModule, RouterLink, PostCommentsComponent, TopNavComponent, LikesPopupComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './community-page.component.html',
   styleUrl: './community-page.component.scss',
@@ -45,7 +47,10 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   protected get copy() { return COMMUNITY_COPY[this.lang]; }
 
   constructor() {
-    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.activeTranslations = new Set();
+    });
   }
 
   currentUserId: string | null = null;
@@ -80,6 +85,18 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   trendingTags: TrendingTag[] = [];
   tagSearchQuery = '';
   private tagSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  likesPopup: { type: 'post' | 'comment'; entityId: number; count: number } | null = null;
+
+  openLikesPopup(type: 'post' | 'comment', entityId: number, count: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.likesPopup = { type, entityId, count };
+  }
+
+  // Translation state
+  private translatedTexts = new Map<number, Map<string, string>>();
+  translatingIds = new Set<number>();
+  activeTranslations = new Set<number>();
 
   private realtimeSub: RealtimeSubscription | null = null;
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -372,4 +389,48 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   }
 
   readonly timeAgo = timeAgo;
+
+  getPostContent(post: ActivityPost): string {
+    if (!this.activeTranslations.has(post.id)) return post.content;
+    return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
+  }
+
+  async translatePost(post: ActivityPost): Promise<void> {
+    const postId = post.id;
+
+    if (this.activeTranslations.has(postId)) {
+      this.activeTranslations = new Set([...this.activeTranslations].filter(id => id !== postId));
+      return;
+    }
+
+    const cached = this.translatedTexts.get(postId)?.get(this.lang);
+    if (cached) {
+      this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      return;
+    }
+
+    const targetLang = this.lang;
+    const sourceLang = detectLang(post.content);
+    if (sourceLang === targetLang) return;
+
+    this.translatingIds = new Set([...this.translatingIds, postId]);
+    try {
+      const res = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(post.content)}&langpair=${sourceLang}|${targetLang}`
+      );
+      const data = await res.json() as { responseData?: { translatedText?: string }; responseStatus?: number };
+      if (data?.responseStatus !== 200) return;
+      const translated = data?.responseData?.translatedText ?? '';
+
+      if (translated && translated.trim() !== post.content.trim()) {
+        const langMap2 = this.translatedTexts.get(postId) ?? new Map<string, string>();
+        langMap2.set(this.lang, translated);
+        this.translatedTexts.set(postId, langMap2);
+        this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      }
+    } catch { /* silently ignore */ }
+    finally {
+      this.translatingIds = new Set([...this.translatingIds].filter(id => id !== postId));
+    }
+  }
 }

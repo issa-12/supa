@@ -81,6 +81,10 @@ export class FriendshipService {
     return this.apiFetch<FriendUser[]>('');
   }
 
+  getFriendsForUser(userId: string): Promise<FriendUser[]> {
+    return this.apiFetch<FriendUser[]>(`/user/${userId}`);
+  }
+
   getIncomingRequests(): Promise<FriendRequest[]> {
     return this.apiFetch<FriendRequest[]>('/requests');
   }

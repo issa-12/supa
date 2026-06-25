@@ -35,6 +35,9 @@ export interface CommunityCopy {
   postFailed: string;
   goBackAria: string;
   currentUserAlt: string;
+  translateBtn: string;
+  showOriginalBtn: string;
+  translating: string;
 }
 
 export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
@@ -73,6 +76,9 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     postFailed: 'Could not post. Please try again.',
     goBackAria: 'Go back',
     currentUserAlt: 'You',
+    translateBtn: 'Translate',
+    showOriginalBtn: 'Show original',
+    translating: 'Translating…',
   },
   ar: {
     title: 'المجتمع',
@@ -109,6 +115,9 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     postFailed: 'تعذّر النشر. حاول مرة أخرى.',
     goBackAria: 'رجوع',
     currentUserAlt: 'أنت',
+    translateBtn: 'ترجمة',
+    showOriginalBtn: 'عرض الأصل',
+    translating: 'جاري الترجمة…',
   },
   fr: {
     title: 'Communauté',
@@ -145,5 +154,8 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     postFailed: 'Échec de la publication. Veuillez réessayer.',
     goBackAria: 'Retour',
     currentUserAlt: 'Vous',
+    translateBtn: 'Traduire',
+    showOriginalBtn: 'Voir l\'original',
+    translating: 'Traduction…',
   },
 };

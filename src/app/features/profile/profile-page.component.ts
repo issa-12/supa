@@ -128,6 +128,15 @@ export class ProfilePageComponent implements OnInit {
 
   readonly friendChipLimit = 12;
   friendsExpanded = false;
+  showFriendsModal = false;
+
+  // Friends modal state
+  modalFriends: FriendUser[] = [];
+  modalFriendsLoading = false;
+  myFriendIds = new Set<string>();
+  myFriendshipMap = new Map<string, number>(); // userId -> friendshipId
+  modalActionLoading = new Set<string>();
+  modalSentRequests = new Set<string>();
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
@@ -144,6 +153,37 @@ export class ProfilePageComponent implements OnInit {
 
   toggleFriendsExpanded(): void {
     this.friendsExpanded = !this.friendsExpanded;
+  }
+
+  async openFriendsModal(): Promise<void> {
+    this.showFriendsModal = true;
+    this.modalFriendsLoading = true;
+    try {
+      const targetId = this.viewedUserId;
+      if (!targetId) return;
+
+      if (this.isOwnProfile) {
+        this.modalFriends = [...this.friends];
+        this.myFriendIds = new Set(this.friends.map(f => f.userId));
+        this.myFriendshipMap = new Map(this.friends.map(f => [f.userId, f.friendshipId]));
+      } else {
+        const [targetFriends, myFriends] = await Promise.all([
+          this.friendshipService.getFriendsForUser(targetId),
+          this.friendshipService.getFriends(),
+        ]);
+        this.modalFriends = targetFriends;
+        this.myFriendIds = new Set(myFriends.map(f => f.userId));
+        this.myFriendshipMap = new Map(myFriends.map(f => [f.userId, f.friendshipId]));
+      }
+      void this.presenceService.loadPresenceForUsers(this.modalFriends.map(f => f.userId));
+    } catch { /* ignore */ }
+    finally { this.modalFriendsLoading = false; }
+  }
+
+  closeFriendsModal(): void {
+    this.showFriendsModal = false;
+    this.modalFriends = [];
+    this.modalSentRequests = new Set();
   }
 
   bookCountLabel(n: number): string {
@@ -756,5 +796,50 @@ export class ProfilePageComponent implements OnInit {
   // which scrolls to it and expands its comments (see ?post= handling there).
   openPost(post: ActivityPost): void {
     this.router.navigate(['/community'], { queryParams: { post: post.id } });
+  }
+
+  modalIsFriend(userId: string): boolean {
+    return this.myFriendIds.has(userId);
+  }
+
+  modalIsPending(userId: string): boolean {
+    return this.modalSentRequests.has(userId);
+  }
+
+  modalIsMe(userId: string): boolean {
+    return userId === this.currentUserId;
+  }
+
+  async modalUnfriend(friend: FriendUser): Promise<void> {
+    if (this.modalActionLoading.has(friend.userId)) return;
+    this.modalActionLoading = new Set([...this.modalActionLoading, friend.userId]);
+    try {
+      const fid = this.isOwnProfile ? friend.friendshipId : this.myFriendshipMap.get(friend.userId);
+      if (!fid) return;
+      await this.friendshipService.deleteFriendship(fid);
+      this.myFriendIds = new Set([...this.myFriendIds].filter(id => id !== friend.userId));
+      this.myFriendshipMap.delete(friend.userId);
+      if (this.isOwnProfile) {
+        this.modalFriends = this.modalFriends.filter(f => f.userId !== friend.userId);
+        this.friends = this.friends.filter(f => f.userId !== friend.userId);
+        this.friendCount = this.friends.length;
+      }
+    } catch { /* ignore */ }
+    finally {
+      this.modalActionLoading = new Set([...this.modalActionLoading].filter(id => id !== friend.userId));
+    }
+  }
+
+  async modalAddFriend(userId: string): Promise<void> {
+    if (this.modalActionLoading.has(userId)) return;
+    this.modalActionLoading = new Set([...this.modalActionLoading, userId]);
+    try {
+      const result = await this.friendshipService.sendRequest(userId);
+      this.modalSentRequests = new Set([...this.modalSentRequests, userId]);
+      this.myFriendshipMap.set(userId, result.friendshipId);
+    } catch { /* ignore */ }
+    finally {
+      this.modalActionLoading = new Set([...this.modalActionLoading].filter(id => id !== userId));
+    }
   }
 }

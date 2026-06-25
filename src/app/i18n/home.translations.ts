@@ -69,6 +69,11 @@ export interface HomeCopy {
 
   // Additional keys
   deletePostConfirm: string;
+
+  // Post translation
+  translateBtn: string;
+  showOriginalBtn: string;
+  translating: string;
 }
 
 export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
@@ -133,6 +138,9 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
 
     writePostAriaLabel: 'Write a post',
     deletePostConfirm: 'Delete this post?',
+    translateBtn: 'Translate',
+    showOriginalBtn: 'Show original',
+    translating: 'Translating…',
   },
   ar: {
     loadProfileError: 'فشل تحميل ملف المستخدم.',
@@ -195,6 +203,9 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
 
     writePostAriaLabel: 'كتابة منشور',
     deletePostConfirm: 'حذف هذا المنشور؟',
+    translateBtn: 'ترجمة',
+    showOriginalBtn: 'عرض الأصل',
+    translating: 'جاري الترجمة…',
   },
   fr: {
     loadProfileError: 'Impossible de charger le profil utilisateur.',
@@ -257,5 +268,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
 
     writePostAriaLabel: 'Écrire un message',
     deletePostConfirm: 'Supprimer ce message ?',
+    translateBtn: 'Traduire',
+    showOriginalBtn: 'Voir l\'original',
+    translating: 'Traduction…',
   },
 };

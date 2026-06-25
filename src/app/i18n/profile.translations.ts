@@ -151,6 +151,9 @@ export interface ProfileCopy {
   reasonInappropriate: string;
   reasonImpersonation: string;
   reasonOther: string;
+  unfriendBtn: string;
+  pendingBtn: string;
+  modalFriendsTitle: string;
 }
 
 export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
@@ -305,6 +308,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reasonInappropriate: 'Inappropriate content',
     reasonImpersonation: 'Impersonation',
     reasonOther: 'Other',
+    unfriendBtn: 'Unfriend',
+    pendingBtn: 'Pending',
+    modalFriendsTitle: 'Friends',
   },
   ar: {
     ownTitle: 'ملفي الشخصي',
@@ -457,6 +463,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reasonInappropriate: 'محتوى غير لائق',
     reasonImpersonation: 'انتحال شخصية',
     reasonOther: 'أخرى',
+    unfriendBtn: 'إلغاء الصداقة',
+    pendingBtn: 'معلّق',
+    modalFriendsTitle: 'الأصدقاء',
   },
   fr: {
     ownTitle: 'Mon Profil',
@@ -609,5 +618,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reasonInappropriate: 'Contenu inapproprié',
     reasonImpersonation: 'Usurpation d\'identité',
     reasonOther: 'Autre',
+    unfriendBtn: 'Retirer l\'ami',
+    pendingBtn: 'En attente',
+    modalFriendsTitle: 'Amis',
   },
 };

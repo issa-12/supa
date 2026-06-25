@@ -7,9 +7,11 @@ import { BookService } from '../../../core/services/book.service';
 import { SupabaseService, RealtimeSubscription } from '../../../core/services/supabase.service';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
+import { detectLang } from '../../../core/util/detect-lang';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostCommentsComponent } from './post-comments.component';
+import { LikesPopupComponent } from '../../../shared/likes-popup.component';
 
 interface BookSearchResult {
   googleId: string;
@@ -21,7 +23,7 @@ interface BookSearchResult {
 @Component({
   selector: 'app-posts-feed',
   standalone: true,
-  imports: [FormsModule, RouterLink, PostCommentsComponent],
+  imports: [FormsModule, RouterLink, PostCommentsComponent, LikesPopupComponent],
   template: `
     <div class="feed-col">
 
@@ -183,7 +185,7 @@ interface BookSearchResult {
                 }
               </div>
 
-              <p class="post-content">{{ post.content }}</p>
+              <p class="post-content" [class.post-content--translated]="activeTranslations.has(post.id)">{{ getPostContent(post) }}</p>
 
               @if (post.tags && post.tags.length > 0) {
                 <div class="post-tags">
@@ -203,17 +205,34 @@ interface BookSearchResult {
               }
 
               <div class="post-footer">
-                <button class="action-btn" [class.action-btn--liked]="post.isLikedByMe" (click)="onToggleLike(post)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                  {{ post.likeCount }}
-                </button>
+                <span class="action-like-group">
+                  <button class="action-btn action-btn--heart" [class.action-btn--liked]="post.isLikedByMe" (click)="onToggleLike(post)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                  </button>
+                  @if (post.likeCount > 0) {
+                    <button class="action-like-count" [class.action-btn--liked]="post.isLikedByMe" (click)="openLikesPopup('post', post.id, post.likeCount, $event)">{{ post.likeCount }}</button>
+                  } @else {
+                    <span class="action-like-count action-like-count--zero">0</span>
+                  }
+                </span>
                 <button class="action-btn" [class.action-btn--active]="openCommentPostIds.has(post.id)" (click)="toggleComments(post.id)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                   {{ post.commentCount }}
+                </button>
+                <button class="action-btn action-btn--translate" [class.action-btn--active]="activeTranslations.has(post.id)" [disabled]="translatingIds.has(post.id)" (click)="translatePost(post)">
+                  @if (translatingIds.has(post.id)) {
+                    <span class="spinner-sm"></span>
+                    {{ copy.translating }}
+                  } @else {
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/>
+                    </svg>
+                    {{ activeTranslations.has(post.id) ? copy.showOriginalBtn : copy.translateBtn }}
+                  }
                 </button>
               </div>
 
@@ -230,6 +249,16 @@ interface BookSearchResult {
         </div>
       }
     </div>
+
+    @if (likesPopup && currentUserId) {
+      <app-likes-popup
+        [type]="likesPopup.type"
+        [entityId]="likesPopup.entityId"
+        [count]="likesPopup.count"
+        [currentUserId]="currentUserId"
+        (closed)="likesPopup = null"
+      />
+    }
   `,
   styles: [`
     :host {
@@ -720,6 +749,42 @@ interface BookSearchResult {
       &--liked { color: #C1553A; }
       &--liked svg { transform: scale(1.15); }
       &--active { color: var(--primary); }
+      &--heart { padding: 4px 6px; }
+
+    .action-like-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .action-like-count {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      padding: 4px 6px 4px 2px;
+      border-radius: 6px;
+      transition: color 0.15s;
+      &:hover { color: var(--foreground); }
+      &.action-btn--liked { color: #C1553A; }
+      &--zero { font-size: 13px; font-weight: 600; color: var(--muted-foreground); padding: 4px 6px 4px 2px; }
+    }
+
+      &--translate {
+        margin-inline-start: auto;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        opacity: 0.7;
+        &:hover { opacity: 1; color: var(--primary); background: none; }
+        &.action-btn--active { opacity: 1; color: var(--primary); }
+        &:disabled { opacity: 0.45; cursor: not-allowed; }
+      }
+    }
+
+    .post-content {
+      transition: opacity 0.2s ease;
+      &--translated { opacity: 0.95; }
     }
 
     @media (max-width: 1024px) {
@@ -761,6 +826,12 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
 
   private bookSearchTimer: ReturnType<typeof setTimeout> | null = null;
   private realtimeSub: RealtimeSubscription | null = null;
+
+  private translatedTexts = new Map<number, Map<string, string>>();
+  translatingIds = new Set<number>();
+  activeTranslations = new Set<number>();
+
+  likesPopup: { type: 'post' | 'comment'; entityId: number; count: number } | null = null;
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
   private realtimeStarted = false;
   private destroyed = false;
@@ -774,7 +845,10 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   constructor() {
-    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.activeTranslations = new Set();
+    });
   }
 
   ngOnInit(): void {
@@ -975,4 +1049,52 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   readonly timeAgo = timeAgo;
+
+  openLikesPopup(type: 'post' | 'comment', entityId: number, count: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.likesPopup = { type, entityId, count };
+  }
+
+  getPostContent(post: ActivityPost): string {
+    if (!this.activeTranslations.has(post.id)) return post.content;
+    return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
+  }
+
+  async translatePost(post: ActivityPost): Promise<void> {
+    const postId = post.id;
+
+    if (this.activeTranslations.has(postId)) {
+      this.activeTranslations = new Set([...this.activeTranslations].filter(id => id !== postId));
+      return;
+    }
+
+    const cached = this.translatedTexts.get(postId)?.get(this.lang);
+    if (cached) {
+      this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      return;
+    }
+
+    const targetLang = this.lang;
+    const sourceLang = detectLang(post.content);
+    if (sourceLang === targetLang) return;
+
+    this.translatingIds = new Set([...this.translatingIds, postId]);
+    try {
+      const res = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(post.content)}&langpair=${sourceLang}|${targetLang}`
+      );
+      const data = await res.json() as { responseData?: { translatedText?: string }; responseStatus?: number };
+      if (data?.responseStatus !== 200) return;
+      const translated = data?.responseData?.translatedText ?? '';
+      if (translated && translated.trim() !== post.content.trim()) {
+        const map = this.translatedTexts.get(postId) ?? new Map<string, string>();
+        map.set(this.lang, translated);
+        this.translatedTexts.set(postId, map);
+        this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      }
+    } catch { /* silently ignore */ }
+    finally {
+      this.translatingIds = new Set([...this.translatingIds].filter(id => id !== postId));
+    }
+  }
 }
