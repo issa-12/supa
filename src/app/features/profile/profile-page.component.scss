@@ -30,7 +30,7 @@ $border-soft: rgba(100, 70, 50, 0.10);
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 32px 48px 64px;
+  padding: clamp(16px, 2.5vw, 32px) clamp(16px, 3.7vw, 48px) clamp(32px, 5vw, 64px);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -51,14 +51,14 @@ section[id] { scroll-margin-top: 80px; }
   background: #ffffff;
   border-radius: 20px;
   border: 0.5px solid $border-soft;
-  padding: 32px 36px;
+  padding: clamp(16px, 2.5vw, 32px) clamp(16px, 2.8vw, 36px);
   position: relative;
 }
 
 .profile-top {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  gap: clamp(12px, 1.7vw, 24px);
 }
 
 .avatar-wrap {
@@ -67,8 +67,8 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .avatar {
-  width: 90px;
-  height: 90px;
+  width: clamp(56px, 7vw, 90px);
+  height: clamp(56px, 7vw, 90px);
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid $cream-dark;
@@ -81,7 +81,7 @@ section[id] { scroll-margin-top: 80px; }
   justify-content: center;
   background: var(--primary);
   color: #fff;
-  font-size: 30px;
+  font-size: clamp(18px, 2.1vw, 30px);
   font-weight: 700;
   letter-spacing: -1px;
 }
@@ -155,7 +155,7 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .profile-name {
-  font-size: 26px;
+  font-size: clamp(18px, 2vw, 26px);
   font-weight: 700;
   color: var(--foreground);
   letter-spacing: -0.4px;
@@ -165,13 +165,13 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .profile-handle {
-  font-size: 14px;
+  font-size: clamp(11px, 0.97vw, 14px);
   color: $text-4;
   margin: 0 0 3px;
 }
 
 .profile-since {
-  font-size: 13px;
+  font-size: clamp(10px, 0.9vw, 13px);
   color: $text-4;
   margin: 0;
 }
@@ -193,7 +193,6 @@ section[id] { scroll-margin-top: 80px; }
   }
 }
 
-// Own-profile edit button (absolute top-right)
 .edit-profile-btn {
   position: absolute;
   top: 28px;
@@ -201,12 +200,12 @@ section[id] { scroll-margin-top: 80px; }
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 20px;
+  padding: clamp(8px, 0.7vw, 10px) clamp(10px, 1.4vw, 20px);
   background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -214,6 +213,7 @@ section[id] { scroll-margin-top: 80px; }
   svg { width: 14px; height: 14px; }
   &:hover { background: var(--primary-dark); }
 }
+
 
 // Other-user action buttons
 .profile-actions {
@@ -232,10 +232,10 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .bio {
-  font-size: 14px;
+  font-size: clamp(11px, 0.97vw, 14px);
   color: $text-2;
-  line-height: 1.75;
-  margin: 0 0 16px;
+  line-height: 1.7;
+  margin: 0 0 14px;
   overflow-wrap: break-word;
 }
 
@@ -246,11 +246,11 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .gtag {
-  padding: 5px 13px;
+  padding: 4px 11px;
   border-radius: 20px;
   background: $brand-light;
   color: $brand-text;
-  font-size: 12px;
+  font-size: clamp(9px, 0.83vw, 12px);
   font-weight: 500;
 }
 
@@ -295,7 +295,7 @@ section[id] { scroll-margin-top: 80px; }
   background: #ffffff;
   border-radius: 16px;
   border: 0.5px solid $border-soft;
-  padding: 20px 24px;
+  padding: clamp(8px, 1.1vw, 18px) clamp(8px, 1.4vw, 22px);
 
   &--clickable {
     cursor: pointer;
@@ -314,16 +314,16 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: clamp(8px, 0.69vw, 11px);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   color: $text-4;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .stat-value {
-  font-size: 30px;
+  font-size: clamp(16px, 2vw, 30px);
   font-weight: 700;
   color: var(--foreground);
   line-height: 1;
@@ -331,23 +331,23 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 .stat-denom {
-  font-size: 16px;
+  font-size: clamp(11px, 1.1vw, 16px);
   color: $text-4;
   font-weight: 400;
 }
 
 .stat-sub {
-  font-size: 12px;
+  font-size: clamp(10px, 0.83vw, 12px);
   color: $text-4;
-  margin-top: 5px;
+  margin-top: 4px;
 }
 
 .progress-track {
-  height: 5px;
+  height: 4px;
   background: $cream-dark;
   border-radius: 3px;
   overflow: hidden;
-  margin: 10px 0 7px;
+  margin: 7px 0 5px;
 }
 
 .progress-fill {
@@ -361,28 +361,31 @@ section[id] { scroll-margin-top: 80px; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .progress-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--primary);
   font-weight: 500;
 }
 
 .edit-goal-btn {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: clamp(10px, 0.83vw, 12px);
   color: $text-4;
   cursor: pointer;
   border: none;
   background: none;
-  text-decoration: underline;
   font-family: inherit;
   padding: 0;
 
+  .edit-goal-icon { width: 12px; height: 12px; flex-shrink: 0; }
   &:hover { color: var(--primary); }
 }
+
 
 .goal-edit {
   display: inline-flex;
@@ -434,7 +437,7 @@ section[id] { scroll-margin-top: 80px; }
   background: #ffffff;
   border-radius: 16px;
   border: 0.5px solid $border-soft;
-  padding: 20px 24px;
+  padding: clamp(12px, 1.6vw, 20px) clamp(14px, 1.9vw, 24px);
 }
 
 .sec-hdr {
@@ -787,14 +790,14 @@ section[id] { scroll-margin-top: 80px; }
 // ── Recent activity ──────────────────────────────────────────────
 .activity-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 14px;
 }
 
 .activity-card {
   display: flex;
   gap: 14px;
-  padding: 16px 18px;
+  padding: clamp(10px, 1.3vw, 16px) clamp(12px, 1.4vw, 18px);
   background: #ffffff;
   border-radius: 14px;
   border: 0.5px solid $border-soft;
@@ -915,7 +918,6 @@ section[id] { scroll-margin-top: 80px; }
   margin: 0;
 }
 
-// ── Shared buttons ───────────────────────────────────────────────
 .btn {
   min-height: 40px;
   padding: 0 18px;
@@ -931,6 +933,7 @@ section[id] { scroll-margin-top: 80px; }
   transition: all 0.2s ease;
   white-space: nowrap;
   font-family: inherit;
+  text-decoration: none;
 
   svg { width: 16px; height: 16px; }
 }
@@ -1474,9 +1477,7 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 @media (max-width: 600px) {
-  .profile-top { flex-direction: column; align-items: flex-start; }
   .profile-actions { margin-inline-start: 0; max-width: none; width: 100%; }
-  .stats-row { grid-template-columns: 1fr; }
   .modal { width: 100%; }
 }
 
@@ -1486,6 +1487,9 @@ section[id] { scroll-margin-top: 80px; }
   .books-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
   .activity-list { grid-template-columns: 1fr; }
   .shelf-sec-sub { width: 100%; margin-inline-start: 0; }
+  .edit-goal-btn .goal-btn-text { display: none; }
+  .edit-goal-btn { padding: 3px; }
+  .edit-profile-btn { padding: 6px 10px; top: 14px; inset-inline-end: 14px; }
 }
 
 // ── Friends modal ─────────────────────────────────────────────────

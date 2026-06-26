@@ -117,7 +117,7 @@ img {
   align-items: center;
   gap: 12px;
   margin-top: 16px;
-  padding: 16px;
+  padding: clamp(10px, 1.3vw, 16px);
   border-top: 1px solid var(--border);
   color: var(--muted-foreground);
 }

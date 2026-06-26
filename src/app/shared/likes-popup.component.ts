@@ -84,8 +84,8 @@ const LIKES_COPY = {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 300px;
-      max-height: 380px;
+      width: min(300px, 90vw);
+      max-height: min(380px, 80vh);
       background: var(--surface, #fff);
       border: 1px solid var(--border, #e5e0d8);
       border-radius: 14px;

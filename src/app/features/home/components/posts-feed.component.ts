@@ -248,7 +248,7 @@ interface BookSearchResult {
       background: #fff;
       border-radius: 14px;
       border: 0.5px solid rgba(100, 70, 50, 0.2);
-      padding: 14px 16px;
+      padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.3vw, 16px);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -465,7 +465,7 @@ interface BookSearchResult {
     }
 
     .btn-cancel {
-      padding: 9px 18px;
+      padding: clamp(7px, 0.7vw, 9px) clamp(12px, 1.4vw, 18px);
       border-radius: 10px;
       border: 1px solid var(--border);
       background: transparent;
@@ -479,7 +479,7 @@ interface BookSearchResult {
     }
 
     .btn-post {
-      padding: 9px 20px;
+      padding: clamp(7px, 0.7vw, 9px) clamp(14px, 1.6vw, 20px);
       border-radius: 10px;
       border: none;
       background: var(--primary);

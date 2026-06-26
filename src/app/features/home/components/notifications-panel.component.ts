@@ -126,30 +126,31 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
   styles: [`
     .panel {
       position: absolute;
-      top: calc(100% + 12px);
+      top: calc(100% + clamp(6px, 0.83vw, 12px));
       inset-inline-end: 0;
-      width: 360px;
-      max-height: 480px;
+      width: min(clamp(280px, 25vw, 360px), 92vw);
+      max-height: min(480px, 65vh);
       background: var(--surface);
-      border-radius: 20px;
+      border-radius: clamp(14px, 1.4vw, 20px);
       border: 1px solid transparent;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
     }
 
     .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 20px 14px;
+      padding: clamp(10px, 1.1vw, 16px) clamp(12px, 1.4vw, 18px) clamp(8px, 0.83vw, 12px);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
 
     .panel-title {
-      font-size: 16px;
+      font-size: clamp(13px, 1.1vw, 16px);
       font-weight: 700;
       color: var(--foreground);
       margin: 0;
@@ -158,28 +159,30 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     .panel-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: clamp(8px, 0.97vw, 14px);
     }
 
     .mark-all-btn {
-      font-size: 13px;
+      font-size: clamp(11px, 0.9vw, 13px);
       font-weight: 600;
       color: var(--primary);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 4px 0;
+      padding: clamp(2px, 0.28vw, 4px) 0;
+      white-space: nowrap;
       &:hover { opacity: 0.7; }
     }
 
     .clear-all-btn {
-      font-size: 13px;
+      font-size: clamp(11px, 0.9vw, 13px);
       font-weight: 600;
       color: var(--muted-foreground);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 4px 0;
+      padding: clamp(2px, 0.28vw, 4px) 0;
+      white-space: nowrap;
       &:hover { color: var(--destructive); }
     }
 
@@ -187,23 +190,23 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      padding: 48px 24px;
+      gap: clamp(8px, 0.83vw, 12px);
+      padding: clamp(28px, 3.3vw, 48px) clamp(14px, 1.7vw, 24px);
       color: var(--muted-foreground);
-      font-size: 14px;
-      svg { opacity: 0.35; }
+      font-size: clamp(12px, 0.97vw, 14px);
+      svg { opacity: 0.35; width: clamp(28px, 2.8vw, 40px); height: clamp(28px, 2.8vw, 40px); }
       p { margin: 0; }
     }
 
     .retry-btn {
-      margin-top: 4px;
-      font-size: 13px;
+      margin-top: clamp(2px, 0.28vw, 4px);
+      font-size: clamp(11px, 0.9vw, 13px);
       font-weight: 600;
       color: var(--primary);
       background: var(--primary-soft);
       border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 7px 18px;
+      padding: clamp(5px, 0.49vw, 7px) clamp(12px, 1.25vw, 18px);
       cursor: pointer;
       transition: opacity 0.15s;
       &:hover { opacity: 0.8; }
@@ -212,8 +215,8 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     .filter-row {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
+      gap: clamp(4px, 0.42vw, 6px);
+      padding: clamp(6px, 0.56vw, 8px) clamp(10px, 1.1vw, 16px);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
       overflow-x: auto;
@@ -225,8 +228,8 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 30px;
-      height: 30px;
+      width: clamp(22px, 2.1vw, 30px);
+      height: clamp(22px, 2.1vw, 30px);
       border-radius: 50%;
       border: 1px solid var(--border);
       background: transparent;
@@ -234,6 +237,7 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       cursor: pointer;
       flex-shrink: 0;
       transition: background 0.13s, color 0.13s, border-color 0.13s;
+      svg { width: clamp(10px, 0.9vw, 13px); height: clamp(10px, 0.9vw, 13px); }
       &:hover { background: var(--surface-alt); color: var(--foreground); }
       &--active {
         background: var(--primary-soft);
@@ -245,7 +249,7 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     .notif-list {
       list-style: none;
       margin: 0;
-      padding: 8px 0;
+      padding: clamp(4px, 0.56vw, 8px) 0;
       overflow-y: auto;
       flex: 1;
     }
@@ -253,8 +257,8 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     .notif-item {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 12px 20px;
+      gap: clamp(8px, 0.83vw, 12px);
+      padding: clamp(8px, 0.83vw, 12px) clamp(12px, 1.4vw, 20px);
       cursor: pointer;
       transition: background 0.15s;
       position: relative;
@@ -268,8 +272,8 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     }
 
     .notif-avatar {
-      width: 40px;
-      height: 40px;
+      width: clamp(30px, 2.8vw, 40px);
+      height: clamp(30px, 2.8vw, 40px);
       border-radius: 50%;
       overflow: hidden;
       background: var(--primary);
@@ -277,20 +281,21 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       align-items: center;
       justify-content: center;
       img { width: 100%; height: 100%; object-fit: cover; }
-      span { color: #fff; font-size: 16px; font-weight: 700; }
+      span { color: #fff; font-size: clamp(12px, 1.1vw, 16px); font-weight: 700; }
     }
 
     .notif-type-badge {
       position: absolute;
       bottom: -2px;
       inset-inline-end: -2px;
-      width: 18px;
-      height: 18px;
+      width: clamp(14px, 1.25vw, 18px);
+      height: clamp(14px, 1.25vw, 18px);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 1.5px solid var(--surface, #fff);
+      svg { width: clamp(7px, 0.7vw, 10px); height: clamp(7px, 0.7vw, 10px); }
     }
 
     .notif-body {
@@ -299,28 +304,28 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     }
 
     .notif-text {
-      font-size: 14px;
+      font-size: clamp(11px, 0.97vw, 14px);
       color: var(--foreground);
-      margin: 0 0 4px;
+      margin: 0 0 clamp(2px, 0.28vw, 4px);
       line-height: 1.4;
       strong { font-weight: 700; }
     }
 
     .notif-time {
-      font-size: 12px;
+      font-size: clamp(10px, 0.83vw, 12px);
       color: var(--muted-foreground);
     }
 
     .notif-actions {
       display: flex;
-      gap: 8px;
-      margin-top: 8px;
+      gap: clamp(5px, 0.56vw, 8px);
+      margin-top: clamp(5px, 0.56vw, 8px);
     }
 
     .notif-accept,
     .notif-decline {
-      padding: 5px 14px;
-      font-size: 12px;
+      padding: clamp(3px, 0.35vw, 5px) clamp(8px, 0.97vw, 14px);
+      font-size: clamp(10px, 0.83vw, 12px);
       font-weight: 600;
       border-radius: 999px;
       cursor: pointer;
@@ -346,7 +351,7 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: clamp(5px, 0.56vw, 8px);
       flex-shrink: 0;
     }
 
@@ -361,12 +366,13 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       border-radius: 6px;
       opacity: 0.55;
       transition: opacity 0.15s, background 0.15s, color 0.15s;
+      svg { width: clamp(11px, 0.97vw, 14px); height: clamp(11px, 0.97vw, 14px); }
       &:hover { opacity: 1; color: var(--foreground); background: var(--border); }
     }
 
     .notif-dot {
-      width: 8px;
-      height: 8px;
+      width: clamp(6px, 0.56vw, 8px);
+      height: clamp(6px, 0.56vw, 8px);
       border-radius: 50%;
       background: var(--primary);
       flex-shrink: 0;

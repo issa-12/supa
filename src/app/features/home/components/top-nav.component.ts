@@ -211,8 +211,8 @@ interface NavSearchBook {
     .top-nav {
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 0 40px;
+      gap: clamp(10px, 1.5vw, 20px);
+      padding: 0 clamp(16px, 3vw, 40px);
       height: 62px;
       // Frosted glass: translucent cream + blur. rgb of --background (#f4ede5).
       background: rgba(244, 237, 229, 0.85);
@@ -250,7 +250,7 @@ interface NavSearchBook {
     }
 
     .brand-text {
-      font-size: 18px;
+      font-size: clamp(15px, 1.4vw, 18px);
       font-weight: 600;
       color: var(--foreground);
       letter-spacing: -0.3px;

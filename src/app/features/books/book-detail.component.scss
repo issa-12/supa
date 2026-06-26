@@ -86,7 +86,7 @@
   max-width: 1160px;
   width: 100%;
   margin: 0 auto;
-  padding: 44px 48px 80px;
+  padding: clamp(20px, 3.4vw, 44px) clamp(16px, 3.7vw, 48px) clamp(40px, 6.3vw, 80px);
 }
 
 // ── Breadcrumb ──────────────────────────────────────────────────
@@ -122,10 +122,10 @@
 // ── Hero ────────────────────────────────────────────────────────
 .book-hero {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 56px;
+  grid-template-columns: clamp(160px, 20vw, 260px) minmax(0, 1fr);
+  gap: clamp(24px, 4.4vw, 56px);
   align-items: start;
-  margin-bottom: 48px;
+  margin-bottom: clamp(24px, 3.7vw, 48px);
 }
 
 // ── Cover column ────────────────────────────────────────────────
@@ -135,9 +135,9 @@
 }
 
 .cover-wrap {
-  width: 260px;
+  width: clamp(160px, 20vw, 260px);
   max-width: 100%;
-  height: 360px;
+  height: auto;
   aspect-ratio: 260 / 360;
   border-radius: 14px;
   overflow: hidden;
@@ -391,7 +391,7 @@
 
 .book-title {
   font-family: var(--serif);
-  font-size: 42px;
+  font-size: clamp(24px, 3.3vw, 42px);
   font-weight: 700;
   color: var(--t1);
   line-height: 1.15;
@@ -414,8 +414,8 @@
   background: var(--white);
   border-radius: 16px;
   border: 0.5px solid var(--bd-soft);
-  padding: 22px 26px;
-  margin-bottom: 22px;
+  padding: clamp(14px, 1.7vw, 22px) clamp(14px, 2vw, 26px);
+  margin-bottom: clamp(14px, 1.7vw, 22px);
   display: flex;
   align-items: center;
   gap: 28px;
@@ -439,7 +439,7 @@
 
 .rating-num {
   font-family: var(--serif);
-  font-size: 54px;
+  font-size: clamp(32px, 4.2vw, 54px);
   font-weight: 700;
   color: var(--t1);
   line-height: 1;
@@ -618,7 +618,7 @@
   margin-bottom: 20px;
 }
 
-.card-header { padding: 22px 28px 0; }
+.card-header { padding: clamp(14px, 1.7vw, 22px) clamp(16px, 2.2vw, 28px) 0; }
 
 .card-title {
   font-size: 15px;
@@ -634,7 +634,7 @@
   letter-spacing: 0.08em;
 }
 
-.card-body { padding: 18px 28px 24px; }
+.card-body { padding: clamp(12px, 1.4vw, 18px) clamp(16px, 2.2vw, 28px) clamp(16px, 1.9vw, 24px); }
 
 // ── About ───────────────────────────────────────────────────────
 .about-text {
@@ -651,7 +651,7 @@
   background: var(--white);
   border-radius: 18px;
   border: 0.5px solid var(--bd-soft);
-  padding: 22px 24px;
+  padding: clamp(14px, 1.7vw, 22px) clamp(14px, 1.9vw, 24px);
   display: flex;
   flex-direction: column;
   margin-bottom: 20px;

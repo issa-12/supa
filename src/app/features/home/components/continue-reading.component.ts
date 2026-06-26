@@ -81,7 +81,7 @@ interface ContinueReadingBook {
     .continue-reading-section {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: clamp(16px, 2vw, 24px);
     }
 
     .section-header {
@@ -98,7 +98,7 @@ interface ContinueReadingBook {
     }
 
     .text-h2 {
-      font-size: 26px;
+      font-size: clamp(18px, 2vw, 26px);
       line-height: 1.2;
       font-weight: 700;
       color: var(--foreground);
@@ -108,7 +108,7 @@ interface ContinueReadingBook {
 
     .continue-reading-row {
       display: flex;
-      gap: 32px;
+      gap: clamp(16px, 2.5vw, 32px);
       overflow-x: auto;
       padding: 10px 0 20px;
 
@@ -132,12 +132,12 @@ interface ContinueReadingBook {
 
     .continue-item {
       display: flex;
-      gap: 20px;
+      gap: clamp(12px, 1.6vw, 20px);
       align-items: center;
-      width: 340px;
+      width: clamp(260px, 28vw, 340px);
       flex-shrink: 0;
       position: relative;
-      padding: 12px;
+      padding: clamp(8px, 1vw, 12px);
       border-radius: 12px;
       transition: background-color 0.2s ease;
     }
@@ -147,8 +147,8 @@ interface ContinueReadingBook {
     }
 
     .continue-cover {
-      width: 88px;
-      height: 132px;
+      width: clamp(64px, 7vw, 88px);
+      height: clamp(96px, 10.5vw, 132px);
       border-radius: 4px 6px 6px 4px;
       object-fit: cover;
        flex-shrink: 0;
