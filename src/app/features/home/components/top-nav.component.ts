@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, Input, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, ElementRef, HostListener, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -651,6 +651,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly elRef = inject(ElementRef);
 
   readonly unreadCount$ = this.notificationsService.unreadCount$;
   notifications: AppNotification[] = [];
@@ -736,6 +737,18 @@ export class TopNavComponent implements OnInit, OnDestroy {
     clearTimeout(this.searchTimer);
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    this.userMenuOpen = false;
+    this.searchOpen = false;
+    if (this.panelOpen) {
+      const bellWrapper = this.elRef.nativeElement.querySelector('.bell-wrapper');
+      if (bellWrapper && !bellWrapper.contains(event.target as Node)) {
+        this.closePanel();
+      }
+    }
+  }
+
   async togglePanel(): Promise<void> {
     if (this.panelOpen) { this.closePanel(); return; }
     this.panelOpen = true;
@@ -756,12 +769,6 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   navigateToProfile(): void {
     this.router.navigate(['/profile']);
-  }
-
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    this.userMenuOpen = false;
-    this.searchOpen = false;
   }
 
   onSearchFocus(): void {

@@ -30,7 +30,6 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
   standalone: true,
   imports: [],
   template: `
-    <div class="panel-overlay" (click)="close.emit()"></div>
     <div class="panel">
       <div class="panel-header">
         <h3 class="panel-title">{{ copy.notificationsPanelTitle }}</h3>
@@ -125,12 +124,6 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
     </div>
   `,
   styles: [`
-    .panel-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 90;
-    }
-
     .panel {
       position: absolute;
       top: calc(100% + 12px);

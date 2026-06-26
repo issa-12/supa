@@ -528,10 +528,11 @@ export class BookService {
       coverUrl?: string | null;
       description?: string | null;
     },
+    statusName: string = 'currently_reading',
   ): Promise<void> {
     const supabase = await this.supabaseService.getClient();
 
-    const statusId = await this.resolveStatusId('currently_reading');
+    const statusId = await this.resolveStatusId(statusName);
     if (!statusId) throw new Error("Status 'currently_reading' not found");
 
     const numericId =

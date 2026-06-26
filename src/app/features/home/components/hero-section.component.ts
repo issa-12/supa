@@ -1,8 +1,9 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslationService, HOME_COPY, LanguageCode, translateGenre } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { BookService } from '../../../core/services/book.service';
 
 interface Book {
@@ -255,7 +256,7 @@ interface Book {
     }
   `],
 })
-export class HeroSectionComponent {
+export class HeroSectionComponent implements OnChanges {
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly bookService = inject(BookService);
@@ -290,6 +291,23 @@ export class HeroSectionComponent {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // When the hero book or user changes, check if it's already on the shelf.
+    if ((changes['book'] || changes['currentUserId']) && this.book?.googleBooksId && this.currentUserId) {
+      this.addedToReading = false;
+      void this.checkAlreadyAdded();
+    }
+  }
+
+  private async checkAlreadyAdded(): Promise<void> {
+    try {
+      const userBook = await firstValueFrom(
+        this.bookService.getUserBookByGoogleId(this.currentUserId!, this.book.googleBooksId!)
+      );
+      this.addedToReading = !!userBook;
+    } catch { /* non-critical */ }
+  }
+
   // Google Books descriptions contain HTML markup; strip tags + decode common
   // entities so the hero shows clean text (not raw <p>/&quot;), then truncate.
   protected get descriptionPreview(): string {
@@ -319,7 +337,7 @@ export class HeroSectionComponent {
     this.addingToReading = true;
     this.addError = false;
     try {
-      await this.bookService.addToCurrentlyReading(this.currentUserId, this.book);
+      await this.bookService.addToCurrentlyReading(this.currentUserId, this.book, 'want_to_read');
       this.addedToReading = true;
       this.addToReading.emit(this.book);
     } catch {
