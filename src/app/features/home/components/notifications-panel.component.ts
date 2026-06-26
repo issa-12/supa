@@ -44,6 +44,18 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
         </div>
       </div>
 
+      @if (!isLoading && !loadError && notifications.length > 0) {
+        <div class="filter-row">
+          @for (f of filters; track f.key) {
+            <button class="filter-pill" [class.filter-pill--active]="activeFilter === f.key" (click)="activeFilter = f.key" [title]="f.label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path [attr.d]="f.icon" />
+              </svg>
+            </button>
+          }
+        </div>
+      }
+
       @if (isLoading) {
         <div class="panel-state">{{ copy.loadingMsg }}</div>
       } @else if (loadError) {
@@ -54,7 +66,7 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
           <p>{{ copy.loadErrorMsg }}</p>
           <button class="retry-btn" (click)="reload.emit()">{{ copy.retryBtn }}</button>
         </div>
-      } @else if (notifications.length === 0) {
+      } @else if (filteredNotifications.length === 0) {
         <div class="panel-state">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -63,7 +75,7 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
         </div>
       } @else {
         <ul class="notif-list">
-          @for (n of notifications; track n.id) {
+          @for (n of filteredNotifications; track n.id) {
             <li class="notif-item" [class.notif-item--unread]="!n.isRead" (click)="onNotifClick(n)">
 
               <!-- Avatar with type-icon badge -->
@@ -202,6 +214,39 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       cursor: pointer;
       transition: opacity 0.15s;
       &:hover { opacity: 0.8; }
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+    }
+
+    .filter-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.13s, color 0.13s, border-color 0.13s;
+      &:hover { background: var(--surface-alt); color: var(--foreground); }
+      &--active {
+        background: var(--primary-soft);
+        color: var(--primary);
+        border-color: var(--primary);
+      }
     }
 
     .notif-list {
@@ -367,6 +412,29 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return NOTIFICATIONS_COPY[this.lang]; }
+
+  protected activeFilter: 'all' | 'friends' | 'likes' | 'comments' | 'books' = 'all';
+
+  private static readonly FILTER_TYPES: Record<string, string[]> = {
+    friends:  ['friend_request', 'friend_accepted'],
+    likes:    ['post_liked', 'comment_liked', 'review_liked'],
+    comments: ['post_commented', 'comment_replied'],
+    books:    ['book_recommended', 'friend_posted'],
+  };
+
+  protected readonly filters = [
+    { key: 'all' as const,      label: 'All',      icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+    { key: 'friends' as const,  label: 'Friends',  icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8' },
+    { key: 'likes' as const,    label: 'Likes',    icon: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z' },
+    { key: 'comments' as const, label: 'Comments', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
+    { key: 'books' as const,    label: 'Books',    icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' },
+  ];
+
+  protected get filteredNotifications() {
+    if (this.activeFilter === 'all') return this.notifications;
+    const types = NotificationsPanelComponent.FILTER_TYPES[this.activeFilter] ?? [];
+    return this.notifications.filter(n => types.includes(n.type));
+  }
 
   private tickInterval: ReturnType<typeof setInterval> | null = null;
 
