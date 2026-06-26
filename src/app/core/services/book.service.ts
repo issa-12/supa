@@ -763,8 +763,7 @@ export class BookService {
       .from('user_books')
       .select('user_book_id, user_id, rating, review_text')
       .eq('book_id', bookId)
-      .not('review_text', 'is', null)
-      .neq('user_id', currentUserId);
+      .not('review_text', 'is', null);
 
     if (!reviews?.length) return [];
 

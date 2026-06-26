@@ -519,11 +519,26 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   private async loadCommunityReviews(bookId: number): Promise<void> {
     if (!this.userId) return;
     try {
-      const [all, friendsData] = await Promise.all([
+      const supabase = await this.supabaseService.getClient();
+      const [all, blockedStatusRes] = await Promise.all([
         this.bookService.getCommunityReviews(bookId, this.userId),
-        this.friendshipService.getFriends(),
+        supabase.from('friendship_status').select('status_id').eq('status_name', 'blocked').single(),
       ]);
-      const friendIds = new Set(friendsData.map((f: FriendUser) => f.userId));
+
+      const blockedStatusId = blockedStatusRes.data?.['status_id'];
+      // Build set of users involved in any block relationship with current user
+      const blockedIds = new Set<string>();
+      if (blockedStatusId) {
+        const { data: blockedRows } = await supabase
+          .from('friendship')
+          .select('user_id1, user_id2')
+          .or(`user_id1.eq.${this.userId},user_id2.eq.${this.userId}`)
+          .eq('status_id', blockedStatusId);
+        for (const row of blockedRows ?? []) {
+          const other = row['user_id1'] === this.userId ? row['user_id2'] : row['user_id1'];
+          blockedIds.add(other as string);
+        }
+      }
 
       const ownIdx = all.findIndex(r => r.userId === this.userId);
       if (ownIdx !== -1) {
@@ -532,9 +547,9 @@ export class BookDetailComponent implements OnInit, OnDestroy {
         this.myReviewReaction = own.myReaction;
         this.myReviewLikeCount = own.likeCount;
         this.myReviewDislikeCount = own.dislikeCount;
-        this.communityReviews = all.filter((r, i) => i !== ownIdx && friendIds.has(r.userId));
+        this.communityReviews = all.filter((r, i) => i !== ownIdx && !blockedIds.has(r.userId));
       } else {
-        this.communityReviews = all.filter(r => friendIds.has(r.userId));
+        this.communityReviews = all.filter(r => !blockedIds.has(r.userId));
       }
     } catch {
       // non-critical
