@@ -111,6 +111,7 @@ export interface ProfileCopy {
   saving: string;
   savingMsg: string;
   usernameTaken: string;
+  usernameInvalid: string;
   saveProfileError: string;
   friendActionFailed: string;
   avatarInvalidType: string;
@@ -145,6 +146,8 @@ export interface ProfileCopy {
   reportCancelBtn: string;
   reportSubmitting: string;
   reportSubmitted: string;
+  reportBlockPrompt: string;
+  reportDoneBtn: string;
   reportError: string;
   reasonSpam: string;
   reasonHarassment: string;
@@ -268,6 +271,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     saving: 'Saving…',
     savingMsg: 'Saving…',
     usernameTaken: 'That username is already taken. Please choose another.',
+    usernameInvalid: 'Username must be 3–30 characters using only lowercase letters, numbers, and underscores.',
     saveProfileError: 'Could not save your changes. Please try again.',
     friendActionFailed: 'Could not complete that action. Please try again.',
     avatarInvalidType: 'Please select an image file.',
@@ -302,6 +306,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reportCancelBtn: 'Cancel',
     reportSubmitting: 'Submitting…',
     reportSubmitted: 'Report submitted. Thank you.',
+    reportBlockPrompt: 'Do you also want to block this user? You won’t see each other’s posts or profiles.',
+    reportDoneBtn: 'Done',
     reportError: 'Could not submit report. Please try again.',
     reasonSpam: 'Spam',
     reasonHarassment: 'Harassment',
@@ -423,6 +429,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     saving: 'جاري الحفظ…',
     savingMsg: 'جاري الحفظ…',
     usernameTaken: 'اسم المستخدم هذا مستخدم بالفعل. يرجى اختيار اسم آخر.',
+    usernameInvalid: 'يجب أن يكون اسم المستخدم من 3 إلى 30 حرفًا، باستخدام أحرف إنجليزية صغيرة وأرقام وشرطة سفلية فقط.',
     saveProfileError: 'تعذّر حفظ التغييرات. حاول مرة أخرى.',
     friendActionFailed: 'تعذّر إتمام هذا الإجراء. حاول مرة أخرى.',
     avatarInvalidType: 'يرجى اختيار ملف صورة.',
@@ -457,6 +464,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reportCancelBtn: 'إلغاء',
     reportSubmitting: 'جاري الإرسال…',
     reportSubmitted: 'تم إرسال البلاغ. شكراً لك.',
+    reportBlockPrompt: 'هل تريد أيضاً حظر هذا المستخدم؟ لن يرى أحدكما منشورات أو ملف الآخر.',
+    reportDoneBtn: 'تم',
     reportError: 'تعذر إرسال البلاغ. حاول مرة أخرى.',
     reasonSpam: 'بريد مزعج',
     reasonHarassment: 'تحرش',
@@ -578,6 +587,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     saving: 'Enregistrement en cours…',
     savingMsg: 'Enregistrement en cours…',
     usernameTaken: 'Ce nom d utilisateur est deja pris. Veuillez en choisir un autre.',
+    usernameInvalid: 'Le nom d’utilisateur doit comporter 3 à 30 caractères : lettres minuscules, chiffres et tirets bas uniquement.',
     saveProfileError: 'Impossible d enregistrer les modifications. Veuillez reessayer.',
     friendActionFailed: 'Impossible d\'effectuer cette action. Veuillez réessayer.',
     avatarInvalidType: 'Veuillez sélectionner un fichier image.',
@@ -612,6 +622,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reportCancelBtn: 'Annuler',
     reportSubmitting: 'Envoi…',
     reportSubmitted: 'Signalement envoyé. Merci.',
+    reportBlockPrompt: 'Voulez-vous aussi bloquer cet utilisateur ? Vous ne verrez plus vos publications ni vos profils respectifs.',
+    reportDoneBtn: 'Terminé',
     reportError: 'Impossible d\'envoyer le signalement. Réessayez.',
     reasonSpam: 'Spam',
     reasonHarassment: 'Harcèlement',
