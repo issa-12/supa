@@ -4,12 +4,7 @@
   <main class="stats-main">
     <section class="page-header">
       <div class="page-header-left">
-        <a class="back-btn" routerLink="/home" [attr.aria-label]="copy.backAria">
-          <iconify-icon icon="lucide:arrow-left"></iconify-icon>
-        </a>
-        <div>
-          <h1 class="page-title">{{ copy.title }}</h1>
-        </div>
+        <h1 class="page-title">{{ copy.title }}</h1>
       </div>
 
       <details #downloadMenu class="download-menu">
@@ -249,6 +244,12 @@
           </article>
 
           @if (showComparativeInsights) {
+          <div class="insight-section-heading">
+            <div>
+              <h2>{{ copy.discovery }}</h2>
+            </div>
+          </div>
+
           <article class="stat-card chart-card chart-card--wide">
             <div class="card-heading">
               <div><h2>{{ copy.topBooks }}</h2><p>{{ copy.topBooksSubtitle }}</p></div>

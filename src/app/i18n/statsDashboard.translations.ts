@@ -1,7 +1,7 @@
 import { LanguageCode } from './language.model';
 
 const EN = {
-  title: 'Analytics dashboard',
+  title: 'Analytics',
   backAria: 'Go back',
   downloadData: 'Download data',
   csvData: 'CSV data',
@@ -49,6 +49,7 @@ const EN = {
   refreshAria: 'Refresh analytics',
   loadingAnalytics: 'Loading analytics…',
   readingAndRating: 'Reading and rating',
+  discovery: 'Discovery',
   summaryAria: 'Analytics summary',
   booksTracked: 'Books tracked',
   completed: 'Completed',
@@ -128,7 +129,7 @@ const EN = {
 export type StatsDashboardCopy = { [K in keyof typeof EN]: string };
 
 const AR: StatsDashboardCopy = {
-  title: 'لوحة التحليلات',
+  title: 'التحليلات',
   backAria: 'رجوع',
   downloadData: 'تنزيل البيانات',
   csvData: 'بيانات CSV',
@@ -176,6 +177,7 @@ const AR: StatsDashboardCopy = {
   refreshAria: 'تحديث التحليلات',
   loadingAnalytics: 'جارٍ تحميل التحليلات…',
   readingAndRating: 'القراءة والتقييم',
+  discovery: 'الاكتشاف',
   summaryAria: 'ملخص التحليلات',
   booksTracked: 'الكتب المتابعة',
   completed: 'المكتملة',
@@ -253,7 +255,7 @@ const AR: StatsDashboardCopy = {
 };
 
 const FR: StatsDashboardCopy = {
-  title: 'Tableau de bord analytique',
+  title: 'Analytique',
   backAria: 'Retour',
   downloadData: 'Télécharger les données',
   csvData: 'Données CSV',
@@ -301,6 +303,7 @@ const FR: StatsDashboardCopy = {
   refreshAria: 'Actualiser les analyses',
   loadingAnalytics: 'Chargement des analyses…',
   readingAndRating: 'Lecture et évaluation',
+  discovery: 'Découverte',
   summaryAria: 'Résumé analytique',
   booksTracked: 'Livres suivis',
   completed: 'Terminés',
