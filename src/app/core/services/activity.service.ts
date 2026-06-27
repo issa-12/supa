@@ -303,6 +303,7 @@ export class ActivityService {
     tag?: string,
     page = 0,
     scope?: 'friends' | 'mine',
+    bookId?: number,
   ): Promise<ActivityPost[]> {
     const session = await this.supabaseService.getCurrentSession();
     const token = session?.access_token;
@@ -310,6 +311,7 @@ export class ActivityService {
     const params = new URLSearchParams({ page: String(page) });
     if (tag) params.set('tag', tag);
     if (scope) params.set('scope', scope);
+    if (bookId) params.set('bookId', String(bookId));
     const res = await fetch(`/api/community/posts?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     });

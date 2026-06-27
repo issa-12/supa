@@ -13,6 +13,7 @@ export interface Comment {
   createdAt: string;
   depth: number;
   parentCommentId: number | null;
+  sentiment: string | null;
   likeCount: number;
   isLikedByMe: boolean;
   replies: Comment[];
@@ -33,7 +34,7 @@ export class CommentService {
 
     const { data: rows, error } = await supabase
       .from('comments')
-      .select('comment_id, post_id, user_id, content, created_at, depth, parent_comment_id')
+      .select('comment_id, post_id, user_id, content, created_at, depth, parent_comment_id, sentiment')
       .eq('post_id', postId)
       .neq('is_deleted', true)
       .order('created_at', { ascending: true });
@@ -92,6 +93,7 @@ export class CommentService {
         createdAt: r['created_at'] as string,
         depth: (r['depth'] as number) ?? 0,
         parentCommentId: (r['parent_comment_id'] as number) ?? null,
+        sentiment: (r['sentiment'] as string) ?? null,
         likeCount: likeCountMap.get(r['comment_id'] as number) ?? 0,
         isLikedByMe: likedCommentIds.has(r['comment_id'] as number),
         replies: [],

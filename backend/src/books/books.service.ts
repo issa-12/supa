@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseService } from '../supabase/supabase.service';
 
 interface GoogleBooksApiResponse {
@@ -93,7 +94,50 @@ export interface BookSearchResult {
 
 @Injectable()
 export class BooksService {
-  constructor(private readonly supabase: SupabaseService) {}
+  private readonly anthropic: Anthropic | null;
+
+  constructor(private readonly supabase: SupabaseService) {
+    const key = process.env.ANTHROPIC_API_KEY;
+    this.anthropic = key ? new Anthropic({ apiKey: key }) : null;
+  }
+
+  private async analyzeSentiment(text: string): Promise<string> {
+    if (!this.anthropic) return 'neutral';
+    try {
+      const response = await this.anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 30,
+        system: 'Classify the sentiment of this book review. Reply with ONLY one word: positive, negative, neutral, or mixed. No punctuation, no explanation.',
+        messages: [{ role: 'user', content: `<<<REVIEW>>>\n${text}\n<<<END_REVIEW>>>` }],
+      });
+      const block = response.content?.[0];
+      if (!block || block.type !== 'text') return 'neutral';
+      const raw = block.text.trim().toLowerCase();
+      return ['positive', 'negative', 'neutral', 'mixed'].includes(raw) ? raw : 'neutral';
+    } catch {
+      return 'neutral';
+    }
+  }
+
+  async saveReview(userId: string, userBookId: number, reviewText: string): Promise<{ reviewSentiment: string }> {
+    const sb = this.supabase.getAdmin();
+    const { error: ownerErr } = await sb
+      .from('user_books')
+      .select('user_book_id')
+      .eq('user_book_id', userBookId)
+      .eq('user_id', userId)
+      .single();
+    if (ownerErr) throw new Error('Not found or not authorized.');
+
+    const reviewSentiment = reviewText.trim() ? await this.analyzeSentiment(reviewText.trim()) : 'neutral';
+    const { error } = await sb
+      .from('user_books')
+      .update({ review_text: reviewText.trim(), review_sentiment: reviewSentiment, updated_at: new Date().toISOString() })
+      .eq('user_book_id', userBookId)
+      .eq('user_id', userId);
+    if (error) throw error;
+    return { reviewSentiment };
+  }
 
   async searchGoogleBooks(
     query: string,

@@ -5,7 +5,7 @@ import { CommentService, Comment } from '../../../core/services/comment.service'
 import { LikesService } from '../../../core/services/likes.service';
 import { SupabaseService, RealtimeSubscription } from '../../../core/services/supabase.service';
 import { timeAgo } from '../../../core/util/time-ago';
-import { TranslationService, COMMENTS_COPY, LanguageCode } from '../../../i18n';
+import { TranslationService, COMMENTS_COPY, COMMUNITY_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LikesPopupComponent } from '../../../shared/likes-popup.component';
 import { detectLang } from '../../../core/util/detect-lang';
@@ -47,6 +47,9 @@ import { detectLang } from '../../../core/util/detect-lang';
                       }
                     </span>
                     <time class="meta-time">{{ timeAgo(comment.createdAt, lang) }}</time>
+                    @if (comment.sentiment && comment.sentiment !== 'neutral') {
+                      <span class="sentiment-badge sentiment-badge--{{ comment.sentiment }}">{{ sentimentEmoji(comment.sentiment) }} {{ sentimentLabel(comment.sentiment) }}</span>
+                    }
                     <button class="meta-translate" [class.meta-translate--active]="activeTranslations.has(comment.id)" [disabled]="translatingIds.has(comment.id)" (click)="translateComment(comment)">
                       @if (translatingIds.has(comment.id)) {
                         <span class="spinner-sm"></span>
@@ -82,6 +85,9 @@ import { detectLang } from '../../../core/util/detect-lang';
                             }
                           </span>
                           <time class="meta-time">{{ timeAgo(reply.createdAt, lang) }}</time>
+                          @if (reply.sentiment && reply.sentiment !== 'neutral') {
+                            <span class="sentiment-badge sentiment-badge--{{ reply.sentiment }}">{{ sentimentEmoji(reply.sentiment) }} {{ sentimentLabel(reply.sentiment) }}</span>
+                          }
                           <button class="meta-translate" [class.meta-translate--active]="activeTranslations.has(reply.id)" [disabled]="translatingIds.has(reply.id)" (click)="translateComment(reply)">
                             @if (translatingIds.has(reply.id)) {
                               <span class="spinner-sm"></span>
@@ -113,6 +119,9 @@ import { detectLang } from '../../../core/util/detect-lang';
                                   }
                                 </span>
                                 <time class="meta-time">{{ timeAgo(deep.createdAt, lang) }}</time>
+                                @if (deep.sentiment && deep.sentiment !== 'neutral') {
+                                  <span class="sentiment-badge sentiment-badge--{{ deep.sentiment }}">{{ sentimentEmoji(deep.sentiment) }} {{ sentimentLabel(deep.sentiment) }}</span>
+                                }
                                 <button class="meta-translate" [class.meta-translate--active]="activeTranslations.has(deep.id)" [disabled]="translatingIds.has(deep.id)" (click)="translateComment(deep)">
                                   @if (translatingIds.has(deep.id)) {
                                     <span class="spinner-sm"></span>
@@ -431,6 +440,20 @@ import { detectLang } from '../../../core/util/detect-lang';
       &--active { color: var(--primary); }
       &:disabled { opacity: 0.5; cursor: not-allowed; }
     }
+
+    .sentiment-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: capitalize;
+      &--positive { background: #EDF7F0; color: #2A6644; }
+      &--negative { background: #FEF0EE; color: #A8432A; }
+      &--mixed    { background: rgba(245,158,11,0.10); color: #92400e; }
+    }
   `],
 })
 export class PostCommentsComponent implements OnInit, OnDestroy {
@@ -450,6 +473,21 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return COMMENTS_COPY[this.lang]; }
+
+  sentimentEmoji(s: string | null): string {
+    return ({ positive: '😊', negative: '😞', neutral: '😐', mixed: '🤔' } as Record<string, string>)[s ?? ''] ?? '';
+  }
+
+  sentimentLabel(s: string | null): string {
+    const c = COMMUNITY_COPY[this.lang];
+    switch (s) {
+      case 'positive': return c.sentimentPositive;
+      case 'negative': return c.sentimentNegative;
+      case 'neutral': return c.sentimentNeutral;
+      case 'mixed': return c.sentimentMixed;
+      default: return '';
+    }
+  }
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {

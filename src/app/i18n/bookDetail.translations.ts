@@ -54,6 +54,11 @@ export interface BookDetailCopy {
   cancelEdit: string;
   communityReviews: string;
   communityReviewsSubtitle: string;
+  viewCommunityPosts: string;
+  communityPostsTitle: string;
+  communityPostsSubtitle: string;
+  viewAllPosts: string;
+  noCommunityPosts: string;
   likeReview: string;
   dislikeReview: string;
   confirmRemove: string;
@@ -117,6 +122,11 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     cancelEdit: 'Cancel',
     communityReviews: 'Community Reviews',
     communityReviewsSubtitle: 'What readers are saying',
+    viewCommunityPosts: 'View Community Posts',
+    communityPostsTitle: 'Community Posts',
+    communityPostsSubtitle: 'What readers are discussing',
+    viewAllPosts: 'View all',
+    noCommunityPosts: 'No one has posted about this book yet. Be the first!',
     likeReview: 'Helpful',
     dislikeReview: 'Not helpful',
     confirmRemove: 'Remove this book from your shelf?',
@@ -178,6 +188,11 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     cancelEdit: 'إلغاء',
     communityReviews: 'تقييمات المجتمع',
     communityReviewsSubtitle: 'ماذا يقول القرّاء',
+    viewCommunityPosts: 'عرض منشورات المجتمع',
+    communityPostsTitle: 'منشورات المجتمع',
+    communityPostsSubtitle: 'ما يناقشه القراء',
+    viewAllPosts: 'عرض الكل',
+    noCommunityPosts: 'لم ينشر أحد عن هذا الكتاب بعد. كن الأول!',
     likeReview: 'مفيد',
     dislikeReview: 'غير مفيد',
     confirmRemove: 'إزالة هذا الكتاب من رفك؟',
@@ -239,6 +254,11 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     cancelEdit: 'Annuler',
     communityReviews: 'Avis de la communauté',
     communityReviewsSubtitle: 'Ce que disent les lecteurs',
+    viewCommunityPosts: 'Voir les publications de la communauté',
+    communityPostsTitle: 'Publications de la communauté',
+    communityPostsSubtitle: 'Ce que les lecteurs discutent',
+    viewAllPosts: 'Voir tout',
+    noCommunityPosts: 'Personne n\'a encore publié sur ce livre. Soyez le premier !',
     likeReview: 'Utile',
     dislikeReview: 'Pas utile',
     confirmRemove: 'Supprimer ce livre de votre bibliothèque ?',

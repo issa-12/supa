@@ -21,6 +21,14 @@ interface BookResult {
   coverUrl: string | null;
 }
 
+interface BookFilterResult {
+  googleId: string;
+  title: string;
+  author: string;
+  coverUrl: string | null;
+  dbBookId: number;
+}
+
 interface TrendingTag {
   tag: string;
   count: number;
@@ -86,6 +94,12 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   tagSearchQuery = '';
   private tagSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Book filter (search posts by book)
+  bookFilterQuery = '';
+  bookFilterResults: BookFilterResult[] = [];
+  activeBookFilter: { dbBookId: number; title: string; coverUrl: string | null } | null = null;
+  private bookFilterTimer: ReturnType<typeof setTimeout> | null = null;
+
   likesPopup: { type: 'post' | 'comment'; entityId: number; count: number } | null = null;
 
   openLikesPopup(type: 'post' | 'comment', entityId: number, count: number, event: MouseEvent): void {
@@ -124,6 +138,26 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
 
     const postParam = this.route.snapshot.queryParamMap.get('post');
     this.focusPostId = postParam ? Number(postParam) || null : null;
+
+    const bookIdParam = this.route.snapshot.queryParamMap.get('bookId');
+    if (bookIdParam) {
+      const dbBookId = Number(bookIdParam);
+      if (dbBookId > 0) {
+        const supabase = await this.supabaseService.getClient();
+        const { data: book } = await supabase
+          .from('books')
+          .select('book_id, title, cover_image_url')
+          .eq('book_id', dbBookId)
+          .maybeSingle();
+        if (book) {
+          this.activeBookFilter = {
+            dbBookId,
+            title: (book['title'] as string) ?? '',
+            coverUrl: (book['cover_image_url'] as string) ?? null,
+          };
+        }
+      }
+    }
 
     await Promise.all([this.loadPosts(), this.loadTrendingTags()]);
 
@@ -208,6 +242,7 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
               this.activeTag ?? undefined,
               0,
               scope,
+              this.activeBookFilter?.dbBookId,
             );
       this.posts = fresh;
       this.page = 1;
@@ -238,6 +273,7 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
               this.activeTag ?? undefined,
               this.page,
               scope,
+              this.activeBookFilter?.dbBookId,
             );
 
       this.posts = append ? [...this.posts, ...newPosts] : newPosts;
@@ -417,6 +453,44 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   getPostContent(post: ActivityPost): string {
     if (!this.activeTranslations.has(post.id)) return post.content;
     return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
+  }
+
+  bookFilterLoading = false;
+
+  onBookFilterInput(): void {
+    if (this.bookFilterTimer) clearTimeout(this.bookFilterTimer);
+    const q = this.bookFilterQuery.trim();
+    if (q.length < 2) { this.bookFilterResults = []; return; }
+    this.bookFilterLoading = true;
+    this.bookFilterTimer = setTimeout(() => this.searchCommunityBooks(q), 300);
+  }
+
+  private async searchCommunityBooks(q: string): Promise<void> {
+    try {
+      const session = await this.supabaseService.getCurrentSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const res = await fetch(`/api/community/books?q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      this.bookFilterResults = (await res.json()) as BookFilterResult[];
+    } catch { this.bookFilterResults = []; }
+    finally { this.bookFilterLoading = false; }
+  }
+
+  selectBookFilter(book: BookFilterResult): void {
+    this.bookFilterResults = [];
+    this.bookFilterQuery = '';
+    this.activeBookFilter = { dbBookId: book.dbBookId, title: book.title, coverUrl: book.coverUrl };
+    void this.loadPosts();
+  }
+
+  clearBookFilter(): void {
+    this.activeBookFilter = null;
+    this.bookFilterQuery = '';
+    this.bookFilterResults = [];
+    void this.loadPosts();
   }
 
   async translatePost(post: ActivityPost): Promise<void> {

@@ -22,6 +22,7 @@ export class CommunityController {
     @Query('page') page: string,
     @Query('trending') trending: string,
     @Query('scope') scope: string,
+    @Query('bookId') bookId: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -31,6 +32,8 @@ export class CommunityController {
     const parsedPage = Number.parseInt(page ?? '0', 10);
     const safePage = Number.isFinite(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
     const safeScope = scope === 'friends' || scope === 'mine' ? scope : undefined;
+    const safeBookId = bookId ? Number.parseInt(bookId, 10) : undefined;
+    const validBookId = safeBookId && Number.isInteger(safeBookId) && safeBookId > 0 ? safeBookId : undefined;
 
     try {
       const posts =
@@ -42,11 +45,22 @@ export class CommunityController {
               safePage,
               20,
               safeScope,
+              validBookId,
             );
       return res.json(posts);
     } catch (err) {
       console.error('[Community] getPosts error:', err);
       return res.status(500).json({ message: 'Failed to load posts.' });
+    }
+  }
+
+  @Get('books')
+  async getBooksWithPosts(@Query('q') q: string, @Res() res: Response) {
+    try {
+      const books = await this.communityService.getBooksWithPosts(q || undefined);
+      return res.json(books);
+    } catch {
+      return res.json([]);
     }
   }
 

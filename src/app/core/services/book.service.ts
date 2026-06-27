@@ -63,6 +63,7 @@ export interface CommunityReview {
   avatarUrl: string | null;
   rating: number | null;
   reviewText: string;
+  sentiment: string | null;
   likeCount: number;
   dislikeCount: number;
   myReaction: 'like' | 'dislike' | null;
@@ -740,20 +741,21 @@ export class BookService {
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
-  saveReview(userBookId: number, reviewText: string): Observable<UserBook> {
+  saveReview(userBookId: number, reviewText: string): Observable<{ reviewSentiment: string }> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
-          .from('user_books')
-          .update({ review_text: reviewText, updated_at: new Date().toISOString() })
-          .eq('user_book_id', userBookId)
-          .select('*, book:books(*), status:reading_statuses(*)')
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data?.length) throw new Error('Failed to save review');
-            return this.mapUserBook(data[0]);
-          })
-      )
+      (async () => {
+        const session = await this.supabaseService.getCurrentSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('Not authenticated');
+        const res = await fetch('/api/books/review', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ userBookId, reviewText }),
+        });
+        const body = (await res.json().catch(() => ({}))) as { reviewSentiment?: string; message?: string };
+        if (!res.ok) throw new Error(body.message ?? 'Failed to save review');
+        return { reviewSentiment: body.reviewSentiment ?? 'neutral' };
+      })()
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
@@ -762,7 +764,7 @@ export class BookService {
 
     const { data: reviews } = await supabase
       .from('user_books')
-      .select('user_book_id, user_id, rating, review_text')
+      .select('user_book_id, user_id, rating, review_text, review_sentiment')
       .eq('book_id', bookId)
       .not('review_text', 'is', null);
 
@@ -793,6 +795,7 @@ export class BookService {
           avatarUrl: (u?.['profile_picture_url'] as string) ?? null,
           rating: r['rating'] as number | null,
           reviewText: r['review_text'] as string,
+          sentiment: (r['review_sentiment'] as string) ?? null,
           likeCount: rowReactions.filter((l) => l['is_like'] === true).length,
           dislikeCount: rowReactions.filter((l) => l['is_like'] === false).length,
           myReaction: mine ? ((mine['is_like'] ? 'like' : 'dislike') as 'like' | 'dislike') : null,

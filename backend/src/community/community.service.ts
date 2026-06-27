@@ -179,6 +179,7 @@ export class CommunityService {
     page = 0,
     limit = 20,
     scope?: 'friends' | 'mine',
+    bookId?: number,
   ) {
     const sb = this.supabase.getAdmin();
     const offset = page * limit;
@@ -212,6 +213,10 @@ export class CommunityService {
     if (safeTag) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       query = (query as any).contains('tags', [safeTag]);
+    }
+
+    if (bookId && Number.isInteger(bookId) && bookId > 0) {
+      query = query.eq('book_id', bookId);
     }
 
     if (blocked.length) {
@@ -263,6 +268,37 @@ export class CommunityService {
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([tag, count]) => ({ tag, count }));
+  }
+
+  async getBooksWithPosts(q?: string) {
+    const sb = this.supabase.getAdmin();
+    const { data: posts } = await sb
+      .from('posts')
+      .select('book_id')
+      .not('is_deleted', 'is', true);
+
+    const bookIds = [...new Set((posts ?? []).map((p) => p['book_id'] as number).filter(Boolean))];
+    if (!bookIds.length) return [];
+
+    let query = sb
+      .from('books')
+      .select('book_id, google_books_id, title, author_name, cover_image_url')
+      .in('book_id', bookIds)
+      .order('title', { ascending: true });
+
+    if (q && q.trim().length >= 2) {
+      query = query.ilike('title', `%${q.trim()}%`);
+    }
+
+    const { data: books } = await query;
+
+    return (books ?? []).map((b) => ({
+      dbBookId: b['book_id'] as number,
+      googleId: (b['google_books_id'] as string) ?? '',
+      title: (b['title'] as string) ?? '',
+      author: (b['author_name'] as string) ?? '',
+      coverUrl: (b['cover_image_url'] as string) ?? null,
+    }));
   }
 
   async moderateAndAnalyze(content: string): Promise<ModerationResult> {
@@ -354,7 +390,7 @@ Default to "approved". Only choose flagged or rejected when the text clearly mat
     parentCommentId: number | null,
   ) {
     const trimmed = content.trim();
-    const { status, reason } = await this.moderateAndAnalyze(trimmed);
+    const { status, reason, sentiment } = await this.moderateAndAnalyze(trimmed);
     if (status === 'rejected' || status === 'flagged') {
       const err = new Error(reason ?? 'Comment contains inappropriate content and could not be posted.');
       (err as any).statusCode = 422;
@@ -387,8 +423,8 @@ Default to "approved". Only choose flagged or rejected when the text clearly mat
 
     const { data, error } = await sb
       .from('comments')
-      .insert({ post_id: postId, user_id: userId, content: trimmed, parent_comment_id: parentCommentId, depth, is_deleted: false })
-      .select('comment_id, post_id, user_id, content, created_at, depth, parent_comment_id')
+      .insert({ post_id: postId, user_id: userId, content: trimmed, parent_comment_id: parentCommentId, depth, sentiment, is_deleted: false })
+      .select('comment_id, post_id, user_id, content, created_at, depth, parent_comment_id, sentiment')
       .single();
 
     if (error) throw error;
@@ -424,6 +460,7 @@ Default to "approved". Only choose flagged or rejected when the text clearly mat
       createdAt: data['created_at'] as string,
       depth: (data['depth'] as number) ?? 0,
       parentCommentId: (data['parent_comment_id'] as number) ?? null,
+      sentiment: (data['sentiment'] as string) ?? null,
       likeCount: 0,
       isLikedByMe: false,
       replies: [] as unknown[],

@@ -536,6 +536,127 @@
   color: var(--primary);
 }
 
+// ── Book filter ───────────────────────────────────────────────────
+.book-filter-search {
+  display: flex;
+  align-items: center;
+  gap: clamp(5px, 0.56vw, 8px);
+  padding: clamp(6px, 0.63vw, 9px) clamp(8px, 0.83vw, 12px);
+  border-radius: clamp(7px, 0.7vw, 10px);
+  border: 0.5px solid rgba(100, 70, 50, 0.15);
+  background: #FAFAF7;
+  min-width: 0;
+  &:focus-within { border-color: var(--primary); }
+}
+
+.book-filter-results {
+  margin-top: clamp(4px, 0.42vw, 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.book-filter-result-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.63vw, 9px);
+  padding: clamp(5px, 0.52vw, 7px) clamp(6px, 0.63vw, 9px);
+  border: none;
+  background: none;
+  border-radius: clamp(6px, 0.6vw, 8px);
+  cursor: pointer;
+  text-align: start;
+  width: 100%;
+  &:hover { background: var(--primary-soft); }
+}
+
+.book-filter-result-cover {
+  width: 28px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  &--empty { background: var(--muted); }
+}
+
+.book-filter-result-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.book-filter-result-title {
+  font-size: clamp(11px, 0.9vw, 13px);
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-filter-result-author {
+  font-size: clamp(10px, 0.8vw, 12px);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-filter-empty {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  padding: 8px 4px 0;
+  margin: 0;
+}
+
+.book-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.63vw, 9px);
+  padding: clamp(5px, 0.52vw, 7px) clamp(8px, 0.83vw, 12px);
+  background: var(--primary-soft);
+  border: 1px solid rgba(217, 119, 87, 0.3);
+  border-radius: clamp(6px, 0.6vw, 8px);
+  min-width: 0;
+}
+
+.book-filter-chip-cover {
+  width: 22px;
+  height: 33px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.book-filter-chip-title {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(11px, 0.9vw, 13px);
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-filter-chip-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  color: var(--primary);
+  opacity: 0.7;
+  flex-shrink: 0;
+  &:hover { opacity: 1; }
+}
+
+.active-book-chip {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
 .chip-clear {
   background: none;
   border: none;

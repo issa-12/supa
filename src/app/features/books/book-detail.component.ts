@@ -8,8 +8,9 @@ import { FriendshipService, FriendUser } from '../../core/services/friendship.se
 import { RecommendationService } from '../../core/services/recommendation.service';
 import { LikesService } from '../../core/services/likes.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
-import { TranslationService, BOOK_DETAIL_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
+import { TranslationService, BOOK_DETAIL_COPY, COMMUNITY_COPY, LanguageCode, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { timeAgo } from '../../core/util/time-ago';
 import { TopNavComponent } from '../home/components/top-nav.component';
 
 interface RatingBucket {
@@ -111,9 +112,20 @@ export class BookDetailComponent implements OnInit, OnDestroy {
 
   communityReviews: CommunityReview[] = [];
 
+  bookPostPreview: {
+    userAvatar: string | null;
+    userName: string;
+    userInitial: string;
+    content: string;
+    likeCount: number;
+    createdAt: string;
+  } | null = null;
+  bookPostPreviewLoaded = false;
+
   readonly statuses = SHELF_STATUSES;
   private userId: string | null = null;
 
+  readonly timeAgo = timeAgo;
   private realtimeSubs: RealtimeSubscription[] = [];
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
@@ -157,6 +169,7 @@ export class BookDetailComponent implements OnInit, OnDestroy {
 
       if (this.book.dbBookId) {
         this.loadCommunityReviews(this.book.dbBookId);
+        void this.loadBookPostPreview(this.book.dbBookId);
         void this.setupRealtime();
       }
     } catch {
@@ -444,11 +457,11 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     if (!this.userBook || this.reviewSaving) return;
     this.reviewSaving = true;
     try {
-      this.userBook = await firstValueFrom(
+      await firstValueFrom(
         this.bookService.saveReview(this.userBook.id, this.reviewText.trim()),
       );
-      // Switch to the "posted" card view.
-      this.savedReview = this.userBook?.reviewText ?? this.reviewText.trim();
+      this.savedReview = this.reviewText.trim();
+      if (this.userBook) this.userBook.reviewText = this.savedReview;
       this.editingReview = false;
       this.loadCommunityReviews(this.userBook!.bookId);
     } catch (err) {
@@ -556,8 +569,57 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async loadBookPostPreview(bookId: number): Promise<void> {
+    try {
+      const session = await this.supabaseService.getCurrentSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const res = await fetch(`/api/community/posts?bookId=${bookId}&page=0`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const posts = (await res.json()) as Array<{
+        userAvatar?: string | null;
+        userName?: string;
+        content?: string;
+        likeCount?: number;
+        createdAt?: string;
+      }>;
+      const first = posts[0] ?? null;
+      this.bookPostPreview = first
+        ? {
+            userAvatar: first.userAvatar ?? null,
+            userName: first.userName ?? 'Reader',
+            userInitial: (first.userName ?? 'R')[0].toUpperCase(),
+            content: first.content ?? '',
+            likeCount: first.likeCount ?? 0,
+            createdAt: first.createdAt ?? '',
+          }
+        : null;
+    } catch {
+      // non-critical
+    } finally {
+      this.bookPostPreviewLoaded = true;
+    }
+  }
+
   starsRange(): number[] {
     return [1, 2, 3, 4, 5];
+  }
+
+  sentimentEmoji(s: string | null): string {
+    return ({ positive: '😊', negative: '😞', neutral: '😐', mixed: '🤔' } as Record<string, string>)[s ?? ''] ?? '';
+  }
+
+  sentimentLabel(s: string | null): string {
+    const c = COMMUNITY_COPY[this.lang];
+    switch (s) {
+      case 'positive': return c.sentimentPositive;
+      case 'negative': return c.sentimentNegative;
+      case 'neutral': return c.sentimentNeutral;
+      case 'mixed': return c.sentimentMixed;
+      default: return '';
+    }
   }
 
   get publishYear(): string {

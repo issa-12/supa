@@ -98,7 +98,9 @@
       "Bash(grep -v \"//\\\\|inset-inline\\\\|'left\\\\|\\\\\"left\\\\|chevron-left\\\\|arrow-left\\\\|page-header-left\\\\|align.*left\\\\|text.*left\\\\|margin.*left\\\\|padding.*left\")",
       "Bash(grep -v \"//\\\\|inset-inline\\\\|'right\\\\|\\\\\"right\\\\|chevron-right\\\\|arrow-right\\\\|align.*right\\\\|text.*right\\\\|margin.*right\\\\|padding.*right\\\\|border.*right\\\\|All rights\\\\|copy\\\\.\")",
       "Bash(grep -v \"//\\\\|spec\\\\|confirmDialog\")",
-      "Bash(grep -v \"//\\\\|spec\\\\|interface\\\\|type\\\\b\\\\|'\\\\w*genre\\\\|import\")"
+      "Bash(grep -v \"//\\\\|spec\\\\|interface\\\\|type\\\\b\\\\|'\\\\w*genre\\\\|import\")",
+      "Read(//c/Users/Administrator/Downloads/trans/**)",
+      "Bash(python -c ' *)"
     ]
   }
 }

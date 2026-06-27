@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   Param,
+  Patch,
   Post,
   Query,
   UnauthorizedException,
@@ -70,6 +71,18 @@ export class BooksController {
       language,
       sort,
     });
+  }
+
+  @Patch('review')
+  async saveReview(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { userBookId?: number; reviewText?: string },
+  ) {
+    if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException('Missing authorization token.');
+    const userId = await this.supabaseService.getVerifiedUserId(authHeader.slice(7));
+    if (!userId) throw new UnauthorizedException('Invalid or expired session.');
+    if (!body?.userBookId) throw new Error('userBookId is required.');
+    return this.booksService.saveReview(userId, body.userBookId, body.reviewText ?? '');
   }
 
   @Get(':googleId')

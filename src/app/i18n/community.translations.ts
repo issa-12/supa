@@ -38,6 +38,11 @@ export interface CommunityCopy {
   translateBtn: string;
   showOriginalBtn: string;
   translating: string;
+  filterByBookTitle: string;
+  filterByBookPlaceholder: string;
+  clearBookFilter: string;
+  searching: string;
+  noBooksFound: string;
 }
 
 export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
@@ -79,6 +84,11 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     translateBtn: 'Translate',
     showOriginalBtn: 'Show original',
     translating: 'Translating…',
+    filterByBookTitle: 'Filter by Book',
+    filterByBookPlaceholder: 'Search a book…',
+    clearBookFilter: 'Clear book filter',
+    searching: 'Searching…',
+    noBooksFound: 'No books found.',
   },
   ar: {
     title: 'المجتمع',
@@ -118,6 +128,11 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     translateBtn: 'ترجمة',
     showOriginalBtn: 'عرض الأصل',
     translating: 'جاري الترجمة…',
+    filterByBookTitle: 'تصفية حسب الكتاب',
+    filterByBookPlaceholder: 'ابحث عن كتاب…',
+    clearBookFilter: 'مسح فلتر الكتاب',
+    searching: 'جاري البحث…',
+    noBooksFound: 'لم يتم العثور على كتب.',
   },
   fr: {
     title: 'Communauté',
@@ -157,5 +172,10 @@ export const COMMUNITY_COPY: Record<LanguageCode, CommunityCopy> = {
     translateBtn: 'Traduire',
     showOriginalBtn: 'Voir l\'original',
     translating: 'Traduction…',
+    filterByBookTitle: 'Filtrer par livre',
+    filterByBookPlaceholder: 'Rechercher un livre…',
+    clearBookFilter: 'Supprimer le filtre livre',
+    searching: 'Recherche…',
+    noBooksFound: 'Aucun livre trouvé.',
   },
 };

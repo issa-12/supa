@@ -118,6 +118,16 @@
               </div>
             }
 
+            <!-- View community posts -->
+            @if (book.dbBookId) {
+              <a class="recommend-btn" [routerLink]="['/community']" [queryParams]="{ bookId: book.dbBookId }">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                {{ copy.viewCommunityPosts }}
+              </a>
+            }
+
             <!-- Recommend to friend -->
             <div class="recommend-wrap">
               <button class="recommend-btn" (click)="openRecommendPicker()">
@@ -292,6 +302,57 @@
         }
 
         <!-- Reviews section: own review pinned on top, then community -->
+        <!-- Community posts preview -->
+        @if (book.dbBookId && bookPostPreviewLoaded) {
+          <div class="card community-preview-card">
+            <div class="card-header community-preview-header">
+              <div>
+                <div class="card-title">{{ copy.communityPostsTitle }}</div>
+                <div class="card-sub">{{ copy.communityPostsSubtitle }}</div>
+              </div>
+              <a class="community-posts-link" [routerLink]="['/community']" [queryParams]="{ bookId: book.dbBookId }">
+                {{ copy.viewAllPosts }}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </a>
+            </div>
+            <div class="card-body community-preview-body">
+              @if (bookPostPreview) {
+                <div class="post-preview">
+                  <div class="post-preview-avatar">
+                    @if (bookPostPreview.userAvatar) {
+                      <img [src]="bookPostPreview.userAvatar" [alt]="bookPostPreview.userName" loading="lazy" (error)="bookPostPreview.userAvatar = null" />
+                    } @else {
+                      <span>{{ bookPostPreview.userInitial }}</span>
+                    }
+                  </div>
+                  <div class="post-preview-body">
+                    <div class="post-preview-meta">
+                      <span class="post-preview-name">{{ bookPostPreview.userName }}</span>
+                      <span class="post-preview-time">{{ timeAgo(bookPostPreview.createdAt, lang) }}</span>
+                    </div>
+                    <p class="post-preview-content">{{ bookPostPreview.content }}</p>
+                    <div class="post-preview-likes">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                      {{ bookPostPreview.likeCount }}
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div class="community-preview-empty">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <p>{{ copy.noCommunityPosts }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         @if (userBook || communityReviews.length > 0) {
           <div class="card">
             <div class="card-header">
@@ -392,6 +453,9 @@
                     <div class="r-meta">
                       <div class="r-name-row">
                         <span class="r-name">{{ review.userName }}</span>
+                        @if (review.sentiment) {
+                          <span class="sentiment-badge sentiment-badge--{{ review.sentiment }}">{{ sentimentEmoji(review.sentiment) }} {{ sentimentLabel(review.sentiment) }}</span>
+                        }
                       </div>
                       @if (review.rating) {
                         <div class="r-stars-row">
