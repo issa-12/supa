@@ -306,7 +306,6 @@ export class ShelfComponent implements OnInit {
       const { data: { user } } = await supabase.auth.getUser();
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user!.id));
       this.buildSections(allBooks);
-      this.resetFilterIfNoRecs();
     } catch (err) {
       console.error(err);
     } finally {
@@ -324,19 +323,10 @@ export class ShelfComponent implements OnInit {
         section.books = section.books.filter((b) => b.id !== book.id);
       }
       this.sections = this.sections.filter((s) => s.books.length > 0);
-      this.resetFilterIfNoRecs();
     } catch (err) {
       console.error(err);
     } finally {
       this.savingId = null;
-    }
-  }
-
-  // After acting on the last recommendation the "Recommendations" pill is gone;
-  // fall back to "All" so the view doesn't get stuck on an empty filter.
-  private resetFilterIfNoRecs(): void {
-    if (this.activeFilter === 'recommended_by_friend' && !this.hasRecommendations) {
-      this.activeFilter = 'all';
     }
   }
 

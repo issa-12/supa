@@ -41,6 +41,8 @@ export interface ShelfCopy {
   failedToLoadShelfMsg: string;
   friendRecommendationsLabel: string;
   recommendationsFilter: string;
+  noRecommendationsTitle: string;
+  noRecommendationsSub: string;
   recommendedByPrefix: string;
   acceptBtn: string;
   declineBtn: string;
@@ -106,6 +108,8 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     failedToLoadShelfMsg: 'Failed to load shelf',
     friendRecommendationsLabel: 'Friends Recommendations',
     recommendationsFilter: 'Recommendations',
+    noRecommendationsTitle: 'No recommendations yet',
+    noRecommendationsSub: 'When a friend recommends a book, it will appear here.',
     recommendedByPrefix: 'Recommended by',
     acceptBtn: 'Accept',
     declineBtn: 'Decline',
@@ -169,6 +173,8 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     failedToLoadShelfMsg: 'فشل تحميل الرف',
     friendRecommendationsLabel: 'توصيات الأصدقاء',
     recommendationsFilter: 'التوصيات',
+    noRecommendationsTitle: 'لا توجد توصيات بعد',
+    noRecommendationsSub: 'عندما يوصي صديق بكتاب، سيظهر هنا.',
     recommendedByPrefix: 'أوصى به',
     acceptBtn: 'قبول',
     declineBtn: 'رفض',
@@ -208,8 +214,8 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     wantToReadFilter: 'À lire',
     filterRead: 'Lus',
     readFilter: 'Lus',
-    sortDateAdded: 'Date d’ajout',
-    dateAddedSort: 'Date d’ajout',
+    sortDateAdded: "Date d'ajout",
+    dateAddedSort: "Date d'ajout",
     sortTitleAZ: 'Titre A–Z',
     titleAZSort: 'Titre A–Z',
     sortRating: 'Note',
@@ -224,14 +230,16 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     progressTotalPlaceholder: 'Total',
     confirmRemove: 'Supprimer "{{ title }}" de votre bibliothèque ?',
     thisBook: 'ce livre',
-    ariaGoHome: 'Aller à l’accueil',
+    ariaGoHome: "Aller à l'accueil",
     ariaFindBooks: 'Trouver des livres',
     currentlyReadingLabel: 'En cours de lecture',
     wantToReadLabel: 'À lire',
     alreadyReadLabel: 'Déjà lu',
     failedToLoadShelfMsg: 'Impossible de charger la bibliothèque',
-    friendRecommendationsLabel: 'Recommandations d’amis',
+    friendRecommendationsLabel: "Recommandations d'amis",
     recommendationsFilter: 'Recommandations',
+    noRecommendationsTitle: "Aucune recommandation pour l'instant",
+    noRecommendationsSub: "Quand un ami recommande un livre, il apparaîtra ici.",
     recommendedByPrefix: 'Recommandé par',
     acceptBtn: 'Accepter',
     declineBtn: 'Refuser',
@@ -247,7 +255,7 @@ export const SHELF_COPY: Record<LanguageCode, ShelfCopy> = {
     pendingRecommendationsOther: '{count} recommandations en attente',
     fromPrefix: 'De',
     friendFallback: 'un ami',
-    andOthers: 'et d’autres',
+    andOthers: "et d'autres",
     viewAllBtn: 'Voir tout',
     dismissBtn: 'Ignorer',
     sectionCount: '{count} livres',

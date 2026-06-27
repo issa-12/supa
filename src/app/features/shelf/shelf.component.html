@@ -30,11 +30,12 @@
     @if (!isLoading && sections.length > 0) {
       <nav class="shelf-tabs">
         <button class="shelf-tab" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">{{ copy.allFilter }}</button>
-        @if (hasRecommendations) {
-          <button class="shelf-tab" [class.active]="activeFilter === 'recommended_by_friend'" (click)="activeFilter = 'recommended_by_friend'">
-            {{ copy.recommendationsFilter }} <span class="tab-count">{{ tabCount('recommended_by_friend') }}</span>
-          </button>
-        }
+        <button class="shelf-tab" [class.active]="activeFilter === 'recommended_by_friend'" (click)="activeFilter = 'recommended_by_friend'">
+          {{ copy.recommendationsFilter }}
+          @if (hasRecommendations) {
+            <span class="tab-count">{{ tabCount('recommended_by_friend') }}</span>
+          }
+        </button>
         @if (tabCount('currently_reading') > 0) {
           <button class="shelf-tab" [class.active]="activeFilter === 'currently_reading'" (click)="activeFilter = 'currently_reading'">
             {{ copy.readingFilter }} <span class="tab-count">{{ tabCount('currently_reading') }}</span>
@@ -122,6 +123,15 @@
             <button class="rec-view" (click)="activeFilter = 'recommended_by_friend'">{{ copy.viewAllBtn }}</button>
             <button class="rec-dismiss" (click)="dismissRecBanner()">{{ copy.dismissBtn }}</button>
           </div>
+        </div>
+      }
+
+      <!-- Recommendations empty state -->
+      @if (activeFilter === 'recommended_by_friend' && !hasRecommendations) {
+        <div class="shelf-empty-state">
+          <iconify-icon icon="lucide:gift" style="font-size:40px;color:var(--muted-foreground);opacity:0.4"></iconify-icon>
+          <p class="shelf-empty-title">{{ copy.noRecommendationsTitle }}</p>
+          <p class="shelf-empty-sub">{{ copy.noRecommendationsSub }}</p>
         </div>
       }
 
