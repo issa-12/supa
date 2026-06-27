@@ -13,7 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Chart, ChartConfiguration } from 'chart.js/auto';
+import { Chart, ChartConfiguration, ScriptableContext } from 'chart.js/auto';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -21,6 +21,18 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { LanguageCode, STATS_DASHBOARD_COPY, TranslationService, GenreNamePipe } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+// Unified chart palette — assigned by meaning, mirroring the SCSS token system.
+const BRAND = '#c1553a';
+const GREEN = '#2a6644';
+const GOLD = '#c8a84b';
+const PURPLE = '#534ab7';
+
+// Shared axis styling so every chart (line + both bars) renders with the same
+// faint, warm gridlines and muted tick labels — consistent across all filters.
+const CHART_FONT = { family: 'Inter, system-ui, sans-serif', size: 11 };
+const TICK_STYLE = { color: '#9e8e82', font: CHART_FONT };
+const GRID_STYLE = { color: 'rgba(100, 70, 50, 0.07)' };
 
 type StatsScope = 'personal' | 'friends' | 'community';
 type StatsStatus = 'all' | 'read' | 'currently_reading' | 'want_to_read';
@@ -586,6 +598,20 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     } satisfies ChartConfiguration['options'];
 
+    // Numeric axis: faint horizontal gridlines, no axis border, muted ticks.
+    const valueAxis = {
+      beginAtZero: true,
+      ticks: { precision: 0, ...TICK_STYLE },
+      grid: GRID_STYLE,
+      border: { display: false },
+    };
+    // Category axis: never draws gridlines, no axis border, muted ticks.
+    const categoryAxis = {
+      ticks: TICK_STYLE,
+      grid: { display: false },
+      border: { display: false },
+    };
+
     this.charts.push(
       new Chart(this.timelineCanvas.nativeElement, {
         type: 'line',
@@ -595,20 +621,28 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
             {
               label: this.copy.chartBooksCompleted,
               data: this.dashboard.completionTimeline.map((bucket) => bucket.count),
-              borderColor: '#e9783f',
-              backgroundColor: 'rgba(233, 120, 63, 0.18)',
+              borderColor: BRAND,
+              backgroundColor: (context: ScriptableContext<'line'>) => {
+                const { ctx, chartArea } = context.chart;
+                if (!chartArea) return 'rgba(193, 85, 58, 0.12)';
+                const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                gradient.addColorStop(0, 'rgba(193, 85, 58, 0.25)');
+                gradient.addColorStop(1, 'rgba(193, 85, 58, 0.02)');
+                return gradient;
+              },
               fill: true,
               tension: 0.32,
               pointRadius: 3,
               pointHoverRadius: 6,
+              pointBackgroundColor: BRAND,
             },
           ],
         },
         options: {
           ...commonOptions,
           scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 } },
-            x: { grid: { display: false } },
+            y: valueAxis,
+            x: categoryAxis,
           },
         },
       }),
@@ -619,7 +653,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
           datasets: [
             {
               data: this.dashboard.statusDistribution.map((bucket) => bucket.count),
-              backgroundColor: ['#e9783f', '#4f8a8b', '#d8a657', '#8b7aa8'],
+              backgroundColor: [BRAND, GREEN, GOLD, PURPLE],
               borderWidth: 0,
               hoverOffset: 8,
             },
@@ -638,7 +672,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
             {
               label: this.copy.chartRatings,
               data: this.dashboard.ratingDistribution.map((bucket) => bucket.count),
-              backgroundColor: '#d8a657',
+              backgroundColor: GOLD,
               borderRadius: 8,
             },
           ],
@@ -646,8 +680,11 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
         options: {
           ...commonOptions,
           scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 } },
-            x: { grid: { display: false }, title: { display: true, text: this.copy.chartStars } },
+            y: valueAxis,
+            x: {
+              ...categoryAxis,
+              title: { display: true, text: this.copy.chartStars, color: TICK_STYLE.color, font: CHART_FONT },
+            },
           },
         },
       }),
@@ -662,7 +699,7 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
             {
               label: this.copy.chartShelfEntries,
               data: this.dashboard.topBooks.map((book) => book.count),
-              backgroundColor: '#4f8a8b',
+              backgroundColor: BRAND,
               borderRadius: 7,
             },
           ],
@@ -671,8 +708,8 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
           ...commonOptions,
           indexAxis: 'y',
           scales: {
-            x: { beginAtZero: true, ticks: { precision: 0 } },
-            y: { grid: { display: false } },
+            x: valueAxis,
+            y: categoryAxis,
           },
         },
       }));
