@@ -2,6 +2,7 @@ import { LanguageCode } from './language.model';
 
 export interface BookSearchCopy {
   title: string;
+  subtitle: string;
   placeholder: string;
   searchButton: string;
   noResults: string;
@@ -22,6 +23,7 @@ export interface BookSearchCopy {
   alreadyReadStatusLabel: string;
   goHomeAria: string;
   filtersAria: string;
+  filtersTitle: string;
   filterBy: string;
   author: string;
   anyAuthor: string;
@@ -40,6 +42,8 @@ export interface BookSearchCopy {
   order: string;
   relevance: string;
   newest: string;
+  sortTitleAZ: string;
+  suggestionsLabel: string;
   noFilteredResults: string;
   noFilteredResultsHint: string;
   searchFailed: string;
@@ -50,12 +54,13 @@ export interface BookSearchCopy {
 export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
   en: {
     title: 'Find Books',
+    subtitle: 'Search millions of books and add them to your shelf',
     placeholder: 'Search by title, author, or ISBN…',
     searchButton: 'Search',
     noResults: 'No books found for "{{ query }}"',
     noResultsHint: 'Try a different title, author, or ISBN.',
-    idleTitle: 'Search millions of books',
-    idleHint: 'Find your next favourite read and add it to your shelf.',
+    idleTitle: 'Start your search',
+    idleHint: 'Type a title, author, or ISBN above to explore millions of books.',
     resultsCount: '{{ n }} results',
     addButton: 'Add',
     addingLabel: 'Adding…',
@@ -70,6 +75,7 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     alreadyReadStatusLabel: 'Already Read',
     goHomeAria: 'Go home',
     filtersAria: 'Search filters and sorting',
+    filtersTitle: 'Filters',
     filterBy: 'Filter by',
     author: 'Author',
     anyAuthor: 'Any author',
@@ -88,6 +94,8 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     order: 'Order',
     relevance: 'Relevance',
     newest: 'Newest',
+    sortTitleAZ: 'Title A–Z',
+    suggestionsLabel: 'Try searching for',
     noFilteredResults: 'No books match your search and filters.',
     noFilteredResultsHint: 'Try another search or clear one of the filters.',
     searchFailed: 'Search failed. Please try again.',
@@ -96,12 +104,13 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
   },
   ar: {
     title: 'ابحث عن الكتب',
+    subtitle: 'ابحث في ملايين الكتب وأضفها إلى رفك',
     placeholder: 'ابحث حسب العنوان أو المؤلف أو رقم ISBN…',
     searchButton: 'بحث',
     noResults: 'لم يتم العثور على كتب لـ "{{ query }}"',
     noResultsHint: 'جرب عنواناً أو مؤلفاً أو رقم ISBN مختلفاً.',
-    idleTitle: 'ابحث في ملايين الكتب',
-    idleHint: 'ابحث عن قراءتك التالية المفضلة وأضفها إلى رفك.',
+    idleTitle: 'ابدأ بحثك',
+    idleHint: 'اكتب عنواناً أو مؤلفاً أو رقم ISBN أعلاه لاستكشاف ملايين الكتب.',
     resultsCount: '{{ n }} نتيجة',
     addButton: 'إضافة',
     addingLabel: 'جاري الإضافة…',
@@ -116,6 +125,7 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     alreadyReadStatusLabel: 'تمت قراءته بالفعل',
     goHomeAria: 'العودة إلى الصفحة الرئيسية',
     filtersAria: 'مرشحات البحث والترتيب',
+    filtersTitle: 'المرشحات',
     filterBy: 'تصفية حسب',
     author: 'المؤلف',
     anyAuthor: 'أي مؤلف',
@@ -134,6 +144,8 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     order: 'الترتيب',
     relevance: 'الصلة',
     newest: 'الأحدث',
+    sortTitleAZ: 'العنوان أ–ي',
+    suggestionsLabel: 'جرّب البحث عن',
     noFilteredResults: 'لا توجد كتب تطابق البحث والمرشحات.',
     noFilteredResultsHint: 'جرّب بحثاً آخر أو امسح أحد المرشحات.',
     searchFailed: 'فشل البحث. حاول مرة أخرى.',
@@ -142,12 +154,13 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
   },
   fr: {
     title: 'Trouver des livres',
+    subtitle: 'Cherchez parmi des millions de livres et ajoutez-les à votre bibliothèque',
     placeholder: 'Recherchez par titre, auteur ou ISBN…',
     searchButton: 'Rechercher',
     noResults: 'Aucun livre trouvé pour "{{ query }}"',
     noResultsHint: 'Essayez un titre, un auteur ou un ISBN différent.',
-    idleTitle: 'Cherchez parmi des millions de livres',
-    idleHint: 'Trouvez votre prochaine lecture préférée et ajoutez-la à votre bibliothèque.',
+    idleTitle: 'Lancez votre recherche',
+    idleHint: 'Saisissez un titre, un auteur ou un ISBN ci-dessus pour explorer des millions de livres.',
     resultsCount: '{{ n }} résultats',
     addButton: 'Ajouter',
     addingLabel: 'Ajout en cours…',
@@ -162,6 +175,7 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     alreadyReadStatusLabel: 'Déjà lu',
     goHomeAria: 'Retour à l’accueil',
     filtersAria: 'Filtres et tri de la recherche',
+    filtersTitle: 'Filtres',
     filterBy: 'Filtrer par',
     author: 'Auteur',
     anyAuthor: 'Tous les auteurs',
@@ -180,6 +194,8 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     order: 'Ordre',
     relevance: 'Pertinence',
     newest: 'Plus récents',
+    sortTitleAZ: 'Titre A–Z',
+    suggestionsLabel: 'Essayez de rechercher',
     noFilteredResults: 'Aucun livre ne correspond à votre recherche et aux filtres.',
     noFilteredResultsHint: 'Essayez une autre recherche ou effacez un filtre.',
     searchFailed: 'La recherche a échoué. Réessayez.',
