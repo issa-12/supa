@@ -1,27 +1,74 @@
 <div class="search-viewport" (click)="closeDropdown()">
-  <app-top-nav [hideSearch]="true" />
+  <app-top-nav />
 
-  <header class="search-header">
-    <div class="header-content">
-      <a class="back-btn" routerLink="/home" [attr.aria-label]="copy.goHomeAria">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-      </a>
-      <h1 class="header-title">{{ copy.title }}</h1>
-      <div class="header-spacer"></div>
+  @if (addError) {
+    <div class="toast toast--error">{{ addError }}</div>
+  }
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">{{ copy.title }}</h1>
+      <p class="page-subtitle">{{ copy.subtitle }}</p>
     </div>
-  </header>
+  </div>
 
-  <div class="search-bar-wrapper">
-    <form class="search-form" (ngSubmit)="onSubmit()" (click)="$event.stopPropagation()">
-      <div class="search-input-wrap">
-        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-        </svg>
+  <div class="layout">
+    <!-- ── Filters sidebar ───────────────────────────────────── -->
+    <aside class="filters-card" [attr.aria-label]="copy.filtersAria" (click)="$event.stopPropagation()">
+      <div class="filters-title">
+        <iconify-icon icon="lucide:sliders-horizontal"></iconify-icon>
+        {{ copy.filtersTitle }}
+      </div>
+
+      <div class="filter-block">
+        <span class="fb-label">{{ copy.sortBy }}</span>
+        <div class="fb-select-wrap">
+          <select class="fb-select" [(ngModel)]="sortBy" (ngModelChange)="onFiltersChange()">
+            <option value="relevance">{{ copy.relevance }}</option>
+            <option value="newest">{{ copy.newest }}</option>
+            <option value="title">{{ copy.sortTitleAZ }}</option>
+          </select>
+          <iconify-icon icon="lucide:chevron-down"></iconify-icon>
+        </div>
+      </div>
+
+      <div class="filter-block">
+        <span class="fb-label">{{ copy.language }}</span>
+        <div class="fb-select-wrap">
+          <select class="fb-select" [(ngModel)]="languageFilter" (ngModelChange)="onFiltersChange()">
+            <option value="">{{ copy.anyLanguage }}</option>
+            <option value="en">{{ copy.languageEnglish }}</option>
+            <option value="ar">{{ copy.languageArabic }}</option>
+            <option value="fr">{{ copy.languageFrench }}</option>
+            <option value="es">{{ copy.languageSpanish }}</option>
+            <option value="de">{{ copy.languageGerman }}</option>
+            <option value="it">{{ copy.languageItalian }}</option>
+          </select>
+          <iconify-icon icon="lucide:chevron-down"></iconify-icon>
+        </div>
+      </div>
+
+      <div class="filter-block">
+        <span class="fb-label">{{ copy.author }}</span>
+        <input class="fb-input" type="text" [(ngModel)]="authorFilter" (ngModelChange)="onFiltersChange()" [placeholder]="copy.anyAuthor" />
+      </div>
+
+      <div class="filter-block">
+        <span class="fb-label">{{ copy.isbn }}</span>
+        <input class="fb-input" type="text" [(ngModel)]="isbnFilter" (ngModelChange)="onFiltersChange()" [placeholder]="copy.isbnPlaceholder" />
+      </div>
+
+      <button class="reset-full" type="button" (click)="resetFilters()" [disabled]="activeFilterCount === 0">
+        <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
+        {{ copy.reset }}
+      </button>
+    </aside>
+
+    <!-- ── Main column ───────────────────────────────────────── -->
+    <div class="main-col">
+      <form class="main-search" (ngSubmit)="onSubmit()" (click)="$event.stopPropagation()">
+        <iconify-icon icon="lucide:search" class="main-search__icon"></iconify-icon>
         <input
-          class="search-input"
           type="search"
           [placeholder]="copy.placeholder"
           [(ngModel)]="query"
@@ -34,181 +81,120 @@
         @if (isSearching) {
           <div class="input-spinner"></div>
         }
-      </div>
-    </form>
-  </div>
+      </form>
 
-  <section class="search-tools" [attr.aria-label]="copy.filtersAria">
-    <div class="search-tools__layout">
-      <div class="filters-panel">
-        <p class="tool-group-title">{{ copy.filterBy }}</p>
-        <div class="filter-fields">
-          <label>
-            <span>{{ copy.author }}</span>
-            <input type="text" [(ngModel)]="authorFilter" (ngModelChange)="onFiltersChange()" [placeholder]="copy.anyAuthor" />
-          </label>
-          <label>
-            <span>{{ copy.isbn }}</span>
-            <input type="text" [(ngModel)]="isbnFilter" (ngModelChange)="onFiltersChange()" [placeholder]="copy.isbnPlaceholder" />
-          </label>
-          <label>
-            <span>{{ copy.language }}</span>
-            <select [(ngModel)]="languageFilter" (ngModelChange)="onFiltersChange()">
-              <option value="">{{ copy.anyLanguage }}</option>
-              <option value="en">{{ copy.languageEnglish }}</option>
-              <option value="ar">{{ copy.languageArabic }}</option>
-              <option value="fr">{{ copy.languageFrench }}</option>
-              <option value="es">{{ copy.languageSpanish }}</option>
-              <option value="de">{{ copy.languageGerman }}</option>
-              <option value="it">{{ copy.languageItalian }}</option>
-            </select>
-          </label>
-          <div class="filter-panel-actions">
-            <button
-              class="reset-filters"
-              type="button"
-              (click)="resetFilters()"
-              [disabled]="activeFilterCount === 0"
-            >
-              <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
-              {{ copy.reset }}
-            </button>
+      @if (searchError) {
+        <div class="state-box">
+          <div class="state-icon error">
+            <iconify-icon icon="lucide:alert-circle"></iconify-icon>
+          </div>
+          <p class="state-text">{{ searchError }}</p>
+        </div>
+      } @else if (isSearching && results.length === 0) {
+        <div class="books-grid">
+          @for (s of [1,2,3,4,5,6,7,8]; track s) {
+            <div class="skeleton-card">
+              <div class="skeleton skeleton-cover"></div>
+              <div class="skeleton skeleton-line"></div>
+              <div class="skeleton skeleton-line short"></div>
+            </div>
+          }
+        </div>
+      } @else if (hasSearched && results.length === 0) {
+        <div class="state-box">
+          <div class="state-icon">
+            <iconify-icon icon="lucide:book-x"></iconify-icon>
+          </div>
+          <p class="state-text">{{ copy.noResults.replace('{{ query }}', query) }}</p>
+          <p class="state-hint">{{ copy.noResultsHint }}</p>
+        </div>
+      } @else if (!hasSearched && results.length === 0) {
+        <div class="state-box idle">
+          <div class="state-icon">
+            <iconify-icon icon="lucide:library-big"></iconify-icon>
+          </div>
+          <p class="state-text">{{ copy.idleTitle }}</p>
+          <p class="state-hint">{{ copy.idleHint }}</p>
+          <div class="suggest">
+            @for (s of suggestions; track s) {
+              <button type="button" class="pill" (click)="runSuggestion(s)">{{ s }}</button>
+            }
           </div>
         </div>
-      </div>
+      }
 
-      <div class="sort-panel">
-        <p class="tool-group-title">{{ copy.sortBy }}</p>
-        <label>
-          <span>{{ copy.order }}</span>
-          <select [(ngModel)]="sortBy" (ngModelChange)="onFiltersChange()">
-            <option value="relevance">{{ copy.relevance }}</option>
-            <option value="newest">{{ copy.newest }}</option>
-          </select>
-        </label>
-      </div>
-    </div>
-  </section>
+      @if (results.length > 0) {
+        <p class="results-count">
+          {{ copy.resultsCount.replace('{{ n }}', results.length.toString()) }}
+        </p>
 
-  @if (addError) {
-    <div class="toast toast--error">{{ addError }}</div>
-  }
-
-  <div class="search-content">
-    @if (searchError) {
-      <div class="state-box">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <p class="state-text error-text">{{ searchError }}</p>
-      </div>
-    } @else if (hasSearched && !isSearching && results.length === 0) {
-      <div class="state-box">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-        </svg>
-        <p class="state-text">{{ copy.noFilteredResults }}</p>
-        <p class="state-hint">{{ copy.noFilteredResultsHint }}</p>
-      </div>
-    } @else if (!hasSearched && results.length === 0) {
-      <div class="state-box idle">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <p class="state-text">{{ copy.idleTitle }}</p>
-        <p class="state-hint">{{ copy.idleHint }}</p>
-      </div>
-    }
-
-    @if (results.length > 0) {
-      <p class="results-count">
-        {{ copy.resultsCount.replace('{{ n }}', results.length.toString()) }}
-      </p>
-
-      <div class="books-grid">
-        @for (book of results; track book.googleId) {
-          <div class="book-card" (click)="$event.stopPropagation()">
-            <div class="cover-wrap" (click)="goToDetail(book)" style="cursor:pointer">
-              @if (book.coverUrl) {
-                <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
-              } @else {
-                <div class="cover-placeholder">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                  </svg>
-                </div>
-              }
-            </div>
-
-            <div class="book-info">
-              <h3 class="book-title" [title]="book.title">{{ book.title }}</h3>
-              <p class="book-author">{{ book.author }}</p>
-              <p class="book-year">{{ book.publishedDate ? (book.publishedDate | slice:0:4) : '' }}</p>
-              <div class="book-meta-tags">
-                @if (book.language) {
-                  <span>{{ book.language | uppercase }}</span>
-                }
-              </div>
-
-              <div class="shelf-action">
-                @if (getAddedLabel(book.googleId); as label) {
-                  <span class="added-badge">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    {{ label }}
-                  </span>
-                } @else if (addingBookId === book.googleId) {
-                  <span class="adding-label">{{ copy.addingLabel }}</span>
+        <div class="books-grid">
+          @for (book of displayedResults; track book.googleId) {
+            <div class="book-card" (click)="$event.stopPropagation()">
+              <div class="cover-wrap" (click)="goToDetail(book)" style="cursor:pointer">
+                @if (book.coverUrl) {
+                  <img [src]="book.coverUrl" [alt]="book.title" class="cover-img" loading="lazy" />
                 } @else {
-                  <div class="dropdown-wrap">
-                    <button
-                      class="add-btn"
-                      (click)="toggleDropdown(book.googleId)"
-                      [class.open]="openDropdownId === book.googleId"
-                      [attr.aria-label]="copy.ariaAddToShelf"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                      </svg>
-                      {{ copy.addButton }}
-                    </button>
-                    @if (openDropdownId === book.googleId) {
-                      <div class="dropdown">
-                        @for (status of statuses; track status.id) {
-                          <button class="dropdown-item" (click)="addToShelf(book, status)">
-                            <span class="dropdown-icon">{{ status.icon }}</span>
-                            {{ status.label }}
-                          </button>
-                        }
-                      </div>
-                    }
+                  <div class="cover-placeholder">
+                    <iconify-icon icon="lucide:book"></iconify-icon>
                   </div>
                 }
               </div>
+
+              <div class="book-info">
+                <h3 class="book-title" [title]="book.title">{{ book.title }}</h3>
+                <p class="book-author">{{ book.author }}</p>
+
+                <div class="shelf-action">
+                  @if (getAddedLabel(book.googleId); as label) {
+                    <span class="added-badge">
+                      <iconify-icon icon="lucide:check"></iconify-icon>
+                      {{ label }}
+                    </span>
+                  } @else if (addingBookId === book.googleId) {
+                    <span class="adding-label">{{ copy.addingLabel }}</span>
+                  } @else {
+                    <div class="dropdown-wrap">
+                      <button
+                        class="add-btn"
+                        (click)="toggleDropdown(book.googleId)"
+                        [class.open]="openDropdownId === book.googleId"
+                        [attr.aria-label]="copy.ariaAddToShelf"
+                      >
+                        <iconify-icon icon="lucide:plus"></iconify-icon>
+                        {{ copy.addButton }}
+                      </button>
+                      @if (openDropdownId === book.googleId) {
+                        <div class="dropdown">
+                          @for (status of statuses; track status.id) {
+                            <button class="dropdown-item" (click)="addToShelf(book, status)">
+                              <span class="dropdown-icon">{{ status.icon }}</span>
+                              {{ status.label }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
             </div>
+          }
+        </div>
+
+        @if (hasMore) {
+          <div class="load-more-wrap">
+            <button class="load-more-btn" (click)="loadMore()" [disabled]="isLoadingMore">
+              @if (isLoadingMore) {
+                <span class="btn-spinner"></span>
+                {{ copy.loading }}
+              } @else {
+                {{ copy.loadMore }}
+              }
+            </button>
           </div>
         }
-      </div>
-
-      @if (hasMore) {
-        <div class="load-more-wrap">
-          <button class="load-more-btn" (click)="loadMore()" [disabled]="isLoadingMore">
-            @if (isLoadingMore) {
-              <span class="btn-spinner"></span>
-              {{ copy.loading }}
-            } @else {
-              {{ copy.loadMore }}
-            }
-          </button>
-        </div>
       }
-    }
+    </div>
   </div>
 </div>

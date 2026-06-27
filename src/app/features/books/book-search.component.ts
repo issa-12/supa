@@ -1,7 +1,6 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, OnDestroy, inject } from '@angular/core';
-import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { SlicePipe, UpperCasePipe } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { BookService, GoogleBook, BookSearchOptions } from '../../core/services/book.service';
 import { TranslationService, BOOK_SEARCH_COPY, LanguageCode } from '../../i18n';
@@ -24,7 +23,7 @@ const SHELF_STATUS_DEFS: Array<{ name: string; label: string; icon: string }> = 
 @Component({
   selector: 'app-book-search',
   standalone: true,
-  imports: [RouterLink, FormsModule, SlicePipe, UpperCasePipe, TopNavComponent],
+  imports: [FormsModule, TopNavComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './book-search.component.html',
   styleUrl: './book-search.component.scss',
@@ -40,6 +39,8 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   protected get copy() { return BOOK_SEARCH_COPY[this.lang]; }
 
   statuses: ShelfStatus[] = [];
+
+  readonly suggestions = ['Atomic Habits', 'Dune', 'The Alchemist', '1984', 'Colleen Hoover'];
 
   query = '';
   results: GoogleBook[] = [];
@@ -81,6 +82,21 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     return this.moreAvailable;
   }
 
+  get displayedResults(): GoogleBook[] {
+    if (this.sortBy === 'title') {
+      return [...this.results].sort((a, b) =>
+        (a.title ?? '').localeCompare(b.title ?? '', undefined, { sensitivity: 'base' }),
+      );
+    }
+    return this.results;
+  }
+
+  runSuggestion(term: string): void {
+    this.query = term;
+    clearTimeout(this.searchTimer);
+    void this.runSearch();
+  }
+
   async ngOnInit(): Promise<void> {
     await this.loadStatuses();
     const q = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
@@ -119,7 +135,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.searchTimer = setTimeout(() => void this.runSearch(), 500);
+    this.searchTimer = setTimeout(() => void this.runSearch(), 350);
   }
 
   async onSubmit(): Promise<void> {
