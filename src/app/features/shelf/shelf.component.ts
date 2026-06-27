@@ -49,7 +49,7 @@ export class ShelfComponent implements OnInit {
   // clipped by the horizontal scroll row's overflow.
   openMenuBook: UserBook | null = null;
   openMenuStatusName: string | null = null;
-  menuPos = { top: 0, left: 0 };
+  menuPos = { top: 0, inlineStart: 0 };
   savingId: number | null = null;
 
   progressEditId: number | null = null;
@@ -84,7 +84,7 @@ export class ShelfComponent implements OnInit {
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user.id));
       this.buildSections(allBooks);
     } catch (err) {
-      this.error = err instanceof Error ? err.message : this.copy.failedToLoadShelfMsg;
+      this.error = this.copy.failedToLoadShelfMsg;
     } finally {
       this.isLoading = false;
     }
@@ -118,6 +118,21 @@ export class ShelfComponent implements OnInit {
 
   get totalBooks(): number {
     return this.sections.reduce((n, s) => n + s.books.length, 0);
+  }
+
+  formatBooksAcrossShelves(count: number): string {
+    const template = count === 1 ? this.copy.booksAcrossShelvesOne : this.copy.booksAcrossShelvesOther;
+    return template.replace('{count}', count.toString());
+  }
+
+  formatPendingRecommendations(count: number): string {
+    const template = count === 1 ? this.copy.pendingRecommendationsOne : this.copy.pendingRecommendationsOther;
+    return template.replace('{count}', count.toString());
+  }
+
+  formatSectionCount(count: number): string {
+    const template = count === 1 ? this.copy.sectionCountOne : this.copy.sectionCountOther;
+    return template.replace('{count}', count.toString());
   }
 
   get hasRecommendations(): boolean {
@@ -207,7 +222,8 @@ export class ShelfComponent implements OnInit {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const width = 170;
     const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
-    this.menuPos = { left, top: rect.top - 6 };
+    const inlineStart = this.lang === 'ar' ? window.innerWidth - left - width : left;
+    this.menuPos = { inlineStart, top: rect.top - 6 };
   }
 
   closeMenu(): void {
@@ -257,7 +273,7 @@ export class ShelfComponent implements OnInit {
   }
 
   async removeBook(book: UserBook): Promise<void> {
-    const title = book.book?.title ?? 'this book';
+    const title = book.book?.title ?? this.copy.thisBook;
     const ok = await this.confirmDialog.confirm({
       message: this.copy.confirmRemove.replace('{{ title }}', title),
       danger: true,

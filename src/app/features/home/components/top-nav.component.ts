@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, HostListener, Input, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, DestroyRef, ElementRef, HostListener, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -157,6 +157,7 @@ interface NavSearchBook {
           class="nav-language-selector"
           [languages]="languages"
           [selectedLanguage]="selectedLanguage"
+          [label]="copy.languageLabel"
           [compact]="false"
         />
 
@@ -166,7 +167,7 @@ interface NavSearchBook {
           }
           <img
             [src]="avatarUrl || avatarFallback"
-            alt="Profile"
+            [alt]="copy.profileAvatarAlt"
             class="nav-avatar"
             [attr.aria-current]="isProfileActive ? 'page' : null"
             (click)="toggleUserMenu()"
@@ -210,8 +211,8 @@ interface NavSearchBook {
     .top-nav {
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 0 40px;
+      gap: clamp(10px, 1.5vw, 20px);
+      padding: 0 clamp(16px, 3vw, 40px);
       height: 62px;
       // Frosted glass: translucent cream + blur. rgb of --background (#f4ede5).
       background: rgba(244, 237, 229, 0.85);
@@ -228,6 +229,7 @@ interface NavSearchBook {
       display: flex;
       align-items: center;
       gap: 10px;
+      direction: ltr;
       white-space: nowrap;
       cursor: pointer;
       text-decoration: none;
@@ -248,7 +250,7 @@ interface NavSearchBook {
     }
 
     .brand-text {
-      font-size: 18px;
+      font-size: clamp(15px, 1.4vw, 18px);
       font-weight: 600;
       color: var(--foreground);
       letter-spacing: -0.3px;
@@ -323,8 +325,7 @@ interface NavSearchBook {
     .search-dropdown {
       position: absolute;
       top: calc(100% + 8px);
-      left: 0;
-      right: 0;
+      inset-inline: 0;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -364,7 +365,7 @@ interface NavSearchBook {
       background: none;
       border: none;
       cursor: pointer;
-      text-align: left;
+      text-align: start;
       transition: background 0.12s;
 
       &:hover { background: var(--primary-soft); }
@@ -474,7 +475,7 @@ interface NavSearchBook {
         content: '';
         position: absolute;
         bottom: 3px;
-        left: 50%;
+        inset-inline-start: 50%;
         transform: translateX(-50%);
         width: 4px;
         height: 4px;
@@ -650,6 +651,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly elRef = inject(ElementRef);
 
   readonly unreadCount$ = this.notificationsService.unreadCount$;
   notifications: AppNotification[] = [];
@@ -735,6 +737,18 @@ export class TopNavComponent implements OnInit, OnDestroy {
     clearTimeout(this.searchTimer);
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    this.userMenuOpen = false;
+    this.searchOpen = false;
+    if (this.panelOpen) {
+      const bellWrapper = this.elRef.nativeElement.querySelector('.bell-wrapper');
+      if (bellWrapper && !bellWrapper.contains(event.target as Node)) {
+        this.closePanel();
+      }
+    }
+  }
+
   async togglePanel(): Promise<void> {
     if (this.panelOpen) { this.closePanel(); return; }
     this.panelOpen = true;
@@ -755,12 +769,6 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   navigateToProfile(): void {
     this.router.navigate(['/profile']);
-  }
-
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    this.userMenuOpen = false;
-    this.searchOpen = false;
   }
 
   onSearchFocus(): void {

@@ -24,7 +24,7 @@
 .shelf-hero {
   background: var(--card);
   border-bottom: 1px solid var(--bd);
-  padding: 20px 24px 0;
+  padding: clamp(12px, 1.6vw, 20px) clamp(14px, 1.9vw, 24px) 0;
 }
 
 .hero-row {
@@ -38,7 +38,7 @@
 
 .hero-title {
   font-family: 'Lora', Georgia, serif;
-  font-size: 24px;
+  font-size: clamp(18px, 1.9vw, 24px);
   font-weight: 600;
   color: var(--foreground);
   margin: 0;
@@ -151,7 +151,7 @@
 
 // ── Content ─────────────────────────────────────────────────────
 .shelf-content {
-  padding: 20px 24px 64px;
+  padding: clamp(12px, 1.6vw, 20px) clamp(14px, 1.9vw, 24px) clamp(32px, 5vw, 64px);
   max-width: 1160px;
   margin: 0 auto;
 }

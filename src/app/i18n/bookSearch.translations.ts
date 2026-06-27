@@ -20,6 +20,31 @@ export interface BookSearchCopy {
   wantToReadStatusLabel: string;
   currentlyReadingStatusLabel: string;
   alreadyReadStatusLabel: string;
+  goHomeAria: string;
+  filtersAria: string;
+  filterBy: string;
+  author: string;
+  anyAuthor: string;
+  isbn: string;
+  isbnPlaceholder: string;
+  language: string;
+  anyLanguage: string;
+  languageEnglish: string;
+  languageArabic: string;
+  languageFrench: string;
+  languageSpanish: string;
+  languageGerman: string;
+  languageItalian: string;
+  reset: string;
+  sortBy: string;
+  order: string;
+  relevance: string;
+  newest: string;
+  noFilteredResults: string;
+  noFilteredResultsHint: string;
+  searchFailed: string;
+  notSignedIn: string;
+  addFailed: string;
 }
 
 export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
@@ -43,6 +68,31 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     wantToReadStatusLabel: 'Want to Read',
     currentlyReadingStatusLabel: 'Currently Reading',
     alreadyReadStatusLabel: 'Already Read',
+    goHomeAria: 'Go home',
+    filtersAria: 'Search filters and sorting',
+    filterBy: 'Filter by',
+    author: 'Author',
+    anyAuthor: 'Any author',
+    isbn: 'ISBN',
+    isbnPlaceholder: 'ISBN-10 or ISBN-13',
+    language: 'Language',
+    anyLanguage: 'Any language',
+    languageEnglish: 'English',
+    languageArabic: 'Arabic',
+    languageFrench: 'French',
+    languageSpanish: 'Spanish',
+    languageGerman: 'German',
+    languageItalian: 'Italian',
+    reset: 'Reset',
+    sortBy: 'Sort by',
+    order: 'Order',
+    relevance: 'Relevance',
+    newest: 'Newest',
+    noFilteredResults: 'No books match your search and filters.',
+    noFilteredResultsHint: 'Try another search or clear one of the filters.',
+    searchFailed: 'Search failed. Please try again.',
+    notSignedIn: 'Not signed in.',
+    addFailed: 'Could not add book. Try again.',
   },
   ar: {
     title: 'ابحث عن الكتب',
@@ -64,6 +114,31 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     wantToReadStatusLabel: 'أريد أن أقرأ',
     currentlyReadingStatusLabel: 'قيد القراءة حالياً',
     alreadyReadStatusLabel: 'تمت قراءته بالفعل',
+    goHomeAria: 'العودة إلى الصفحة الرئيسية',
+    filtersAria: 'مرشحات البحث والترتيب',
+    filterBy: 'تصفية حسب',
+    author: 'المؤلف',
+    anyAuthor: 'أي مؤلف',
+    isbn: 'ISBN',
+    isbnPlaceholder: 'ISBN-10 أو ISBN-13',
+    language: 'اللغة',
+    anyLanguage: 'أي لغة',
+    languageEnglish: 'الإنجليزية',
+    languageArabic: 'العربية',
+    languageFrench: 'الفرنسية',
+    languageSpanish: 'الإسبانية',
+    languageGerman: 'الألمانية',
+    languageItalian: 'الإيطالية',
+    reset: 'إعادة ضبط',
+    sortBy: 'ترتيب حسب',
+    order: 'الترتيب',
+    relevance: 'الصلة',
+    newest: 'الأحدث',
+    noFilteredResults: 'لا توجد كتب تطابق البحث والمرشحات.',
+    noFilteredResultsHint: 'جرّب بحثاً آخر أو امسح أحد المرشحات.',
+    searchFailed: 'فشل البحث. حاول مرة أخرى.',
+    notSignedIn: 'لم يتم تسجيل الدخول.',
+    addFailed: 'تعذرت إضافة الكتاب. حاول مرة أخرى.',
   },
   fr: {
     title: 'Trouver des livres',
@@ -85,5 +160,30 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     wantToReadStatusLabel: 'À lire',
     currentlyReadingStatusLabel: 'En cours de lecture',
     alreadyReadStatusLabel: 'Déjà lu',
+    goHomeAria: 'Retour à l’accueil',
+    filtersAria: 'Filtres et tri de la recherche',
+    filterBy: 'Filtrer par',
+    author: 'Auteur',
+    anyAuthor: 'Tous les auteurs',
+    isbn: 'ISBN',
+    isbnPlaceholder: 'ISBN-10 ou ISBN-13',
+    language: 'Langue',
+    anyLanguage: 'Toutes les langues',
+    languageEnglish: 'Anglais',
+    languageArabic: 'Arabe',
+    languageFrench: 'Français',
+    languageSpanish: 'Espagnol',
+    languageGerman: 'Allemand',
+    languageItalian: 'Italien',
+    reset: 'Réinitialiser',
+    sortBy: 'Trier par',
+    order: 'Ordre',
+    relevance: 'Pertinence',
+    newest: 'Plus récents',
+    noFilteredResults: 'Aucun livre ne correspond à votre recherche et aux filtres.',
+    noFilteredResultsHint: 'Essayez une autre recherche ou effacez un filtre.',
+    searchFailed: 'La recherche a échoué. Réessayez.',
+    notSignedIn: 'Vous n’êtes pas connecté.',
+    addFailed: 'Impossible d’ajouter le livre. Réessayez.',
   },
 };

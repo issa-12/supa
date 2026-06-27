@@ -1,3 +1,9 @@
+/*
+  Reference viewport: 1440px (laptop).
+  Formula: clamp(floor, value/1440*100vw, value)
+  Nothing is static — every size is a proportion of the screen.
+*/
+
 .community-viewport {
   min-height: 100vh;
   background: #F5F0E8;
@@ -7,15 +13,15 @@
 .community-header {
   max-width: 1160px;
   margin: 0 auto;
-  padding: 28px 20px 0;
+  padding: clamp(12px, 1.9vw, 28px) clamp(10px, 1.4vw, 20px) 0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(10px, 1.1vw, 16px);
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
+  width: clamp(32px, 2.8vw, 40px);
+  height: clamp(32px, 2.8vw, 40px);
   border-radius: 50%;
   display: none;
   align-items: center;
@@ -26,13 +32,12 @@
   text-decoration: none;
   flex-shrink: 0;
   transition: background 0.2s;
-
   &:hover { background: var(--surface); }
 }
 
 .community-title {
   font-family: 'Lora', Georgia, serif;
-  font-size: 24px;
+  font-size: clamp(15px, 1.67vw, 24px);
   font-weight: 600;
   color: var(--foreground);
   letter-spacing: -0.3px;
@@ -41,26 +46,24 @@
 
 .community-subtitle {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 13px;
+  font-size: clamp(10px, 0.9vw, 13px);
   color: #9E8E82;
-  margin: 3px 0 0;
+  margin: clamp(2px, 0.2vw, 3px) 0 0;
 }
 
 .community-layout {
   max-width: 1160px;
   margin: 0 auto;
-  padding: 32px 20px 80px;
+  padding: clamp(14px, 2.2vw, 32px) clamp(10px, 1.4vw, 20px) clamp(32px, 5.6vw, 80px);
   display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 28px;
+  grid-template-columns: clamp(180px, 18vw, 260px) 1fr;
+  gap: clamp(14px, 1.9vw, 28px);
   align-items: start;
 
   @media (max-width: 900px) {
-    // minmax(0, 1fr), not 1fr — a plain 1fr track grows to its content width,
-    // pushing the feed past the viewport so posts get clipped/jumbled.
     grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-    padding: 20px 16px 60px;
+    gap: clamp(10px, 2.2vw, 20px);
+    padding: clamp(12px, 2.2vw, 20px) clamp(10px, 2.2vw, 16px) clamp(40px, 8vw, 60px);
   }
 }
 
@@ -68,7 +71,7 @@
 .community-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(10px, 1.1vw, 16px);
   position: sticky;
   top: 72px;
 
@@ -76,25 +79,32 @@
     position: static;
     flex-direction: row;
     overflow-x: auto;
-    gap: 12px;
+    gap: clamp(8px, 1.7vw, 12px);
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 
-    .sidebar-card { min-width: 220px; flex-shrink: 0; }
+    .sidebar-card {
+      min-width: clamp(160px, 38vw, 220px);
+      max-width: clamp(180px, 44vw, 260px);
+      flex-shrink: 0;
+    }
   }
 }
 
 .sidebar-card {
   background: #FFFFFF;
   border: 0.5px solid rgba(100, 70, 50, 0.10);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: clamp(10px, 1.1vw, 16px);
+  padding: clamp(10px, 1.4vw, 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: clamp(8px, 0.83vw, 12px);
+  overflow: hidden; /* prevent inner content from blowing out card width */
 }
 
 .sidebar-title {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 11px;
+  font-size: clamp(9px, 0.76vw, 11px);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -102,12 +112,12 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: clamp(4px, 0.49vw, 7px);
   iconify-icon { color: var(--primary); }
 }
 
 .sidebar-empty {
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   color: var(--muted-foreground);
   margin: 0;
 }
@@ -115,11 +125,12 @@
 .tag-search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  border-radius: 10px;
+  gap: clamp(5px, 0.56vw, 8px);
+  padding: clamp(6px, 0.63vw, 9px) clamp(8px, 0.83vw, 12px);
+  border-radius: clamp(7px, 0.7vw, 10px);
   border: 0.5px solid rgba(100, 70, 50, 0.15);
   background: #FAFAF7;
+  min-width: 0; /* crucial — prevents overflowing the card */
 
   &:focus-within { border-color: var(--primary); }
 }
@@ -128,11 +139,13 @@
 
 .tag-search-input {
   flex: 1;
+  min-width: 0; /* flex child must be able to shrink below content width */
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   color: var(--foreground);
   outline: none;
+  width: 100%;
 
   &::placeholder { color: var(--muted-foreground); }
 }
@@ -140,76 +153,82 @@
 .tag-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: clamp(1px, 0.14vw, 2px);
+  overflow: hidden; /* don't let tag rows widen the card */
 }
 
 .tag-row-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: clamp(5px, 0.56vw, 8px) clamp(7px, 0.7vw, 10px);
   border-radius: var(--radius-md);
   border: none;
   background: transparent;
   cursor: pointer;
   transition: background 0.15s;
   width: 100%;
-  text-align: left;
+  text-align: start;
+  min-width: 0;
 
   &:hover { background: #FAF0ED; }
   &--active { background: #FAF0ED; }
 }
 
 .tag-row-name {
-  font-size: 14px;
+  font-size: clamp(11px, 0.97vw, 14px);
   font-weight: 500;
   color: #C1553A;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .tag-row-count {
-  font-size: 11px;
+  font-size: clamp(9px, 0.76vw, 11px);
   font-weight: 600;
   color: #9E8E82;
   background: #F5F0E8;
-  padding: 2px 8px;
+  padding: clamp(1px, 0.14vw, 2px) clamp(5px, 0.56vw, 8px);
   border-radius: 10px;
+  flex-shrink: 0;
+  margin-inline-start: 4px;
 }
 
 // ── Main ─────────────────────────────────────────────────────────
 .community-main {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(10px, 1.1vw, 16px);
   min-width: 0;
 }
 
 // ── Compose card ─────────────────────────────────────────────────
 .compose-card {
   background: #FFFFFF;
-  border-radius: 16px;
+  border-radius: clamp(10px, 1.1vw, 16px);
   border: 0.5px solid rgba(100, 70, 50, 0.10);
-   overflow: hidden;
-
-  &--expanded {  }
+  overflow: hidden;
 }
 
 .compose-trigger {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: clamp(8px, 0.83vw, 12px);
+  padding: clamp(10px, 0.97vw, 14px) clamp(10px, 1.1vw, 16px);
   background: none;
   border: none;
   cursor: pointer;
-  text-align: left;
-
+  text-align: start;
   &:hover .compose-placeholder { color: var(--foreground); }
 }
 
 .compose-avatar {
-  width: 36px;
-  height: 36px;
+  width: clamp(28px, 2.5vw, 36px);
+  height: clamp(28px, 2.5vw, 36px);
   border-radius: 50%;
   flex-shrink: 0;
   overflow: hidden;
@@ -217,13 +236,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   img { width: 100%; height: 100%; object-fit: cover; }
-  span { color: #fff; font-size: 14px; font-weight: 700; }
+  span { color: #fff; font-size: clamp(11px, 0.97vw, 14px); font-weight: 700; }
 }
 
 .compose-placeholder {
-  font-size: 14px;
+  font-size: clamp(12px, 0.97vw, 14px);
   color: var(--muted-foreground);
   transition: color 0.15s;
 }
@@ -231,36 +249,35 @@
 .compose-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: clamp(8px, 0.83vw, 12px);
+  padding: clamp(8px, 1.1vw, 16px);
 }
 
 .compose-textarea {
   width: 100%;
-  padding: 12px;
+  padding: clamp(8px, 0.83vw, 12px);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: transparent;
-  font-size: 14px;
+  font-size: clamp(12px, 0.97vw, 14px);
   color: var(--foreground);
-  resize: vertical;
+  resize: none;
   outline: none;
   font-family: inherit;
   box-sizing: border-box;
 
-  &:focus { border-color: var(--primary);  }
-  &::placeholder { color: #9E8E82; font-style: normal; font-size: 14px; }
+  &:focus { border-color: var(--primary); }
+  &::placeholder { color: #9E8E82; font-style: normal; font-size: clamp(12px, 0.97vw, 14px); }
 }
 
 .tags-input-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  border-radius: 10px;
+  gap: clamp(5px, 0.56vw, 8px);
+  padding: clamp(6px, 0.63vw, 9px) clamp(8px, 0.83vw, 12px);
+  border-radius: clamp(7px, 0.7vw, 10px);
   border: 0.5px solid rgba(100, 70, 50, 0.15);
   background: #FAFAF7;
-
   &:focus-within { border-color: var(--primary); }
 }
 
@@ -268,35 +285,33 @@
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   color: var(--foreground);
   outline: none;
-
   &::placeholder { color: var(--muted-foreground); }
 }
 
-.book-picker { display: flex; flex-direction: column; gap: 8px; }
+.book-picker { display: flex; flex-direction: column; gap: clamp(5px, 0.56vw, 8px); }
 
 .book-search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: clamp(5px, 0.56vw, 8px);
+  padding: clamp(7px, 0.7vw, 10px) clamp(8px, 0.83vw, 12px);
+  border-radius: clamp(7px, 0.7vw, 10px);
   border: 0.5px solid rgba(193, 85, 58, 0.25);
   background: #FAFAF7;
 
   &--focused, &:focus-within { border-color: var(--primary); }
 
-  // "Required" pill (CSS-generated, no HTML change)
   &::after {
     content: 'Required';
     margin-inline-start: auto;
-    font-size: 10px;
+    font-size: clamp(9px, 0.69vw, 10px);
     font-weight: 600;
     background: #FAF0ED;
     color: #C1553A;
-    padding: 2px 7px;
+    padding: clamp(1px, 0.14vw, 2px) clamp(5px, 0.49vw, 7px);
     border-radius: 10px;
     flex-shrink: 0;
   }
@@ -308,7 +323,7 @@
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   color: var(--foreground);
   outline: none;
   &::placeholder { color: #9E8E82; }
@@ -317,36 +332,35 @@
 .book-results {
   list-style: none;
   margin: 0;
-  padding: 4px 0;
+  padding: clamp(2px, 0.28vw, 4px) 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  max-height: 200px;
+  max-height: clamp(140px, 14vw, 200px);
   overflow-y: auto;
 }
 
 .book-result-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: clamp(7px, 0.7vw, 10px);
+  padding: clamp(5px, 0.56vw, 8px) clamp(8px, 0.83vw, 12px);
   cursor: pointer;
   transition: background 0.15s;
-
   &:hover { background: var(--primary-soft); }
 }
 
 .book-result-cover {
-  width: 32px;
-  height: 48px;
+  width: clamp(22px, 2.2vw, 32px);
+  height: clamp(33px, 3.3vw, 48px);
   object-fit: cover;
   border-radius: 3px;
   flex-shrink: 0;
 }
 
 .book-result-title {
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 600;
   color: var(--foreground);
   margin: 0;
@@ -356,7 +370,7 @@
 }
 
 .book-result-author {
-  font-size: 12px;
+  font-size: clamp(10px, 0.83vw, 12px);
   color: var(--muted-foreground);
   margin: 0;
 }
@@ -364,16 +378,16 @@
 .selected-book {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: clamp(7px, 0.7vw, 10px);
+  padding: clamp(7px, 0.7vw, 10px) clamp(8px, 0.83vw, 12px);
   background: var(--primary-soft);
   border-radius: var(--radius-md);
   border: 1px solid rgba(217, 119, 87, 0.2);
 }
 
 .selected-book-cover {
-  width: 28px;
-  height: 42px;
+  width: clamp(20px, 1.94vw, 28px);
+  height: clamp(30px, 2.9vw, 42px);
   object-fit: cover;
   border-radius: 3px;
   flex-shrink: 0;
@@ -383,7 +397,7 @@
 
 .selected-book-title {
   display: block;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 600;
   color: var(--foreground);
   white-space: nowrap;
@@ -391,27 +405,26 @@
   text-overflow: ellipsis;
 }
 
-.selected-book-author { font-size: 12px; color: var(--muted-foreground); }
+.selected-book-author { font-size: clamp(10px, 0.83vw, 12px); color: var(--muted-foreground); }
 
 .clear-btn {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--muted-foreground);
-  padding: 4px;
+  padding: clamp(2px, 0.28vw, 4px);
   border-radius: 50%;
   display: flex;
   flex-shrink: 0;
-
   &:hover { color: var(--foreground); background: var(--border); }
 }
 
 .submit-error {
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   color: var(--destructive);
   background: rgba(220, 38, 38, 0.07);
   border-radius: var(--radius-md);
-  padding: 8px 12px;
+  padding: clamp(5px, 0.56vw, 8px) clamp(8px, 0.83vw, 12px);
   margin: 0;
 }
 
@@ -419,59 +432,54 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: clamp(8px, 0.83vw, 12px);
   flex-wrap: wrap;
 }
 
 .compose-hint {
-  font-size: 11px;
+  font-size: clamp(9px, 0.76vw, 11px);
   color: #9E8E82;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: clamp(3px, 0.35vw, 5px);
   iconify-icon { color: #C1553A; }
 }
 
-.compose-btns {
-  display: flex;
-  gap: 8px;
-}
+.compose-btns { display: flex; gap: clamp(5px, 0.56vw, 8px); }
 
 .btn-cancel {
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: clamp(5px, 0.56vw, 8px) clamp(10px, 1.1vw, 16px);
+  border-radius: clamp(5px, 0.56vw, 8px);
   border: 0.5px solid rgba(100, 70, 50, 0.20);
   background: transparent;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 600;
   color: #6B5A4E;
   cursor: pointer;
-
   &:hover { background: var(--background); }
 }
 
 .btn-post {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 20px;
-  border-radius: 8px;
+  gap: clamp(4px, 0.42vw, 6px);
+  padding: clamp(5px, 0.56vw, 8px) clamp(12px, 1.4vw, 20px);
+  border-radius: clamp(5px, 0.56vw, 8px);
   border: none;
   background: #C1553A;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 500;
   color: #fff;
   cursor: pointer;
   transition: opacity 0.2s;
-
   &:disabled { opacity: 0.45; cursor: not-allowed; }
   &:not(:disabled):hover { opacity: 0.9; }
 }
 
 .spinner-sm {
-  width: 13px;
-  height: 13px;
+  width: clamp(10px, 0.9vw, 13px);
+  height: clamp(10px, 0.9vw, 13px);
   border: 2px solid transparent;
   border-top-color: #fff;
   border-radius: 50%;
@@ -484,34 +492,33 @@
 .feed-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(8px, 0.83vw, 12px);
   flex-wrap: wrap;
 }
 
 .feed-tabs {
   display: flex;
-  gap: 4px;
+  gap: clamp(2px, 0.28vw, 4px);
   flex: 1;
   background: #FFFFFF;
   border: 0.5px solid rgba(100, 70, 50, 0.10);
-  border-radius: 12px;
-  padding: 4px;
+  border-radius: clamp(8px, 0.83vw, 12px);
+  padding: clamp(2px, 0.28vw, 4px);
 }
 
 .feed-tab {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 16px;
-  border-radius: 9px;
+  gap: clamp(3px, 0.35vw, 5px);
+  padding: clamp(5px, 0.49vw, 7px) clamp(10px, 1.1vw, 16px);
+  border-radius: clamp(6px, 0.63vw, 9px);
   border: 1px solid transparent;
   background: transparent;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 600;
   color: #9E8E82;
   cursor: pointer;
   transition: all 0.15s;
-
   &:hover { color: var(--foreground); }
   &--active { background: #C1553A; border-color: #C1553A; color: #fff; }
 }
@@ -519,12 +526,12 @@
 .active-tag-chip {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
+  gap: clamp(3px, 0.35vw, 5px);
+  padding: clamp(3px, 0.35vw, 5px) clamp(8px, 0.83vw, 12px);
   background: var(--primary-soft);
   border: 1px solid rgba(217, 119, 87, 0.3);
   border-radius: var(--radius-full);
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 700;
   color: var(--primary);
 }
@@ -537,7 +544,6 @@
   display: flex;
   color: var(--primary);
   opacity: 0.7;
-
   &:hover { opacity: 1; }
 }
 
@@ -546,18 +552,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 48px 20px;
+  gap: clamp(8px, 0.83vw, 12px);
+  padding: clamp(28px, 3.3vw, 48px) clamp(12px, 1.4vw, 20px);
   color: var(--muted-foreground);
-  font-size: 14px;
+  font-size: clamp(12px, 0.97vw, 14px);
   text-align: center;
-
   p { margin: 0; }
 }
 
 .spinner {
-  width: 28px;
-  height: 28px;
+  width: clamp(20px, 1.94vw, 28px);
+  height: clamp(20px, 1.94vw, 28px);
   border: 3px solid rgba(217, 119, 87, 0.2);
   border-top-color: var(--primary);
   border-radius: 50%;
@@ -565,22 +570,20 @@
 }
 
 // ── Post cards ────────────────────────────────────────────────────
-.posts-list { display: flex; flex-direction: column; gap: 16px; }
+.posts-list { display: flex; flex-direction: column; gap: clamp(10px, 1.1vw, 16px); }
 
 .post-card {
   background: #FFFFFF;
-  border-radius: 16px;
+  border-radius: clamp(10px, 1.1vw, 16px);
   border: 0.5px solid rgba(100, 70, 50, 0.10);
-   padding: 18px;
+  padding: clamp(10px, 1.25vw, 18px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: clamp(8px, 0.83vw, 12px);
   transition: border-color 0.15s, box-shadow 0.4s ease;
   scroll-margin-top: 80px;
 
   &:hover { border-color: rgba(100, 70, 50, 0.22); }
-
-  // Transient cue when deep-linked via /community?post=<id>.
   &--highlight {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--primary-soft);
@@ -591,21 +594,20 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: clamp(5px, 0.56vw, 8px);
 }
 
 .post-author-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(7px, 0.7vw, 10px);
   text-decoration: none;
-
   &:hover .post-author { color: var(--primary); }
 }
 
 .post-avatar {
-  width: 38px;
-  height: 38px;
+  width: clamp(28px, 2.64vw, 38px);
+  height: clamp(28px, 2.64vw, 38px);
   border-radius: 50%;
   flex-shrink: 0;
   overflow: hidden;
@@ -613,27 +615,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   img { width: 100%; height: 100%; object-fit: cover; }
-  span { color: #fff; font-size: 14px; font-weight: 700; }
+  span { color: #fff; font-size: clamp(11px, 0.97vw, 14px); font-weight: 700; }
 }
 
-.post-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.post-meta { display: flex; flex-direction: column; gap: clamp(1px, 0.14vw, 2px); min-width: 0; }
 
 .post-author {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
+  font-size: clamp(12px, 0.97vw, 14px);
   font-weight: 600;
   color: #1C1410;
   transition: color 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.post-time { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; color: #9E8E82; }
+.post-time { font-family: 'Inter', system-ui, sans-serif; font-size: clamp(10px, 0.83vw, 12px); color: #9E8E82; }
 
 .post-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(5px, 0.56vw, 8px);
   flex-shrink: 0;
 }
 
@@ -641,17 +645,14 @@
 .sentiment-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
+  gap: clamp(4px, 0.42vw, 6px);
+  padding: clamp(2px, 0.28vw, 4px) clamp(7px, 0.76vw, 11px);
   border-radius: 20px;
-  font-size: 11px;
+  font-size: clamp(9px, 0.76vw, 11px);
   font-weight: 500;
   text-transform: capitalize;
   border: 1px solid transparent;
-
-  // Dot removed per request — emoji + text label only.
   &::before { display: none; }
-
   &--positive  { background: #EDF7F0; color: #2A6644; }
   &--negative  { background: #FEF0EE; color: #A8432A; }
   &--neutral   { background: #F5F0E8; color: #6B5A4E; }
@@ -663,44 +664,44 @@
   border: none;
   cursor: pointer;
   color: var(--muted-foreground);
-  padding: 4px;
+  padding: clamp(2px, 0.28vw, 4px);
   border-radius: 6px;
   display: flex;
   opacity: 0;
   transition: opacity 0.15s;
-
   .post-card:hover & { opacity: 1; }
   &:hover { color: #dc2626; background: rgba(220, 38, 38, 0.08); }
 }
 
 .post-content {
-  font-size: 14px;
+  font-size: clamp(12px, 0.97vw, 14px);
   font-style: normal;
   line-height: 1.65;
   color: #2A1E18;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+  transition: opacity 0.2s ease;
+  &--translated { opacity: 0.95; }
 }
 
 // ── Tag pills on post cards ───────────────────────────────────────
 .post-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: clamp(4px, 0.42vw, 6px);
 }
 
 .tag-pill {
-  padding: 3px 10px;
+  padding: clamp(2px, 0.21vw, 3px) clamp(7px, 0.7vw, 10px);
   border-radius: 20px;
   border: 1px solid transparent;
   background: #FAF0ED;
-  font-size: 12px;
+  font-size: clamp(10px, 0.83vw, 12px);
   font-weight: 500;
   color: #8B3E2A;
   cursor: pointer;
   transition: all 0.15s;
-
   &:hover { background: #FAF0ED; border-color: rgba(193, 85, 58, 0.35); }
 }
 
@@ -708,21 +709,20 @@
 .post-book {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: clamp(7px, 0.7vw, 10px);
+  padding: clamp(7px, 0.7vw, 10px) clamp(8px, 0.83vw, 12px);
   background: #F5EFE6;
-  border-radius: 10px;
+  border-radius: clamp(7px, 0.7vw, 10px);
   border: 0.5px solid rgba(100, 70, 50, 0.12);
-  border-left: 3px solid rgba(193, 85, 58, 0.35);
+  border-inline-start: 3px solid rgba(193, 85, 58, 0.35);
   text-decoration: none;
   transition: background 0.15s;
-
-  &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); border-left-color: rgba(193, 85, 58, 0.35); }
+  &:hover { background: var(--primary-soft); border-color: rgba(217, 119, 87, 0.2); border-inline-start-color: rgba(193, 85, 58, 0.35); }
 }
 
 .post-book-cover {
-  width: 28px;
-  height: 42px;
+  width: clamp(20px, 1.94vw, 28px);
+  height: clamp(30px, 2.9vw, 42px);
   object-fit: cover;
   border-radius: 3px;
   flex-shrink: 0;
@@ -730,7 +730,7 @@
 
 .post-book-title {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 500;
   color: #1C1410;
   white-space: nowrap;
@@ -742,52 +742,77 @@
 .post-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(5px, 0.56vw, 8px);
   border-top: 0.5px solid rgba(100, 70, 50, 0.08);
-  padding-top: 12px;
+  padding-top: clamp(8px, 0.83vw, 12px);
 }
 
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
+  gap: clamp(3px, 0.35vw, 5px);
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 600;
   color: #9E8E82;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px 10px;
+  padding: clamp(3px, 0.35vw, 5px) clamp(7px, 0.7vw, 10px);
   border-radius: var(--radius-md);
   transition: all 0.15s;
-
   svg { flex-shrink: 0; }
   &:hover { background: var(--background); color: #C1553A; }
   &--liked { color: #C1553A; }
   &--active { color: var(--primary); }
+  &--heart { padding: clamp(3px, 0.35vw, 5px) clamp(4px, 0.42vw, 6px); }
+  &--translate {
+    margin-inline-start: auto;
+    font-size: clamp(10px, 0.83vw, 12px);
+    color: #9E8E82;
+    opacity: 0.7;
+    &:hover { opacity: 1; color: var(--primary); }
+    &.action-btn--active { opacity: 1; color: var(--primary); }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+  }
+}
+
+.action-like-group { display: flex; align-items: center; }
+
+.action-like-count {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: clamp(11px, 0.9vw, 13px);
+  font-weight: 600;
+  color: #9E8E82;
+  padding: clamp(3px, 0.35vw, 5px) clamp(4px, 0.42vw, 6px) clamp(3px, 0.35vw, 5px) clamp(1px, 0.14vw, 2px);
+  border-radius: 6px;
+  transition: color 0.15s;
+  &:hover { color: #C1553A; }
+  &--active { color: #C1553A; }
+  &--zero { font-size: clamp(11px, 0.9vw, 13px); font-weight: 600; color: #9E8E82; }
 }
 
 // ── Load more ─────────────────────────────────────────────────────
 .load-more-wrap {
   display: flex;
   justify-content: center;
-  padding: 8px 0;
+  padding: clamp(5px, 0.56vw, 8px) 0;
 }
 
 .load-more-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 28px;
+  gap: clamp(5px, 0.56vw, 8px);
+  padding: clamp(7px, 0.7vw, 10px) clamp(18px, 1.94vw, 28px);
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--surface);
-  font-size: 13px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 600;
   color: var(--foreground);
   cursor: pointer;
   transition: all 0.15s;
-
   &:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }

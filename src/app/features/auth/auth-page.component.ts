@@ -230,7 +230,7 @@ export class AuthPageComponent {
       const { error } = await this.supabaseService.signInWithProvider('google');
 
       if (error) {
-        this.errorMessage = error.message;
+        this.errorMessage = this.text.googleError;
         this.isSubmitting = false;
       }
     } catch (error) {
@@ -316,7 +316,7 @@ export class AuthPageComponent {
   }
 
   private readErrorMessage(error: unknown, fallback: string): string {
-    return error instanceof Error ? error.message : fallback;
+    return fallback;
   }
 
   // Signup / API errors: map the backend's stable code to a localized message.
@@ -336,7 +336,7 @@ export class AuthPageComponent {
         case 'EMAIL_SEND_FAILED':
           return this.text.emailSendFailed;
         case 'RATE_LIMITED':
-          return error.message || this.text.genericError;
+          return this.text.genericError;
         case 'MISSING_FIELDS':
           return this.text.requiredFields;
         default:
@@ -361,6 +361,6 @@ export class AuthPageComponent {
     if (message.includes('email not confirmed') || message.includes('not confirmed')) {
       return this.text.emailNotVerified;
     }
-    return error.message || this.text.genericError;
+    return this.text.genericError;
   }
 }

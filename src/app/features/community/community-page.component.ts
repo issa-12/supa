@@ -8,7 +8,9 @@ import { SupabaseService, RealtimeSubscription } from '../../core/services/supab
 import { PostCommentsComponent } from '../home/components/post-comments.component';
 import { TopNavComponent } from '../home/components/top-nav.component';
 import { timeAgo } from '../../core/util/time-ago';
+import { detectLang } from '../../core/util/detect-lang';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
+import { LikesPopupComponent } from '../../shared/likes-popup.component';
 import { TranslationService, COMMUNITY_COPY, LanguageCode } from '../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -27,7 +29,7 @@ interface TrendingTag {
 @Component({
   selector: 'app-community-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, PostCommentsComponent, TopNavComponent],
+  imports: [FormsModule, RouterLink, PostCommentsComponent, TopNavComponent, LikesPopupComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './community-page.component.html',
   styleUrl: './community-page.component.scss',
@@ -45,7 +47,10 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   protected get copy() { return COMMUNITY_COPY[this.lang]; }
 
   constructor() {
-    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.activeTranslations = new Set();
+    });
   }
 
   currentUserId: string | null = null;
@@ -81,6 +86,18 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   tagSearchQuery = '';
   private tagSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
+  likesPopup: { type: 'post' | 'comment'; entityId: number; count: number } | null = null;
+
+  openLikesPopup(type: 'post' | 'comment', entityId: number, count: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.likesPopup = { type, entityId, count };
+  }
+
+  // Translation state
+  private translatedTexts = new Map<number, Map<string, string>>();
+  translatingIds = new Set<number>();
+  activeTranslations = new Set<number>();
+
   private realtimeSub: RealtimeSubscription | null = null;
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
@@ -110,20 +127,40 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
 
     await Promise.all([this.loadPosts(), this.loadTrendingTags()]);
 
-    if (this.focusPostId !== null) this.focusOnPost(this.focusPostId);
+    if (this.focusPostId !== null) await this.focusOnPost(this.focusPostId);
   }
 
-  // Open the target post's comments and scroll it into view. Best-effort: the
-  // post must be in the loaded feed (recent posts on the default "all" tab are).
-  private focusOnPost(postId: number): void {
-    if (!this.posts.some((p) => p.id === postId)) return;
+  // Open the target post's comments and scroll it into view.
+  // If not in the first page, loads more pages until found (up to 4 extra pages).
+  private async focusOnPost(postId: number): Promise<void> {
+    const matches = (p: ActivityPost) => Number(p.id) === Number(postId);
+
+    if (!this.posts.some(matches)) {
+      // Post not in first page — keep loading until found
+      for (let pg = 1; pg <= 4; pg++) {
+        if (!this.currentUserId) break;
+        const more = await this.activityService.getCommunityPosts(this.currentUserId, undefined, pg);
+        if (!more.length) break;
+        this.posts = [...this.posts, ...more];
+        if (more.some(matches)) break;
+      }
+    }
+
+    if (!this.posts.some(matches)) return; // still not found — give up
+
     this.openCommentPostIds = new Set(this.openCommentPostIds).add(postId);
     this.highlightedPostId = postId;
-    // Wait a frame for the post (and its now-open comments) to render.
-    setTimeout(() => {
-      document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-    // Fade the highlight after a few seconds so it reads as a transient cue.
+
+    // Retry scroll until the element is rendered (Angular needs at least one CD cycle).
+    const tryScroll = (attempts: number) => {
+      const el = document.getElementById(`post-${postId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (attempts > 0) {
+        setTimeout(() => tryScroll(attempts - 1), 100);
+      }
+    };
+    setTimeout(() => tryScroll(8), 50);
     setTimeout(() => { this.highlightedPostId = null; }, 2600);
     void this.setupRealtime();
   }
@@ -248,10 +285,14 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   }
 
   onTagSearchInput(): void {
-    if (this.tagSearchTimer) clearTimeout(this.tagSearchTimer);
-    const q = this.tagSearchQuery.trim().replace(/^#/, '');
-    if (!q) { this.clearTagFilter(); return; }
-    this.tagSearchTimer = setTimeout(() => this.filterByTag(q), 500);
+    if (!this.tagSearchQuery.trim()) this.clearTagFilter();
+  }
+
+  onTagSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      const q = this.tagSearchQuery.trim().replace(/^#/, '');
+      if (q) { this.filterByTag(q); this.tagSearchQuery = ''; }
+    }
   }
 
   loadMore(): void { this.loadPosts(true); }
@@ -372,4 +413,48 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   }
 
   readonly timeAgo = timeAgo;
+
+  getPostContent(post: ActivityPost): string {
+    if (!this.activeTranslations.has(post.id)) return post.content;
+    return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
+  }
+
+  async translatePost(post: ActivityPost): Promise<void> {
+    const postId = post.id;
+
+    if (this.activeTranslations.has(postId)) {
+      this.activeTranslations = new Set([...this.activeTranslations].filter(id => id !== postId));
+      return;
+    }
+
+    const cached = this.translatedTexts.get(postId)?.get(this.lang);
+    if (cached) {
+      this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      return;
+    }
+
+    const targetLang = this.lang;
+    const sourceLang = detectLang(post.content);
+    if (sourceLang === targetLang) return;
+
+    this.translatingIds = new Set([...this.translatingIds, postId]);
+    try {
+      const res = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(post.content)}&langpair=${sourceLang}|${targetLang}`
+      );
+      const data = await res.json() as { responseData?: { translatedText?: string }; responseStatus?: number };
+      if (data?.responseStatus !== 200) return;
+      const translated = data?.responseData?.translatedText ?? '';
+
+      if (translated && translated.trim() !== post.content.trim()) {
+        const langMap2 = this.translatedTexts.get(postId) ?? new Map<string, string>();
+        langMap2.set(this.lang, translated);
+        this.translatedTexts.set(postId, langMap2);
+        this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      }
+    } catch { /* silently ignore */ }
+    finally {
+      this.translatingIds = new Set([...this.translatingIds].filter(id => id !== postId));
+    }
+  }
 }

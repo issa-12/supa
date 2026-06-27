@@ -7,6 +7,7 @@ export interface ProfileCopy {
   profileTitle: string;
   goHome: string;
   goHomeBtn: string;
+  closeAria: string;
   profileUnavailable: string;
   joinedSince: string;
   readingSincePrefix: string;
@@ -150,6 +151,9 @@ export interface ProfileCopy {
   reasonInappropriate: string;
   reasonImpersonation: string;
   reasonOther: string;
+  unfriendBtn: string;
+  pendingBtn: string;
+  modalFriendsTitle: string;
 }
 
 export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
@@ -160,6 +164,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     profileTitle: 'Profile',
     goHome: 'Go home',
     goHomeBtn: 'Go home',
+    closeAria: 'Close',
     profileUnavailable: 'This profile is not available.',
     joinedSince: 'Reading since {{ date }}',
     readingSincePrefix: 'Reading since ',
@@ -303,6 +308,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reasonInappropriate: 'Inappropriate content',
     reasonImpersonation: 'Impersonation',
     reasonOther: 'Other',
+    unfriendBtn: 'Unfriend',
+    pendingBtn: 'Pending',
+    modalFriendsTitle: 'Friends',
   },
   ar: {
     ownTitle: 'ملفي الشخصي',
@@ -311,6 +319,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     profileTitle: 'الملف الشخصي',
     goHome: 'الرجوع للرئيسية',
     goHomeBtn: 'الرجوع للرئيسية',
+    closeAria: 'إغلاق',
     profileUnavailable: 'هذا الملف الشخصي غير متاح.',
     joinedSince: 'القراءة منذ {{ date }}',
     readingSincePrefix: 'القراءة منذ ',
@@ -454,6 +463,9 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reasonInappropriate: 'محتوى غير لائق',
     reasonImpersonation: 'انتحال شخصية',
     reasonOther: 'أخرى',
+    unfriendBtn: 'إلغاء الصداقة',
+    pendingBtn: 'معلّق',
+    modalFriendsTitle: 'الأصدقاء',
   },
   fr: {
     ownTitle: 'Mon Profil',
@@ -462,6 +474,7 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     profileTitle: 'Profil',
     goHome: 'Aller à l\'accueil',
     goHomeBtn: 'Aller à l\'accueil',
+    closeAria: 'Fermer',
     profileUnavailable: 'Ce profil n\'est pas disponible.',
     joinedSince: 'Lecteur depuis {{ date }}',
     readingSincePrefix: 'Lecteur depuis ',
@@ -605,5 +618,8 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     reasonInappropriate: 'Contenu inapproprié',
     reasonImpersonation: 'Usurpation d\'identité',
     reasonOther: 'Autre',
+    unfriendBtn: 'Retirer l\'ami',
+    pendingBtn: 'En attente',
+    modalFriendsTitle: 'Amis',
   },
 };

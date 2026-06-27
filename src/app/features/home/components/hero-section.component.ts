@@ -1,8 +1,9 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslationService, HOME_COPY, LanguageCode, translateGenre } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { BookService } from '../../../core/services/book.service';
 
 interface Book {
@@ -35,7 +36,7 @@ interface Book {
         </div>
 
         <h1 class="hero-title">{{ book.title }}</h1>
-        <div class="hero-author">by {{ book.author }}</div>
+        <div class="hero-author">{{ copy.byAuthor.replace('{{ author }}', book.author) }}</div>
 
         <p class="hero-desc">
           {{ descriptionPreview || copy.heroFallbackDescription }}
@@ -64,7 +65,7 @@ interface Book {
         <img
           class="hero-cover"
           [src]="book.coverUrl"
-          [alt]="book.title + ' Cover'"
+          [alt]="copy.coverAlt.replace('{{ title }}', book.title)"
           (error)="coverBroken = true"
         />
       } @else {
@@ -95,7 +96,7 @@ interface Book {
       // min-height above lets flexbox shrink the box below its content (the
       // buttons then spill out over the next section). Never shrink.
       flex-shrink: 0;
-      padding: 40px 48px 36px;
+      padding: clamp(20px, 3vw, 40px) clamp(20px, 3.5vw, 48px) clamp(16px, 2.8vw, 36px);
       background: #EDE5D8;
       border: 0.5px solid #D9CFC0;
       border-radius: 18px;
@@ -115,7 +116,7 @@ interface Book {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 11px;
+      font-size: clamp(10px, 1vw, 11px);
       font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -136,7 +137,7 @@ interface Book {
 
     .hero-title {
       font-family: var(--display-serif);
-      font-size: 36px;
+      font-size: clamp(22px, 2.8vw, 36px);
       font-weight: 700;
       line-height: 1.2;
       color: #1C1410;
@@ -150,18 +151,18 @@ interface Book {
     }
 
     .hero-author {
-      font-size: 14px;
+      font-size: clamp(13px, 1.2vw, 14px);
       font-style: italic;
       color: #6B5A4E;
-      margin-bottom: 16px;
+      margin-bottom: clamp(10px, 1.3vw, 16px);
     }
 
     .hero-desc {
-      font-size: 15px;
+      font-size: clamp(13px, 1.2vw, 15px);
       line-height: 1.65;
       color: #3D2A1E;
-      max-width: 460px;
-      margin: 0 0 28px;
+      max-width: min(460px, 90%);
+      margin: 0 0 clamp(16px, 2.2vw, 28px);
       overflow-wrap: break-word;
     }
 
@@ -175,9 +176,9 @@ interface Book {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 12px 28px;
+      padding: clamp(9px, 1vw, 12px) clamp(16px, 2.2vw, 28px);
       border-radius: 10px;
-      font-size: 15px;
+      font-size: clamp(13px, 1.2vw, 15px);
       white-space: nowrap;
       cursor: pointer;
       font-family: inherit;
@@ -216,13 +217,13 @@ interface Book {
       margin: 12px 0 0;
     }
 
-    // Straight cover pinned to the far-right edge, vertically centred.
+    // Straight cover pinned to the inline end edge, vertically centred.
     .hero-cover {
       position: absolute;
-      right: 40px;
+      inset-inline-end: clamp(16px, 3vw, 40px);
       top: 50%;
       transform: translateY(-50%);
-      width: 140px;
+      width: clamp(90px, 11vw, 140px);
       height: auto;
       object-fit: cover;
       border-radius: 8px;
@@ -231,8 +232,8 @@ interface Book {
     }
 
     .hero-cover--placeholder {
-      width: 140px;
-      height: 204px;
+      width: clamp(90px, 11vw, 140px);
+      height: clamp(130px, 16vw, 204px);
       background: var(--border);
       display: flex;
       align-items: center;
@@ -241,21 +242,15 @@ interface Book {
     }
 
     @media (max-width: 768px) {
-      .hero-section { padding: 28px 24px; }
-      .hero-content { max-width: 100%; }
-      .hero-title { font-size: 30px; }
-
-      // On phones the absolute cover would overlap the text — drop it into flow
-      // beneath the content instead.
+      .hero-section { padding: clamp(14px, 4vw, 28px) clamp(12px, 4vw, 24px); }
       .hero-cover {
-        position: static;
-        transform: none;
-        margin-top: 24px;
+        width: clamp(72px, 20vw, 110px);
+        inset-inline-end: clamp(10px, 2.5vw, 20px);
       }
     }
   `],
 })
-export class HeroSectionComponent {
+export class HeroSectionComponent implements OnChanges {
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly bookService = inject(BookService);
@@ -290,6 +285,23 @@ export class HeroSectionComponent {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // When the hero book or user changes, check if it's already on the shelf.
+    if ((changes['book'] || changes['currentUserId']) && this.book?.googleBooksId && this.currentUserId) {
+      this.addedToReading = false;
+      void this.checkAlreadyAdded();
+    }
+  }
+
+  private async checkAlreadyAdded(): Promise<void> {
+    try {
+      const userBook = await firstValueFrom(
+        this.bookService.getUserBookByGoogleId(this.currentUserId!, this.book.googleBooksId!)
+      );
+      this.addedToReading = !!userBook;
+    } catch { /* non-critical */ }
+  }
+
   // Google Books descriptions contain HTML markup; strip tags + decode common
   // entities so the hero shows clean text (not raw <p>/&quot;), then truncate.
   protected get descriptionPreview(): string {
@@ -319,7 +331,7 @@ export class HeroSectionComponent {
     this.addingToReading = true;
     this.addError = false;
     try {
-      await this.bookService.addToCurrentlyReading(this.currentUserId, this.book);
+      await this.bookService.addToCurrentlyReading(this.currentUserId, this.book, 'want_to_read');
       this.addedToReading = true;
       this.addToReading.emit(this.book);
     } catch {

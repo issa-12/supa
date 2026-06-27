@@ -77,7 +77,28 @@
       "PowerShell(\"--- public endpoint headers \\(rate limit\\) ---\"; curl.exe -s -D - -o NUL http://localhost:3000/api/public/v1/shelf -H \"X-API-Key: rt_live_bogus\" | Select-String -Pattern \"RateLimit|HTTP/\"; \"--- swagger UI html ---\"; curl.exe -s -o NUL -w \"docs page: %{http_code}`n\" http://localhost:3000/api/docs; \"--- PUT documented? ---\"; \\(curl.exe -s http://localhost:3000/api/docs-json | ConvertFrom-Json\\).paths.'/api/public/v1/shelf/{id}'.PSObject.Properties.Name -join \", \")",
       "PowerShell(cd C:\\\\Users\\\\Issa\\\\Desktop\\\\final\\\\backend; $env:NODE_ENV=\"development\"; Start-Process -FilePath \"node\" -ArgumentList \"dist/main\" -RedirectStandardOutput boot.log -RedirectStandardError boot.err.log -NoNewWindow; Start-Sleep -Seconds 6; \"=== startup tail ===\"; Get-Content boot.log -Tail 4; if \\(Test-Path boot.err.log\\) { $e = Get-Content boot.err.log -Raw; if \\($e\\) { \"=== STDERR ===\"; $e } })",
       "PowerShell(cd C:\\\\Users\\\\Issa\\\\Desktop\\\\final\\\\backend; $env:NODE_ENV=\"development\"; Start-Process -FilePath \"node\" -ArgumentList \"dist/main\" -RedirectStandardOutput boot.log -RedirectStandardError boot.err.log -NoNewWindow; Start-Sleep -Seconds 6; node diag-signup.mjs 2>&1)",
-      "PowerShell(cd C:\\\\Users\\\\Issa\\\\Desktop\\\\final\\\\backend; \"=== boot.err ===\"; Get-Content boot.err.log -Raw -ErrorAction SilentlyContinue; \"=== boot.log tail ===\"; Get-Content boot.log -Tail 3 -ErrorAction SilentlyContinue; \"=== port 3000 ===\"; \\(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Measure-Object\\).Count)"
+      "PowerShell(cd C:\\\\Users\\\\Issa\\\\Desktop\\\\final\\\\backend; \"=== boot.err ===\"; Get-Content boot.err.log -Raw -ErrorAction SilentlyContinue; \"=== boot.log tail ===\"; Get-Content boot.log -Tail 3 -ErrorAction SilentlyContinue; \"=== port 3000 ===\"; \\(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Measure-Object\\).Count)",
+      "Bash(grep -v \"//\\\\|auto\")",
+      "Bash(grep -v \"//\\\\|: auto\\\\|: 0\\\\|border-left: none\\\\|border-right: none\\\\|-webkit\\\\|border-radius\\\\|border-left-\\\\|border-right-\\\\|border-top-left\\\\|border-top-right\\\\|border-bottom-left\\\\|border-bottom-right\\\\|0 0 0\\\\| 0;\")",
+      "Bash(grep -v \"//\\\\|border-radius\\\\|border-top-left\\\\|border-top-right\\\\|border-bottom-left\\\\|border-bottom-right\\\\|-webkit\\\\|border-left: none\\\\|border-right: none\\\\|translate\\\\|rotate\\\\|: 0 0\\\\|auto;\")",
+      "Bash(grep -v \"//\\\\|border\\\\|radius\\\\|content\\\\|-left\\\\|translateX\\\\|calc\")",
+      "Bash(grep -v \"//\\\\|border\\\\|radius\\\\|content\\\\|-right\\\\|translateX\\\\|calc\")",
+      "Bash(grep -v \"//\\\\|inset-inline\\\\|align-items\\\\|class\\\\|method\\\\|function\\\\|if\\\\|import\\\\|'right'\\\\|'left'\\\\|arrow\\\\|chevron\\\\|icon\\\\|left_click\\\\|right_click\")",
+      "Bash(grep -v \"//\\\\|import\\\\|class\\\\|type\\\\|interface\\\\|url\\\\|http\\\\|Supabase\\\\|Google\\\\|ReadTrack\\\\|Error\\\\|null\\\\|undefined\\\\|NaN\\\\|empty\\\\|admin\\\\|SELECT\\\\|INSERT\\\\|UPDATE\\\\|DELETE\\\\|ORDER\\\\|FROM\\\\|WHERE\\\\|AND\\\\|OR\\\\|NOT\\\\|IS\\\\|IN\\\\|desc\\\\|asc\\\\|read\\\\|want\\\\|current\\\\|post\\\\|book\\\\|user\\\\|friend\\\\|comment\\\\|notif\\\\|like\\\\|status\\\\|pending\\\\|accept\\\\|reject\\\\|block\\\\|private\")",
+      "Bash(grep -v \"//\\\\|spec\\\\|''\\\\|\\\\\"\\\\\"\")",
+      "Bash(grep -v \"//\\\\|import\\\\|interface\\\\|type\\\\|class\\\\|function\\\\|method\\\\|console\\\\|catch\\\\|throw\\\\|await\\\\|async\\\\|const\\\\|let\\\\|var\")",
+      "Bash(xargs grep -l \".\")",
+      "Bash(grep -rn \"template:\\\\s*\\\\`\\\\|template:\\\\s*'\" src/app/features --include=\"*.ts\" -l)",
+      "Bash(grep -v \"//\\\\|border-radius\\\\|border-top-left\\\\|border-top-right\\\\|border-bottom\")",
+      "Bash(grep -v \"center\\\\|start\\\\|end\\\\|inherit\\\\|//\\\\|unset\")",
+      "Bash(grep -v \"//\\\\|border\\\\|radius\\\\|outline\\\\|: 0\\\\|auto\\\\|translateX\\\\|calc\\\\|absolute.*left\\\\|inset-inline\\\\|transform\\\\|box-shadow\")",
+      "Bash(grep -v \"//\\\\|border\\\\|radius\\\\|outline\\\\|: 0\\\\|auto\\\\|translateX\\\\|calc\\\\|inset-inline\\\\|transform\\\\|box-shadow\\\\|: none\")",
+      "Bash(grep -v \"//\\\\|: 0\\\\|: auto\\\\|: unset\\\\|: inherit\")",
+      "Bash(grep -v \"//\\\\|: 0\\\\|: auto\\\\|'right'\\\\|'left'\\\\|\\\\\"right\\\\\"\\\\|\\\\\"left\\\\\"\\\\|inset-inline\")",
+      "Bash(grep -v \"//\\\\|inset-inline\\\\|'left\\\\|\\\\\"left\\\\|chevron-left\\\\|arrow-left\\\\|page-header-left\\\\|align.*left\\\\|text.*left\\\\|margin.*left\\\\|padding.*left\")",
+      "Bash(grep -v \"//\\\\|inset-inline\\\\|'right\\\\|\\\\\"right\\\\|chevron-right\\\\|arrow-right\\\\|align.*right\\\\|text.*right\\\\|margin.*right\\\\|padding.*right\\\\|border.*right\\\\|All rights\\\\|copy\\\\.\")",
+      "Bash(grep -v \"//\\\\|spec\\\\|confirmDialog\")",
+      "Bash(grep -v \"//\\\\|spec\\\\|interface\\\\|type\\\\b\\\\|'\\\\w*genre\\\\|import\")"
     ]
   }
 }

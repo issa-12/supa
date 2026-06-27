@@ -5,6 +5,7 @@ export interface BookDetailCopy {
   myShelf: string;
   breadcrumbHome: string;
   breadcrumbBooks: string;
+  breadcrumbAria: string;
   loadingBook: string;
   goBack: string;
   bookNotFound: string;
@@ -67,6 +68,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'My Shelf',
     breadcrumbHome: 'Home',
     breadcrumbBooks: 'Books',
+    breadcrumbAria: 'Breadcrumb',
     loadingBook: 'Loading book…',
     goBack: 'Go back',
     bookNotFound: 'Book not found.',
@@ -127,6 +129,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'رفي الخاص',
     breadcrumbHome: 'الرئيسية',
     breadcrumbBooks: 'الكتب',
+    breadcrumbAria: 'مسار التنقل',
     loadingBook: 'جاري تحميل الكتاب…',
     goBack: 'العودة',
     bookNotFound: 'الكتاب غير موجود.',
@@ -187,6 +190,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     myShelf: 'Ma Bibliothèque',
     breadcrumbHome: 'Accueil',
     breadcrumbBooks: 'Livres',
+    breadcrumbAria: 'Fil d’Ariane',
     loadingBook: 'Chargement du livre…',
     goBack: 'Retour',
     bookNotFound: 'Livre introuvable.',

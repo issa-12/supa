@@ -86,7 +86,7 @@
   max-width: 1160px;
   width: 100%;
   margin: 0 auto;
-  padding: 44px 48px 80px;
+  padding: clamp(20px, 3.4vw, 44px) clamp(16px, 3.7vw, 48px) clamp(40px, 6.3vw, 80px);
 }
 
 // ── Breadcrumb ──────────────────────────────────────────────────
@@ -122,10 +122,10 @@
 // ── Hero ────────────────────────────────────────────────────────
 .book-hero {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 56px;
+  grid-template-columns: clamp(160px, 20vw, 260px) minmax(0, 1fr);
+  gap: clamp(24px, 4.4vw, 56px);
   align-items: start;
-  margin-bottom: 48px;
+  margin-bottom: clamp(24px, 3.7vw, 48px);
 }
 
 // ── Cover column ────────────────────────────────────────────────
@@ -135,9 +135,9 @@
 }
 
 .cover-wrap {
-  width: 260px;
+  width: clamp(160px, 20vw, 260px);
   max-width: 100%;
-  height: 360px;
+  height: auto;
   aspect-ratio: 260 / 360;
   border-radius: 14px;
   overflow: hidden;
@@ -261,8 +261,7 @@
 .recommend-dropdown {
   position: absolute;
   top: calc(100% + 6px);
-  inset-inline-start: 0;
-  right: 0;
+  inset-inline: 0;
   max-height: 260px;
   overflow-y: auto;
   background: var(--white);
@@ -333,8 +332,7 @@
 .dropdown {
   position: absolute;
   top: calc(100% + 6px);
-  inset-inline-start: 0;
-  right: 0;
+  inset-inline: 0;
   background: var(--white);
   border: 0.5px solid var(--bd-med);
   border-radius: 12px;
@@ -393,7 +391,7 @@
 
 .book-title {
   font-family: var(--serif);
-  font-size: 42px;
+  font-size: clamp(24px, 3.3vw, 42px);
   font-weight: 700;
   color: var(--t1);
   line-height: 1.15;
@@ -416,8 +414,8 @@
   background: var(--white);
   border-radius: 16px;
   border: 0.5px solid var(--bd-soft);
-  padding: 22px 26px;
-  margin-bottom: 22px;
+  padding: clamp(14px, 1.7vw, 22px) clamp(14px, 2vw, 26px);
+  margin-bottom: clamp(14px, 1.7vw, 22px);
   display: flex;
   align-items: center;
   gap: 28px;
@@ -441,7 +439,7 @@
 
 .rating-num {
   font-family: var(--serif);
-  font-size: 54px;
+  font-size: clamp(32px, 4.2vw, 54px);
   font-weight: 700;
   color: var(--t1);
   line-height: 1;
@@ -620,7 +618,7 @@
   margin-bottom: 20px;
 }
 
-.card-header { padding: 22px 28px 0; }
+.card-header { padding: clamp(14px, 1.7vw, 22px) clamp(16px, 2.2vw, 28px) 0; }
 
 .card-title {
   font-size: 15px;
@@ -636,7 +634,7 @@
   letter-spacing: 0.08em;
 }
 
-.card-body { padding: 18px 28px 24px; }
+.card-body { padding: clamp(12px, 1.4vw, 18px) clamp(16px, 2.2vw, 28px) clamp(16px, 1.9vw, 24px); }
 
 // ── About ───────────────────────────────────────────────────────
 .about-text {
@@ -648,21 +646,22 @@
   overflow-wrap: break-word;
 }
 
-// ── Notes + Review side-by-side ─────────────────────────────────
-.two-col-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
+// ── Notes card ──────────────────────────────────────────────────
 .note-card {
   background: var(--white);
   border-radius: 18px;
   border: 0.5px solid var(--bd-soft);
-  padding: 22px 24px;
+  padding: clamp(14px, 1.7vw, 22px) clamp(14px, 1.9vw, 24px);
   display: flex;
   flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.note-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
 .note-card-title {
@@ -677,13 +676,40 @@
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 14px;
+}
+
+.note-saved-text {
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  margin: 0;
+}
+
+.icon-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--t4);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+  &:hover { color: var(--brand); background: var(--surface); }
+}
+
+.note-edit-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .note-textarea {
   width: 100%;
   min-height: 90px;
-  resize: vertical;
+  resize: none;
   border: 0.5px solid var(--bd-med);
   border-radius: 10px;
   padding: 11px 13px;
@@ -749,29 +775,55 @@
   }
 }
 
-// ── Posted review (own) ─────────────────────────────────────────
-.posted-review {
+// ── Own review card (pinned at top of reviews) ──────────────────
+.review-item--own {
+  background: rgba(233, 120, 63, 0.04);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 4px;
+
+  .review-header { margin-bottom: 10px; }
+
+  .r-avatar-wrap { flex-shrink: 0; }
+
+  .r-own-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand);
+    background: rgba(233, 120, 63, 0.12);
+    border-radius: 999px;
+    padding: 2px 7px;
+  }
+}
+
+.write-review-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--brand);
+  background: rgba(233, 120, 63, 0.08);
+  border: 0.5px solid rgba(233, 120, 63, 0.25);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover { background: rgba(233, 120, 63, 0.15); }
+}
+
+.r-avatar--initials {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--surface);
-  border: 0.5px solid var(--bd-soft);
-  border-radius: 10px;
-  padding: 14px 16px;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
 }
-
-.posted-review-text {
-  font-family: var(--serif);
-  font-size: 13px;
-  font-style: italic;
-  line-height: 1.65;
-  color: var(--t2);
-  margin: 0;
-  overflow-wrap: break-word;
-  white-space: pre-line;
-}
-
-.posted-review .save-btn { align-self: flex-end; }
 
 // ── Community reviews ───────────────────────────────────────────
 .review-item {
@@ -906,7 +958,6 @@
 
 @media (max-width: 560px) {
   .page-wrap { padding: 24px 16px 56px; }
-  .two-col-cards { grid-template-columns: minmax(0, 1fr); }
   .book-title { font-size: 28px; }
   .rating-card { gap: 18px; }
   .rating-divider { display: none; }

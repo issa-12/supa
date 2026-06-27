@@ -7,11 +7,13 @@ import { SupabaseService, RealtimeSubscription } from '../../../core/services/su
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, COMMENTS_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LikesPopupComponent } from '../../../shared/likes-popup.component';
+import { detectLang } from '../../../core/util/detect-lang';
 
 @Component({
   selector: 'app-post-comments',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LikesPopupComponent],
   template: `
     <div class="comments-section">
       @if (loading) {
@@ -31,16 +33,28 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                 <div class="comment-body">
                   <div class="comment-bubble">
                     <a class="comment-author" [routerLink]="['/profile', comment.userId]">{{ comment.userName }}</a>
-                    <p class="comment-text">{{ comment.content }}</p>
+                    <p class="comment-text">{{ getCommentContent(comment) }}</p>
                   </div>
                   <div class="comment-meta">
-                    <button class="meta-btn" [class.meta-btn--liked]="comment.isLikedByMe" (click)="toggleCommentLike(comment)">
-                      <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="comment.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                      </svg>
-                      @if (comment.likeCount > 0) { {{ comment.likeCount }} }
-                    </button>
+                    <span class="meta-like-group">
+                      <button class="meta-btn" [class.meta-btn--liked]="comment.isLikedByMe" (click)="toggleCommentLike(comment)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="comment.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                      </button>
+                      @if (comment.likeCount > 0) {
+                        <button class="meta-like-count" [class.meta-like-count--liked]="comment.isLikedByMe" (click)="openLikesPopup(comment.id, comment.likeCount, $event)">{{ comment.likeCount }}</button>
+                      }
+                    </span>
                     <time class="meta-time">{{ timeAgo(comment.createdAt, lang) }}</time>
+                    <button class="meta-translate" [class.meta-translate--active]="activeTranslations.has(comment.id)" [disabled]="translatingIds.has(comment.id)" (click)="translateComment(comment)">
+                      @if (translatingIds.has(comment.id)) {
+                        <span class="spinner-sm"></span>
+                      } @else {
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+                        {{ activeTranslations.has(comment.id) ? copy.showOriginalBtn : copy.translateBtn }}
+                      }
+                    </button>
                     @if (comment.userId === currentUserId) {
                       <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(comment)">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -48,7 +62,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                     }
                   </div>
                   @for (reply of comment.replies; track reply.id) {
-                    <div class="comment" style="margin-top: 8px;">
+                    <div class="comment comment--reply">
                       <div class="comment-avatar comment-avatar--sm">
                         @if (reply.userAvatar) { <img [src]="reply.userAvatar" [alt]="reply.userName" loading="lazy" /> }
                         @else { <span>{{ reply.userName[0].toUpperCase() }}</span> }
@@ -56,18 +70,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                       <div class="comment-body">
                         <div class="comment-bubble">
                           <a class="comment-author" [routerLink]="['/profile', reply.userId]">{{ reply.userName }}</a>
-                          <p class="comment-text">{{ reply.content }}</p>
+                          <p class="comment-text">{{ getCommentContent(reply) }}</p>
                         </div>
                         <div class="comment-meta">
-                          <button class="meta-btn" [class.meta-btn--liked]="reply.isLikedByMe" (click)="toggleCommentLike(reply)">
-                            <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="reply.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                            @if (reply.likeCount > 0) { {{ reply.likeCount }} }
-                          </button>
+                          <span class="meta-like-group">
+                            <button class="meta-btn" [class.meta-btn--liked]="reply.isLikedByMe" (click)="toggleCommentLike(reply)">
+                              <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="reply.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            </button>
+                            @if (reply.likeCount > 0) {
+                              <button class="meta-like-count" [class.meta-like-count--liked]="reply.isLikedByMe" (click)="openLikesPopup(reply.id, reply.likeCount, $event)">{{ reply.likeCount }}</button>
+                            }
+                          </span>
                           <time class="meta-time">{{ timeAgo(reply.createdAt, lang) }}</time>
+                          <button class="meta-translate" [class.meta-translate--active]="activeTranslations.has(reply.id)" [disabled]="translatingIds.has(reply.id)" (click)="translateComment(reply)">
+                            @if (translatingIds.has(reply.id)) {
+                              <span class="spinner-sm"></span>
+                            } @else {
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+                              {{ activeTranslations.has(reply.id) ? copy.showOriginalBtn : copy.translateBtn }}
+                            }
+                          </button>
                           @if (reply.userId === currentUserId) { <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(reply)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button> }
                         </div>
                         @for (deep of reply.replies; track deep.id) {
-                          <div class="comment" style="padding-left: 24px; margin-top: 8px;">
+                          <div class="comment comment--deep-reply">
                             <div class="comment-avatar comment-avatar--sm">
                               @if (deep.userAvatar) { <img [src]="deep.userAvatar" [alt]="deep.userName" loading="lazy" /> }
                               @else { <span>{{ deep.userName[0].toUpperCase() }}</span> }
@@ -75,14 +101,26 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                             <div class="comment-body">
                               <div class="comment-bubble">
                                 <a class="comment-author" [routerLink]="['/profile', deep.userId]">{{ deep.userName }}</a>
-                                <p class="comment-text">{{ deep.content }}</p>
+                                <p class="comment-text">{{ getCommentContent(deep) }}</p>
                               </div>
                               <div class="comment-meta">
-                                <button class="meta-btn" [class.meta-btn--liked]="deep.isLikedByMe" (click)="toggleCommentLike(deep)">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="deep.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                                  @if (deep.likeCount > 0) { {{ deep.likeCount }} }
-                                </button>
+                                <span class="meta-like-group">
+                                  <button class="meta-btn" [class.meta-btn--liked]="deep.isLikedByMe" (click)="toggleCommentLike(deep)">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" [attr.fill]="deep.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                  </button>
+                                  @if (deep.likeCount > 0) {
+                                    <button class="meta-like-count" [class.meta-like-count--liked]="deep.isLikedByMe" (click)="openLikesPopup(deep.id, deep.likeCount, $event)">{{ deep.likeCount }}</button>
+                                  }
+                                </span>
                                 <time class="meta-time">{{ timeAgo(deep.createdAt, lang) }}</time>
+                                <button class="meta-translate" [class.meta-translate--active]="activeTranslations.has(deep.id)" [disabled]="translatingIds.has(deep.id)" (click)="translateComment(deep)">
+                                  @if (translatingIds.has(deep.id)) {
+                                    <span class="spinner-sm"></span>
+                                  } @else {
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+                                    {{ activeTranslations.has(deep.id) ? copy.showOriginalBtn : copy.translateBtn }}
+                                  }
+                                </button>
                                 @if (deep.userId === currentUserId) { <button class="meta-btn meta-btn--danger" [attr.aria-label]="copy.deleteBtn" (click)="deleteComment(deep)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button> }
                               </div>
                             </div>
@@ -106,7 +144,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         <div class="add-comment">
           <div class="comment-avatar">
             @if (currentUserAvatar) {
-              <img [src]="currentUserAvatar" alt="You" loading="lazy" />
+              <img [src]="currentUserAvatar" [alt]="copy.currentUserAlt" loading="lazy" />
             } @else {
               <span>{{ userInitial }}</span>
             }
@@ -131,6 +169,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         </div>
       }
     </div>
+
+    @if (likesPopup) {
+      <app-likes-popup
+        type="comment"
+        [entityId]="likesPopup.entityId"
+        [count]="likesPopup.count"
+        [currentUserId]="currentUserId"
+        (closed)="likesPopup = null"
+      />
+    }
   `,
   styles: [`
     :host { display: block; }
@@ -190,6 +238,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       align-items: flex-start;
     }
 
+    .comment--reply,
+    .comment--deep-reply {
+      margin-top: 8px;
+    }
+
+    .comment--deep-reply {
+      padding-inline-start: 24px;
+    }
+
     .comment-avatar {
       width: 30px;
       height: 30px;
@@ -244,6 +301,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       align-items: center;
       gap: 16px;
       margin-top: 6px;
+      direction: ltr;
     }
 
     .meta-btn {
@@ -264,11 +322,28 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       &--danger:hover { color: #C1553A; }
     }
 
+    .meta-like-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .meta-like-count {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #9E8E82;
+      padding: 2px 4px 2px 1px;
+      border-radius: 4px;
+      transition: color 0.15s;
+      &:hover { color: #C1553A; }
+      &--liked { color: var(--primary); }
+    }
+
     .meta-time {
       font-size: 11px;
       color: #9E8E82;
-      order: 1;
-      margin-inline-start: auto;
     }
 
     .reply-form {
@@ -338,6 +413,24 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
       &:hover { background: var(--border); }
     }
+
+    .meta-translate {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      color: #9E8E82;
+      padding: 2px 5px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.15s, background 0.15s;
+
+      &:hover { color: var(--primary); background: rgba(233,120,63,0.08); }
+      &--active { color: var(--primary); }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
   `],
 })
 export class PostCommentsComponent implements OnInit, OnDestroy {
@@ -359,7 +452,10 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
   protected get copy() { return COMMENTS_COPY[this.lang]; }
 
   constructor() {
-    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.activeTranslations = new Set();
+    });
   }
 
   comments: Comment[] = [];
@@ -381,6 +477,54 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
   replyContent = '';
   submitting = false;
   commentError: string | null = null;
+  likesPopup: { entityId: number; count: number } | null = null;
+
+  openLikesPopup(commentId: number, count: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.likesPopup = { entityId: commentId, count };
+  }
+
+  private translatedTexts = new Map<number, Map<string, string>>();
+  translatingIds = new Set<number>();
+  activeTranslations = new Set<number>();
+
+  getCommentContent(comment: Comment): string {
+    if (!this.activeTranslations.has(comment.id)) return comment.content;
+    return this.translatedTexts.get(comment.id)?.get(this.lang) ?? comment.content;
+  }
+
+  async translateComment(comment: Comment): Promise<void> {
+    const id = comment.id;
+    if (this.activeTranslations.has(id)) {
+      this.activeTranslations = new Set([...this.activeTranslations].filter(x => x !== id));
+      return;
+    }
+    const cached = this.translatedTexts.get(id)?.get(this.lang);
+    if (cached) {
+      this.activeTranslations = new Set([...this.activeTranslations, id]);
+      return;
+    }
+    const sourceLang = detectLang(comment.content);
+    if (sourceLang === this.lang) return;
+    this.translatingIds = new Set([...this.translatingIds, id]);
+    try {
+      const res = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(comment.content)}&langpair=${sourceLang}|${this.lang}`
+      );
+      const data = await res.json() as { responseData?: { translatedText?: string }; responseStatus?: number };
+      if (data?.responseStatus !== 200) return;
+      const translated = data?.responseData?.translatedText ?? '';
+      if (translated && translated.trim() !== comment.content.trim()) {
+        const map = this.translatedTexts.get(id) ?? new Map<string, string>();
+        map.set(this.lang, translated);
+        this.translatedTexts.set(id, map);
+        this.activeTranslations = new Set([...this.activeTranslations, id]);
+      }
+    } catch { /* ignore */ }
+    finally {
+      this.translatingIds = new Set([...this.translatingIds].filter(x => x !== id));
+    }
+  }
 
   get userInitial(): string {
     return (this.currentUserName ?? 'R')[0].toUpperCase();

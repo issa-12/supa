@@ -1,6 +1,6 @@
 import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { TranslationService } from './i18n';
+import { APP_COPY, LanguageCode, TranslationService } from './i18n';
 import { PresenceService } from './core/services/presence.service';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -12,10 +12,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
-  isOffline = false;
   private readonly translationService = inject(TranslationService);
   private readonly presenceService = inject(PresenceService);
   private readonly destroyRef = inject(DestroyRef);
+  isOffline = false;
+  protected lang: LanguageCode = this.translationService.getCurrentLanguage();
+  protected get copy() { return APP_COPY[this.lang]; }
 
   ngOnInit(): void {
     this.isOffline = !navigator.onLine;
@@ -28,6 +30,7 @@ export class App implements OnInit {
     this.translationService.getCurrentLanguage$()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(lang => {
+        this.lang = lang;
         document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
         document.documentElement.lang = lang;
       });

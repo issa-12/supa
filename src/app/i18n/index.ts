@@ -1,4 +1,5 @@
 export * from './auth.translations';
+export * from './app.translations';
 export * from './verification.translations';
 export * from './dialog.translations';
 export * from './genre.translations';
@@ -13,6 +14,7 @@ export * from './shelf.translations';
 export * from './bookSearch.translations';
 export * from './bookDetail.translations';
 export * from './stats.translations';
+export * from './statsDashboard.translations';
 export * from './community.translations';
 export * from './apiKeys.translations';
 export * from './onboarding.translations';

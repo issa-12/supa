@@ -1,15 +1,17 @@
 import { Component, ElementRef, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ActivityService, ActivityPost } from '../../../core/services/activity.service';
 import { LikesService } from '../../../core/services/likes.service';
 import { BookService } from '../../../core/services/book.service';
 import { SupabaseService, RealtimeSubscription } from '../../../core/services/supabase.service';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
+import { detectLang } from '../../../core/util/detect-lang';
 import { TranslationService, HOME_COPY, LanguageCode } from '../../../i18n';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostCommentsComponent } from './post-comments.component';
+import { LikesPopupComponent } from '../../../shared/likes-popup.component';
 
 interface BookSearchResult {
   googleId: string;
@@ -21,7 +23,7 @@ interface BookSearchResult {
 @Component({
   selector: 'app-posts-feed',
   standalone: true,
-  imports: [FormsModule, RouterLink, PostCommentsComponent],
+  imports: [FormsModule, RouterLink, PostCommentsComponent, LikesPopupComponent],
   template: `
     <div class="feed-col">
 
@@ -34,7 +36,7 @@ interface BookSearchResult {
             <button class="compose-input-row" (click)="openCompose()">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+            <img [src]="currentUserAvatar" [alt]="copy.currentUserAlt" loading="lazy" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -45,7 +47,7 @@ interface BookSearchResult {
             <div class="compose-input-row compose-input-row--open">
               <div class="compose-avatar">
                 @if (currentUserAvatar) {
-                  <img [src]="currentUserAvatar" alt="You" loading="lazy" (error)="currentUserAvatar = null" />
+                  <img [src]="currentUserAvatar" [alt]="copy.currentUserAlt" loading="lazy" (error)="currentUserAvatar = null" />
                 } @else {
                   <span>{{ currentUserInitial }}</span>
                 }
@@ -70,7 +72,7 @@ interface BookSearchResult {
                     <span class="selected-book-title">{{ selectedBook.title }}</span>
                     <span class="selected-book-author">{{ selectedBook.author }}</span>
                   </div>
-                  <button class="clear-book" (click)="clearBook()" aria-label="Remove book">
+                  <button class="clear-book" (click)="clearBook()" [attr.aria-label]="copy.feedAriaRemoveBook">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
@@ -161,9 +163,9 @@ interface BookSearchResult {
       } @else {
         <div class="posts-list">
           @for (post of (activeTab === 'friends' ? posts : trendingPosts); track post.id) {
-            <article class="post-card">
+            <article class="post-card" (click)="navigateToPost(post.id)" style="cursor:pointer">
               <div class="post-header">
-                <a class="post-author-link" [routerLink]="['/profile', post.userId]">
+                <a class="post-author-link" [routerLink]="['/profile', post.userId]" (click)="$event.stopPropagation()">
                   <div class="post-avatar">
                     @if (post.userAvatar) {
                       <img [src]="post.userAvatar" [alt]="post.userName" loading="lazy" (error)="post.userAvatar = null" />
@@ -174,13 +176,6 @@ interface BookSearchResult {
                   <span class="post-author">{{ post.userName }}</span>
                 </a>
                 <time class="post-time">{{ timeAgo(post.createdAt, lang) }}</time>
-                @if (post.userId === currentUserId) {
-                  <button class="post-delete" (click)="deletePost(post)" aria-label="Delete post">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                    </svg>
-                  </button>
-                }
               </div>
 
               <p class="post-content">{{ post.content }}</p>
@@ -194,42 +189,43 @@ interface BookSearchResult {
               }
 
               @if (post.bookTitle) {
-                <a class="post-book" [routerLink]="['/books/search']" [queryParams]="{ q: post.bookTitle }">
+                <div class="post-book">
                   @if (post.bookCover) {
-                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" (error)="post.bookCover = ''" loading="lazy" />
+                    <img [src]="post.bookCover" [alt]="post.bookTitle" class="post-book-cover" loading="lazy" />
                   }
                   <span class="post-book-title">{{ post.bookTitle }}</span>
-                </a>
+                </div>
               }
 
               <div class="post-footer">
-                <button class="action-btn" [class.action-btn--liked]="post.isLikedByMe" (click)="onToggleLike(post)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                <span class="post-stat" [class.post-stat--liked]="post.isLikedByMe">
+                  <svg width="13" height="13" viewBox="0 0 24 24" [attr.fill]="post.isLikedByMe ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                   {{ post.likeCount }}
-                </button>
-                <button class="action-btn" [class.action-btn--active]="openCommentPostIds.has(post.id)" (click)="toggleComments(post.id)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                </span>
+                <span class="post-stat">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                   {{ post.commentCount }}
-                </button>
+                </span>
               </div>
-
-              @if (openCommentPostIds.has(post.id) && currentUserId) {
-                <app-post-comments
-                  [postId]="post.id"
-                  [currentUserId]="currentUserId"
-                  [currentUserAvatar]="currentUserAvatar"
-                  [currentUserName]="currentUserName"
-                />
-              }
             </article>
           }
         </div>
       }
     </div>
+
+    @if (likesPopup && currentUserId) {
+      <app-likes-popup
+        [type]="likesPopup.type"
+        [entityId]="likesPopup.entityId"
+        [count]="likesPopup.count"
+        [currentUserId]="currentUserId"
+        (closed)="likesPopup = null"
+      />
+    }
   `,
   styles: [`
     :host {
@@ -252,7 +248,7 @@ interface BookSearchResult {
       background: #fff;
       border-radius: 14px;
       border: 0.5px solid rgba(100, 70, 50, 0.2);
-      padding: 14px 16px;
+      padding: clamp(10px, 1.1vw, 14px) clamp(12px, 1.3vw, 16px);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -266,7 +262,7 @@ interface BookSearchResult {
       background: none;
       border: none;
       cursor: pointer;
-      text-align: left;
+      text-align: start;
       padding: 0;
       font-family: inherit;
 
@@ -304,7 +300,7 @@ interface BookSearchResult {
       background: transparent;
       font-size: 14px;
       color: var(--foreground);
-      resize: vertical;
+      resize: none;
       outline: none;
       font-family: inherit;
       box-sizing: border-box;
@@ -469,7 +465,7 @@ interface BookSearchResult {
     }
 
     .btn-cancel {
-      padding: 9px 18px;
+      padding: clamp(7px, 0.7vw, 9px) clamp(12px, 1.4vw, 18px);
       border-radius: 10px;
       border: 1px solid var(--border);
       background: transparent;
@@ -483,7 +479,7 @@ interface BookSearchResult {
     }
 
     .btn-post {
-      padding: 9px 20px;
+      padding: clamp(7px, 0.7vw, 9px) clamp(14px, 1.6vw, 20px);
       border-radius: 10px;
       border: none;
       background: var(--primary);
@@ -555,16 +551,17 @@ interface BookSearchResult {
       background: transparent;
       border-bottom: 1px solid var(--border);
       // Transparent accent rail by default → terracotta on hover (no layout shift).
-      border-left: 2px solid transparent;
-      padding: 16px 2px 16px 12px;
+      border-inline-start: 2px solid transparent;
+      padding-block: 16px;
+      padding-inline: 12px 2px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      transition: border-left-color 0.15s, background 0.15s;
+      transition: border-inline-start-color 0.15s, background 0.15s;
 
       &:last-child { border-bottom: none; }
       &:hover {
-        border-left-color: rgba(193, 85, 58, 0.25);
+        border-inline-start-color: rgba(193, 85, 58, 0.25);
         background: rgba(193, 85, 58, 0.02);
       }
     }
@@ -691,34 +688,28 @@ interface BookSearchResult {
       text-overflow: ellipsis;
     }
 
+    .post-card {
+      cursor: pointer;
+      &:hover { background: rgba(100, 70, 50, 0.03); }
+    }
+
     .post-footer {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 16px;
       border-top: 0.5px solid rgba(100, 70, 50, 0.08);
       padding-top: 8px;
     }
 
-    .action-btn {
+    .post-stat {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 13px;
       font-weight: 600;
       color: var(--muted-foreground);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 8px;
-      transition: background 0.15s, color 0.15s;
-
-      svg { flex-shrink: 0; transition: transform 0.15s ease; }
-      &:hover { background: var(--surface-alt); color: var(--foreground); }
-      // Liked: terracotta fill + a small pop when it becomes active.
+      svg { flex-shrink: 0; }
       &--liked { color: #C1553A; }
-      &--liked svg { transform: scale(1.15); }
-      &--active { color: var(--primary); }
     }
 
     @media (max-width: 1024px) {
@@ -731,6 +722,7 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   @Input() currentUserAvatar: string | null = null;
   @Input() currentUserName: string | null = null;
 
+  private readonly router = inject(Router);
   private readonly activityService = inject(ActivityService);
   private readonly likesService = inject(LikesService);
   private readonly bookService = inject(BookService);
@@ -760,6 +752,12 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
 
   private bookSearchTimer: ReturnType<typeof setTimeout> | null = null;
   private realtimeSub: RealtimeSubscription | null = null;
+
+  private translatedTexts = new Map<number, Map<string, string>>();
+  translatingIds = new Set<number>();
+  activeTranslations = new Set<number>();
+
+  likesPopup: { type: 'post' | 'comment'; entityId: number; count: number } | null = null;
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
   private realtimeStarted = false;
   private destroyed = false;
@@ -773,7 +771,10 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   constructor() {
-    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
+    this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => {
+      this.lang = l;
+      this.activeTranslations = new Set();
+    });
   }
 
   ngOnInit(): void {
@@ -849,6 +850,10 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
       if (this.activeTab === 'friends') this.loadFeed(true);
       else this.loadTrending(true);
     }, 700);
+  }
+
+  navigateToPost(postId: number): void {
+    this.router.navigate(['/community'], { queryParams: { post: postId } });
   }
 
   openCompose(): void {
@@ -974,4 +979,52 @@ export class PostsFeedComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   readonly timeAgo = timeAgo;
+
+  openLikesPopup(type: 'post' | 'comment', entityId: number, count: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.likesPopup = { type, entityId, count };
+  }
+
+  getPostContent(post: ActivityPost): string {
+    if (!this.activeTranslations.has(post.id)) return post.content;
+    return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
+  }
+
+  async translatePost(post: ActivityPost): Promise<void> {
+    const postId = post.id;
+
+    if (this.activeTranslations.has(postId)) {
+      this.activeTranslations = new Set([...this.activeTranslations].filter(id => id !== postId));
+      return;
+    }
+
+    const cached = this.translatedTexts.get(postId)?.get(this.lang);
+    if (cached) {
+      this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      return;
+    }
+
+    const targetLang = this.lang;
+    const sourceLang = detectLang(post.content);
+    if (sourceLang === targetLang) return;
+
+    this.translatingIds = new Set([...this.translatingIds, postId]);
+    try {
+      const res = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(post.content)}&langpair=${sourceLang}|${targetLang}`
+      );
+      const data = await res.json() as { responseData?: { translatedText?: string }; responseStatus?: number };
+      if (data?.responseStatus !== 200) return;
+      const translated = data?.responseData?.translatedText ?? '';
+      if (translated && translated.trim() !== post.content.trim()) {
+        const map = this.translatedTexts.get(postId) ?? new Map<string, string>();
+        map.set(this.lang, translated);
+        this.translatedTexts.set(postId, map);
+        this.activeTranslations = new Set([...this.activeTranslations, postId]);
+      }
+    } catch { /* silently ignore */ }
+    finally {
+      this.translatingIds = new Set([...this.translatingIds].filter(id => id !== postId));
+    }
+  }
 }

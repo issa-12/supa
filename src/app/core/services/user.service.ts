@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { BehaviorSubject, Observable, from, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { APP_COPY, TranslationService } from '../../i18n';
 
 export interface UserProfile {
   id: string;
@@ -30,6 +31,7 @@ export interface UserGenre {
 })
 export class UserService {
   private readonly supabaseService = inject(SupabaseService);
+  private readonly translationService = inject(TranslationService);
 
   readonly currentUserAvatar$ = new BehaviorSubject<string | null>(null);
 
@@ -287,7 +289,9 @@ export class UserService {
     return {
       id: raw.id,
       email: raw.email,
-      name: raw.name || 'Unknown User',
+      name:
+        raw.name ||
+        APP_COPY[this.translationService.getCurrentLanguage()].unknownUser,
       bio: raw.about_me || null,
       avatarUrl: raw.profile_picture_url || null,
       joinDate: raw.created_at

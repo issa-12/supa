@@ -56,7 +56,7 @@ interface Book {
     .recommended-section {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: clamp(12px, 1.3vw, 16px);
       font-family: var(--ui-sans);
     }
 
@@ -74,7 +74,7 @@ interface Book {
     }
 
     .section-title {
-      font-size: 20px;
+      font-size: clamp(16px, 1.6vw, 20px);
       line-height: 1.2;
       font-weight: 700;
       color: var(--foreground);
@@ -94,39 +94,39 @@ interface Book {
     .rec-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+      gap: clamp(6px, 0.83vw, 12px);
       align-items: stretch;
     }
 
     .rec-card {
-      min-height: 88px;
+      min-height: clamp(64px, 6.7vw, 80px);
       background: var(--surface);
-      border-radius: 12px;
+      border-radius: clamp(8px, 0.83vw, 12px);
       border: 1px solid var(--border);
-      padding: 12px;
+      padding: clamp(6px, 0.7vw, 10px);
       display: flex;
-      gap: 12px;
+      gap: clamp(6px, 0.7vw, 10px);
       align-items: center;
       cursor: pointer;
       transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 
       &:hover {
         border-color: var(--border-strong);
-        box-shadow: 0 4px 20px rgba(60, 30, 10, 0.10);
+        box-shadow: 0 4px 16px rgba(60, 30, 10, 0.10);
         transform: translateY(-2px);
       }
     }
 
     .rec-cover-wrap {
-      width: 46px;
-      height: 66px;
+      width: clamp(30px, 3.2vw, 42px);
+      height: clamp(44px, 4.6vw, 60px);
       flex-shrink: 0;
     }
 
     .rec-cover {
-      width: 46px;
-      height: 66px;
-      border-radius: 6px;
+      width: 100%;
+      height: 100%;
+      border-radius: clamp(4px, 0.42vw, 6px);
       object-fit: cover;
       display: block;
 
@@ -147,7 +147,7 @@ interface Book {
     }
 
     .rec-title {
-      font-size: 14px;
+      font-size: clamp(10px, 0.9vw, 13px);
       font-weight: 600;
       color: var(--foreground);
       line-height: 1.3;
@@ -159,24 +159,26 @@ interface Book {
     }
 
     .rec-author {
-      font-size: 12px;
+      font-size: clamp(9px, 0.76vw, 11px);
       color: var(--muted-foreground);
-      margin-top: 3px;
+      margin-top: clamp(2px, 0.21vw, 3px);
       overflow-wrap: break-word;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .rec-genre {
       align-self: flex-start;
-      margin-top: 8px;
-      font-size: 10px;
+      margin-top: clamp(4px, 0.49vw, 7px);
+      font-size: clamp(8px, 0.63vw, 10px);
       font-weight: 500;
-      padding: 3px 9px;
+      padding: clamp(2px, 0.21vw, 3px) clamp(6px, 0.63vw, 9px);
       border-radius: 999px;
       background: #FAF0ED;
       color: #8B3E2A;
     }
 
-    // Two columns on narrow screens, single column on the smallest.
     @media (max-width: 900px) {
       .rec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }

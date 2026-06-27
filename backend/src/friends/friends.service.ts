@@ -272,6 +272,14 @@ export class FriendsService {
     });
   }
 
+  async getFriendsForUser(callerId: string, targetUserId: string): Promise<FriendUser[]> {
+    if (callerId !== targetUserId) {
+      const status = await this.getFriendshipStatus(callerId, targetUserId);
+      if (status.status !== 'accepted') throw new ForbiddenException('Not friends with this user.');
+    }
+    return this.getFriends(targetUserId);
+  }
+
   async getIncomingRequests(userId: string): Promise<FriendRequest[]> {
     const admin = this.supabase.getAdmin();
     const pendingId = await this.getStatusId('pending');

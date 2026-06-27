@@ -53,25 +53,25 @@ import { TranslationService, DIALOG_COPY } from '../i18n';
 
     .cd-dialog {
       width: 100%;
-      max-width: 380px;
+      max-width: min(380px, 92vw);
       background: var(--surface);
       color: var(--foreground);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 24px;
+      padding: clamp(16px, 1.9vw, 24px);
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
       animation: cd-pop 0.16s ease;
     }
 
     .cd-title {
       margin: 0 0 8px;
-      font-size: 18px;
+      font-size: clamp(15px, 1.4vw, 18px);
       font-weight: 700;
     }
 
     .cd-message {
-      margin: 0 0 22px;
-      font-size: 15px;
+      margin: 0 0 clamp(14px, 1.7vw, 22px);
+      font-size: clamp(13px, 1.2vw, 15px);
       line-height: 1.5;
       color: var(--foreground);
       overflow-wrap: break-word;

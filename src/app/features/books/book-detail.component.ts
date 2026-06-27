@@ -91,13 +91,23 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   recommendFeedback: { userId: string; success: boolean; alreadyHad?: boolean } | null = null;
 
   note = '';
+  savedNote = '';
+  editingNote = false;
   noteSaving = false;
   noteSaved = false;
 
-  reviewText = '';        // editing buffer (bound to the textarea)
-  savedReview = '';       // the persisted review — shown as a posted card
+  reviewText = '';
+  savedReview = '';
   editingReview = false;
   reviewSaving = false;
+
+  currentUserName: string | null = null;
+  currentUserAvatar: string | null = null;
+
+  myReviewUserBookId: number | null = null;
+  myReviewReaction: 'like' | 'dislike' | null = null;
+  myReviewLikeCount = 0;
+  myReviewDislikeCount = 0;
 
   communityReviews: CommunityReview[] = [];
 
@@ -116,8 +126,8 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       const [bookRes, user] = await Promise.all([
         fetch(`/api/books/${googleId}`).then(async (r) => {
           if (!r.ok) {
-            const body = (await r.json().catch(() => ({}))) as { message?: string };
-            throw new Error(body.message ?? 'Failed to load book.');
+            await r.json().catch(() => ({}));
+            throw new Error(this.copy.loadFailed);
           }
           return r.json() as Promise<BookDetail>;
         }),
@@ -129,12 +139,20 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       this.userId = user.data.user?.id ?? null;
 
       if (this.userId) {
-        this.userBook = await firstValueFrom(
-          this.bookService.getUserBookByGoogleId(this.userId, googleId),
-        );
+        const supabase = await this.supabaseService.getClient();
+        const [ubResult, profileResult] = await Promise.all([
+          firstValueFrom(this.bookService.getUserBookByGoogleId(this.userId, googleId)),
+          supabase.from('users').select('name, profile_picture_url').eq('id', this.userId).single(),
+        ]);
+        this.userBook = ubResult;
+        this.currentUserName = (profileResult.data?.['name'] as string) ?? null;
+        this.currentUserAvatar = (profileResult.data?.['profile_picture_url'] as string) ?? null;
         this.note = this.userBook?.note ?? '';
+        this.savedNote = this.note;
         this.savedReview = this.userBook?.reviewText ?? '';
         this.reviewText = this.savedReview;
+        this.editingReview = !this.savedReview;
+        this.myReviewUserBookId = this.userBook?.id ?? null;
       }
 
       if (this.book.dbBookId) {
@@ -384,6 +402,16 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  startEditNote(): void {
+    this.note = this.savedNote;
+    this.editingNote = true;
+  }
+
+  cancelEditNote(): void {
+    this.note = this.savedNote;
+    this.editingNote = false;
+  }
+
   async saveNote(): Promise<void> {
     if (!this.userBook || this.noteSaving) return;
     this.noteSaving = true;
@@ -391,6 +419,8 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       this.userBook = await firstValueFrom(
         this.bookService.saveNote(this.userBook.id, this.note),
       );
+      this.savedNote = this.note;
+      this.editingNote = false;
       this.noteSaved = true;
       setTimeout(() => { this.noteSaved = false; }, 2000);
     } catch (err) {
@@ -463,10 +493,64 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  async toggleMyReviewReaction(wantLike: boolean): Promise<void> {
+    if (!this.userId || this.myReviewUserBookId === null) return;
+    const prev = { reaction: this.myReviewReaction, likes: this.myReviewLikeCount, dislikes: this.myReviewDislikeCount };
+    const target: 'like' | 'dislike' = wantLike ? 'like' : 'dislike';
+    if (this.myReviewReaction === 'like') this.myReviewLikeCount--;
+    if (this.myReviewReaction === 'dislike') this.myReviewDislikeCount--;
+    if (this.myReviewReaction === target) {
+      this.myReviewReaction = null;
+    } else {
+      if (wantLike) this.myReviewLikeCount++; else this.myReviewDislikeCount++;
+      this.myReviewReaction = target;
+    }
+    try {
+      await firstValueFrom(
+        this.likesService.toggleReviewReaction(this.myReviewUserBookId, this.userId, this.userId, prev.reaction, wantLike),
+      );
+    } catch {
+      this.myReviewReaction = prev.reaction;
+      this.myReviewLikeCount = prev.likes;
+      this.myReviewDislikeCount = prev.dislikes;
+    }
+  }
+
   private async loadCommunityReviews(bookId: number): Promise<void> {
     if (!this.userId) return;
     try {
-      this.communityReviews = await this.bookService.getCommunityReviews(bookId, this.userId);
+      const supabase = await this.supabaseService.getClient();
+      const [all, blockedStatusRes] = await Promise.all([
+        this.bookService.getCommunityReviews(bookId, this.userId),
+        supabase.from('friendship_status').select('status_id').eq('status_name', 'blocked').single(),
+      ]);
+
+      const blockedStatusId = blockedStatusRes.data?.['status_id'];
+      // Build set of users involved in any block relationship with current user
+      const blockedIds = new Set<string>();
+      if (blockedStatusId) {
+        const { data: blockedRows } = await supabase
+          .from('friendship')
+          .select('user_id1, user_id2')
+          .or(`user_id1.eq.${this.userId},user_id2.eq.${this.userId}`)
+          .eq('status_id', blockedStatusId);
+        for (const row of blockedRows ?? []) {
+          const other = row['user_id1'] === this.userId ? row['user_id2'] : row['user_id1'];
+          blockedIds.add(other as string);
+        }
+      }
+
+      const ownIdx = all.findIndex(r => r.userId === this.userId);
+      if (ownIdx !== -1) {
+        const own = all[ownIdx];
+        this.myReviewUserBookId = own.userBookId;
+        this.myReviewReaction = own.myReaction;
+        this.myReviewLikeCount = own.likeCount;
+        this.myReviewDislikeCount = own.dislikeCount;
+        this.communityReviews = all.filter((r, i) => i !== ownIdx && !blockedIds.has(r.userId));
+      } else {
+        this.communityReviews = all.filter(r => !blockedIds.has(r.userId));
+      }
     } catch {
       // non-critical
     }

@@ -46,7 +46,7 @@ interface Book {
     .trending-section {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: clamp(12px, 1.6vw, 20px);
       font-family: var(--ui-sans);
     }
 
@@ -58,7 +58,7 @@ interface Book {
     }
 
     .section-title {
-      font-size: 20px;
+      font-size: clamp(16px, 1.6vw, 20px);
       line-height: 1.2;
       font-weight: 700;
       color: var(--foreground);
@@ -68,7 +68,7 @@ interface Book {
 
     .horizontal-scroll {
       display: flex;
-      gap: 16px;
+      gap: clamp(10px, 1.3vw, 16px);
       overflow-x: auto;
       padding-bottom: 24px;
 
@@ -82,7 +82,7 @@ interface Book {
     }
 
     .trending-card {
-      width: 140px;
+      width: clamp(100px, 11vw, 140px);
       flex-shrink: 0;
       cursor: pointer;
       transition: transform 0.2s ease;
@@ -91,8 +91,8 @@ interface Book {
     }
 
     .trending-cover {
-      width: 140px;
-      height: 196px;
+      width: clamp(100px, 11vw, 140px);
+      height: clamp(140px, 15.4vw, 196px);
       border-radius: 10px;
       object-fit: cover;
       display: block;

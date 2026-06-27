@@ -78,7 +78,7 @@
   min-width: 100%;
   padding: 6px;
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: calc(100% + 10px);
   z-index: 50;
 }
@@ -133,18 +133,12 @@
   }
 }
 
-:host-context(.auth-page--rtl) .language-menu__panel {
-  left: 0;
-  right: auto;
-}
-
 @media (max-width: 620px) {
   .language-button {
     padding: 10px 12px;
   }
 
   .language-menu__panel {
-    left: auto;
-    right: 0;
+    inset-inline-end: 0;
   }
 }

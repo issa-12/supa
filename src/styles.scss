@@ -43,6 +43,8 @@ body {
   overflow-x: clip;
 }
 
+textarea { resize: none; }
+
 body {
   background: #f4ede5;
   font-family: 'PT Serif', Georgia, 'Times New Roman', serif;
@@ -88,7 +90,7 @@ img {
 
 /* ─── Utility: RTL support ─────────────────────────────────────────────────── */
 [dir='rtl'] {
-  text-align: right;
+  text-align: start;
 }
 
 /* ─── Scrollbar styling ────────────────────────────────────────────────────── */
@@ -115,7 +117,7 @@ img {
   align-items: center;
   gap: 12px;
   margin-top: 16px;
-  padding: 16px;
+  padding: clamp(10px, 1.3vw, 16px);
   border-top: 1px solid var(--border);
   color: var(--muted-foreground);
 }
@@ -177,11 +179,14 @@ img {
 }
 
 /* RTL: mirror back-arrow icons so they point the natural "back" direction
-   (rightward) in Arabic. Covers every page's circular .back-btn. The "see all"
-   forward arrow in the nav search is flipped too. */
-[dir="rtl"] .back-btn svg {
+   (rightward) in Arabic. Covers every page's circular .back-btn (both inline
+   SVG and iconify-icon web-component variants). The "see all" forward arrows
+   (nav search + shelf section header) are flipped too. */
+[dir="rtl"] .back-btn svg,
+[dir="rtl"] .back-btn iconify-icon {
   transform: scaleX(-1);
 }
-[dir="rtl"] .search-see-all iconify-icon {
+[dir="rtl"] .search-see-all iconify-icon,
+[dir="rtl"] .see-all iconify-icon {
   transform: scaleX(-1);
 }

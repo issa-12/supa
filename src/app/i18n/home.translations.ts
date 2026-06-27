@@ -1,6 +1,10 @@
 import { LanguageCode } from './language.model';
 
 export interface HomeCopy {
+  loadProfileError: string;
+  currentUserAlt: string;
+  coverAlt: string;
+  byAuthor: string;
   // Hero section
   heroPill: string;
   heroEyebrow: string;
@@ -65,18 +69,27 @@ export interface HomeCopy {
 
   // Additional keys
   deletePostConfirm: string;
+
+  // Post translation
+  translateBtn: string;
+  showOriginalBtn: string;
+  translating: string;
 }
 
 export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
   en: {
+    loadProfileError: 'Failed to load user profile.',
+    currentUserAlt: 'You',
+    coverAlt: '{{ title }} cover',
+    byAuthor: 'by {{ author }}',
     heroPill: 'Recommended for you',
     heroEyebrow: 'Recommended for you',
     heroEyebrowPrefix: 'Because you like',
     heroFallbackDescription: 'A compelling read waiting to be discovered. Add it to your shelf to start your journey.',
     heroViewBook: 'View Book',
-    heroAddToReading: 'Add to Reading',
+    heroAddToReading: 'Add to Want to Read',
     heroAdding: 'Adding…',
-    heroAdded: 'Added to Reading',
+    heroAdded: 'Want to Read ✓',
     heroAddError: 'Could not add this book. Please try again.',
 
     continueReadingTitle: 'Continue Reading',
@@ -125,16 +138,23 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
 
     writePostAriaLabel: 'Write a post',
     deletePostConfirm: 'Delete this post?',
+    translateBtn: 'Translate',
+    showOriginalBtn: 'Show original',
+    translating: 'Translating…',
   },
   ar: {
+    loadProfileError: 'فشل تحميل ملف المستخدم.',
+    currentUserAlt: 'أنت',
+    coverAlt: 'غلاف {{ title }}',
+    byAuthor: 'بقلم {{ author }}',
     heroPill: 'موصى به لك',
     heroEyebrow: 'موصى به لك',
     heroEyebrowPrefix: 'لأنك تحب',
     heroFallbackDescription: 'قراءة رائعة تنتظر اكتشافك. أضفها إلى رفك لبدء رحلتك.',
     heroViewBook: 'عرض الكتاب',
-    heroAddToReading: 'أضف إلى القراءة الحالية',
+    heroAddToReading: 'أضف إلى قائمة القراءة',
     heroAdding: 'جاري الإضافة…',
-    heroAdded: 'تمت الإضافة إلى القراءة',
+    heroAdded: 'أُضيف للقائمة ✓',
     heroAddError: 'تعذّر إضافة هذا الكتاب. حاول مرة أخرى.',
 
     continueReadingTitle: 'متابعة القراءة',
@@ -183,16 +203,23 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
 
     writePostAriaLabel: 'كتابة منشور',
     deletePostConfirm: 'حذف هذا المنشور؟',
+    translateBtn: 'ترجمة',
+    showOriginalBtn: 'عرض الأصل',
+    translating: 'جاري الترجمة…',
   },
   fr: {
+    loadProfileError: 'Impossible de charger le profil utilisateur.',
+    currentUserAlt: 'Vous',
+    coverAlt: 'Couverture de {{ title }}',
+    byAuthor: 'par {{ author }}',
     heroPill: 'Recommandé pour vous',
     heroEyebrow: 'Recommandé pour vous',
     heroEyebrowPrefix: 'Parce que vous aimez',
     heroFallbackDescription: 'Une lecture captivante qui n\'attend que d\'être découverte. Ajoutez-la à votre bibliothèque pour commencer votre voyage.',
     heroViewBook: 'Afficher le livre',
-    heroAddToReading: 'Ajouter à la lecture en cours',
+    heroAddToReading: 'Ajouter à lire',
     heroAdding: 'Ajout en cours…',
-    heroAdded: 'Ajouté à la lecture',
+    heroAdded: 'À lire ✓',
     heroAddError: 'Impossible d’ajouter ce livre. Veuillez réessayer.',
 
     continueReadingTitle: 'Continuer la lecture',
@@ -241,5 +268,8 @@ export const HOME_COPY: Record<LanguageCode, HomeCopy> = {
 
     writePostAriaLabel: 'Écrire un message',
     deletePostConfirm: 'Supprimer ce message ?',
+    translateBtn: 'Traduire',
+    showOriginalBtn: 'Voir l\'original',
+    translating: 'Traduction…',
   },
 };
