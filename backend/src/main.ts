@@ -39,8 +39,30 @@ async function bootstrap() {
     next();
   });
 
+  // The SPA may call this backend cross-origin (e.g. Vercel-hosted frontend →
+  // Render backend). Allow the configured frontend origin, local dev hosts, and
+  // any *.vercel.app deployment (production alias + preview URLs). A callback is
+  // used so multiple origins are supported; requests with no Origin header
+  // (curl, server-to-server, same-origin) are allowed through.
+  const allowedOrigins = new Set(
+    [
+      process.env['FRONTEND_URL'],
+      'http://localhost:4200',
+      'http://localhost:8080',
+      'https://localhost:8443',
+    ].filter(Boolean) as string[],
+  );
   app.enableCors({
-    origin: process.env['FRONTEND_URL'] || 'http://localhost:4200',
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      let isVercel = false;
+      try {
+        isVercel = new URL(origin).hostname.endsWith('.vercel.app');
+      } catch {
+        isVercel = false;
+      }
+      cb(null, allowedOrigins.has(origin) || isVercel);
+    },
     credentials: true,
   });
 
