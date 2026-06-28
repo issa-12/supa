@@ -1,8 +1,5 @@
 {
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://supa-2l60.onrender.com/api/$1"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
