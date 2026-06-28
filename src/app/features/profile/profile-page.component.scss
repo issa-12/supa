@@ -1458,6 +1458,19 @@ section[id] { scroll-margin-top: 80px; }
   &--ok { color: #197d49; background: rgba(25, 125, 73, 0.1); }
 }
 
+.report-modal__done {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.report-modal__block-prompt {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.5;
+}
+
 .report-modal__actions {
   display: flex;
   justify-content: flex-end;

@@ -102,7 +102,9 @@ export class ProfilePageComponent implements OnInit {
   reportDescription = '';
   reportSubmitting = false;
   reportError = '';
-  reportSuccess = '';
+  // After a successful report the modal switches to a "submitted" state that
+  // offers to also block the user (the usual flow — see blockAfterReport).
+  reportDone = false;
 
   readonly reportReasons: ReportReason[] = [
     'spam',
@@ -386,7 +388,12 @@ export class ProfilePageComponent implements OnInit {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.friendActionLoading) return;
     if (!(await this.confirmDialog.confirm({ message: this.copy.blockConfirm, danger: true }))) return;
+    await this.doBlock(targetId);
+  }
 
+  // Core block, shared by the standalone Block button (with a confirm) and the
+  // post-report "block too" offer (no extra confirm — the user already chose it).
+  private async doBlock(targetId: string): Promise<void> {
     const wasAccepted = this.friendshipStatus === 'accepted';
     this.friendActionLoading = true;
     this.friendActionError = null;
@@ -425,19 +432,19 @@ export class ProfilePageComponent implements OnInit {
     this.reportReason = 'spam';
     this.reportDescription = '';
     this.reportError = '';
-    this.reportSuccess = '';
+    this.reportDone = false;
     this.showReportModal = true;
   }
 
   closeReportModal(): void {
     this.showReportModal = false;
+    this.reportDone = false;
   }
 
   async submitReport(): Promise<void> {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || this.reportSubmitting) return;
     this.reportError = '';
-    this.reportSuccess = '';
     this.reportSubmitting = true;
     try {
       await this.reportService.reportUser(
@@ -445,13 +452,23 @@ export class ProfilePageComponent implements OnInit {
         this.reportReason,
         this.reportDescription,
       );
-      this.reportSuccess = this.copy.reportSubmitted;
-      window.setTimeout(() => this.closeReportModal(), 1800);
+      // Switch to the "submitted" state, which offers to also block the user
+      // (instead of auto-closing).
+      this.reportDone = true;
     } catch (err) {
       this.reportError = this.copy.reportError;
     } finally {
       this.reportSubmitting = false;
     }
+  }
+
+  // "Block too" from the post-report state — no extra confirm (explicit choice).
+  // Closes the modal on success; keeps it open showing the error otherwise.
+  async blockAfterReport(): Promise<void> {
+    const targetId = this.route.snapshot.paramMap.get('id');
+    if (!targetId || this.friendActionLoading) return;
+    await this.doBlock(targetId);
+    if (!this.friendActionError) this.closeReportModal();
   }
 
   reasonLabel(r: ReportReason): string {
@@ -688,13 +705,21 @@ export class ProfilePageComponent implements OnInit {
       this.editProfileError = this.copy.genresMinError;
       return;
     }
+    // Normalize + validate the username (shared rule with the auto-generated
+    // ones: 3–30 chars, lowercase letters, digits, underscore). Empty clears it.
+    const username = this.editUsername.trim().toLowerCase();
+    this.editUsername = username;
+    if (username && !/^[a-z0-9_]{3,30}$/.test(username)) {
+      this.editProfileError = this.copy.usernameInvalid;
+      return;
+    }
     this.savingProfile = true;
     this.editProfileError = null;
     try {
       const updated = await firstValueFrom(
         this.userService.updateUserProfile(this.currentUserId, {
           name: this.editName.trim() || this.profile!.name,
-          username: this.editUsername.trim() || null,
+          username: username || null,
           bio: this.editBio.trim() || null,
           isPrivate: this.editIsPrivate,
         }),

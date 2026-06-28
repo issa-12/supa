@@ -807,46 +807,65 @@
 
         <h3 class="report-modal__title">{{ copy.reportModalTitle }}</h3>
 
-        <form class="report-modal__form" (ngSubmit)="submitReport()">
-          <label class="report-modal__field">
-            <span class="report-modal__label">{{ copy.reportReasonLabel }}</span>
-            <select class="report-modal__select" [(ngModel)]="reportReason" name="reportReason" [disabled]="reportSubmitting">
-              @for (r of reportReasons; track r) {
-                <option [ngValue]="r">{{ reasonLabel(r) }}</option>
+        @if (reportDone) {
+          <div class="report-modal__done">
+            <p class="report-modal__msg report-modal__msg--ok">{{ copy.reportSubmitted }}</p>
+            @if (!blockedByMe) {
+              <p class="report-modal__block-prompt">{{ copy.reportBlockPrompt }}</p>
+            }
+            @if (friendActionError) {
+              <p class="report-modal__msg report-modal__msg--error">{{ friendActionError }}</p>
+            }
+            <div class="report-modal__actions">
+              <button type="button" class="btn btn-outline" (click)="closeReportModal()" [disabled]="friendActionLoading">
+                {{ copy.reportDoneBtn }}
+              </button>
+              @if (!blockedByMe) {
+                <button type="button" class="btn btn-primary" (click)="blockAfterReport()" [disabled]="friendActionLoading">
+                  {{ copy.blockBtn }}
+                </button>
               }
-            </select>
-          </label>
-
-          <label class="report-modal__field">
-            <span class="report-modal__label">{{ copy.reportDescriptionLabel }}</span>
-            <textarea
-              class="report-modal__textarea"
-              [(ngModel)]="reportDescription"
-              name="reportDescription"
-              [placeholder]="copy.reportDescriptionPlaceholder"
-              rows="3"
-              maxlength="500"
-              [disabled]="reportSubmitting"
-            ></textarea>
-            <span class="report-modal__counter">{{ reportDescription.length }}/500</span>
-          </label>
-
-          @if (reportError) {
-            <p class="report-modal__msg report-modal__msg--error">{{ reportError }}</p>
-          }
-          @if (reportSuccess) {
-            <p class="report-modal__msg report-modal__msg--ok">{{ reportSuccess }}</p>
-          }
-
-          <div class="report-modal__actions">
-            <button type="button" class="btn btn-outline" (click)="closeReportModal()" [disabled]="reportSubmitting">
-              {{ copy.reportCancelBtn }}
-            </button>
-            <button type="submit" class="btn btn-primary" [disabled]="reportSubmitting">
-              {{ reportSubmitting ? copy.reportSubmitting : copy.reportSubmitBtn }}
-            </button>
+            </div>
           </div>
-        </form>
+        } @else {
+          <form class="report-modal__form" (ngSubmit)="submitReport()">
+            <label class="report-modal__field">
+              <span class="report-modal__label">{{ copy.reportReasonLabel }}</span>
+              <select class="report-modal__select" [(ngModel)]="reportReason" name="reportReason" [disabled]="reportSubmitting">
+                @for (r of reportReasons; track r) {
+                  <option [ngValue]="r">{{ reasonLabel(r) }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="report-modal__field">
+              <span class="report-modal__label">{{ copy.reportDescriptionLabel }}</span>
+              <textarea
+                class="report-modal__textarea"
+                [(ngModel)]="reportDescription"
+                name="reportDescription"
+                [placeholder]="copy.reportDescriptionPlaceholder"
+                rows="3"
+                maxlength="500"
+                [disabled]="reportSubmitting"
+              ></textarea>
+              <span class="report-modal__counter">{{ reportDescription.length }}/500</span>
+            </label>
+
+            @if (reportError) {
+              <p class="report-modal__msg report-modal__msg--error">{{ reportError }}</p>
+            }
+
+            <div class="report-modal__actions">
+              <button type="button" class="btn btn-outline" (click)="closeReportModal()" [disabled]="reportSubmitting">
+                {{ copy.reportCancelBtn }}
+              </button>
+              <button type="submit" class="btn btn-primary" [disabled]="reportSubmitting">
+                {{ reportSubmitting ? copy.reportSubmitting : copy.reportSubmitBtn }}
+              </button>
+            </div>
+          </form>
+        }
       </div>
     </div>
   }
