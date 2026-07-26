@@ -373,7 +373,10 @@
 // ── Shelf action ───────────────────────────────────────────────
 .shelf-action {
   position: relative;
-  margin-top: 6px;
+  // Push to the bottom of the (full-height) card so the add button aligns
+  // across every book regardless of 1- vs 2-line titles.
+  margin-top: auto;
+  padding-top: 6px;
   min-height: 31px;
   display: flex;
   align-items: center;

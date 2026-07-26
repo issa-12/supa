@@ -9,9 +9,16 @@ export class SupabaseService implements OnModuleInit {
   private anonClient: SupabaseClient;
 
   onModuleInit() {
-    const url = process.env['SUPABASE_URL'] ?? DEFAULT_SUPABASE_URL;
-    const serviceRoleKey = process.env['SUPABASE_SERVICE_ROLE_KEY'];
-    const anonKey = process.env['SUPABASE_ANON_KEY'];
+    // Defensive: a value pasted into a hosting dashboard with surrounding quotes
+    // (e.g. "eyJ...") is stored verbatim, so the key would carry literal quotes
+    // and Supabase rejects every call with "Invalid API key" → 401 everywhere.
+    // Strip wrapping quotes + whitespace so that footgun can't break auth.
+    const clean = (v: string | undefined): string | undefined =>
+      v?.trim().replace(/^["']|["']$/g, '');
+
+    const url = clean(process.env['SUPABASE_URL']) ?? DEFAULT_SUPABASE_URL;
+    const serviceRoleKey = clean(process.env['SUPABASE_SERVICE_ROLE_KEY']);
+    const anonKey = clean(process.env['SUPABASE_ANON_KEY']);
 
     if (!serviceRoleKey) {
       throw new ServiceUnavailableException(

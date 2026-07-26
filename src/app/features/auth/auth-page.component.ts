@@ -214,7 +214,9 @@ export class AuthPageComponent {
     try {
       await this.supabaseService.sendPasswordResetViaFunction(email);
       this.resetSuccess = this.text.resetSent;
-      window.setTimeout(() => this.closeResetModal(), 2000);
+      // Keep the "if an account exists…" message up long enough to read
+      // comfortably before the modal auto-closes.
+      window.setTimeout(() => this.closeResetModal(), 6000);
     } catch (error) {
       this.resetError = this.readErrorMessage(error, this.text.resetError);
     } finally {
