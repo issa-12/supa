@@ -370,21 +370,26 @@ export class BookService {
   getUserBooksByRating(
     userId: string,
     minRating: number,
-    maxRating: number
+    maxRating: number,
+    year?: number,
   ): Observable<UserBook[]> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then((supabase) => {
+        let query = supabase
           .from('user_books')
           .select('*, book:books(*), status:reading_statuses(*)')
           .eq('user_id', userId)
           .gte('rating', minRating)
-          .lte('rating', maxRating)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return (data || []).map((item) => this.mapUserBook(item));
-          })
-      )
+          .lte('rating', maxRating);
+        if (year) {
+          query = query.gte('updated_at', `${year}-01-01`);
+        }
+
+        return query.then(({ data, error }) => {
+          if (error) throw error;
+          return (data || []).map((item) => this.mapUserBook(item));
+        });
+      })
     ).pipe(catchError((error) => throwError(() => error)));
   }
 
@@ -401,6 +406,26 @@ export class BookService {
           .eq('status_id', statusId)
           .order('updated_at', { ascending: false })
           .limit(limit);
+
+        if (error) throw error;
+        return (data ?? []).map((item) => this.mapUserBook(item));
+      }),
+    ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  getUserBooksReadThisYear(userId: string, year = new Date().getFullYear()): Observable<UserBook[]> {
+    return from(
+      this.supabaseService.getClient().then(async (supabase) => {
+        const statusId = await this.resolveStatusId('read');
+        if (!statusId) return [];
+
+        const { data, error } = await supabase
+          .from('user_books')
+          .select('*, book:books(*), status:reading_statuses(*)')
+          .eq('user_id', userId)
+          .eq('status_id', statusId)
+          .gte('updated_at', `${year}-01-01`)
+          .order('updated_at', { ascending: false });
 
         if (error) throw error;
         return (data ?? []).map((item) => this.mapUserBook(item));

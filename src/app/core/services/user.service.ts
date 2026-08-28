@@ -236,17 +236,25 @@ export class UserService {
     updates: Partial<UserProfile>
   ): Observable<UserProfile> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then((supabase) => {
+        const payload: Record<string, string | boolean | null | undefined> = {
+          name: updates.name,
+          about_me: updates.bio,
+          profile_picture_url: updates.avatarUrl,
+          is_private: updates.isPrivate,
+          updated_at: new Date().toISOString(),
+        };
+        if (updates.username !== undefined) {
+          const username = this.normalizeUsername(updates.username);
+          if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+            throw new Error('Invalid username');
+          }
+          payload['username'] = username;
+        }
+
+        return supabase
           .from('users')
-          .update({
-            name: updates.name,
-            about_me: updates.bio,
-            profile_picture_url: updates.avatarUrl,
-            username: updates.username,
-            is_private: updates.isPrivate,
-            updated_at: new Date().toISOString(),
-          })
+          .update(payload)
           .eq('id', userId)
           .select('*')
           .single()
@@ -254,9 +262,16 @@ export class UserService {
             if (error) throw error;
             if (!data) throw new Error('Failed to update profile');
             return this.mapUserProfile(data);
-          })
-      )
+          });
+      })
     ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  private normalizeUsername(value: string | null): string {
+    return (value ?? '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim()
+      .toLowerCase();
   }
 
   searchUsers(query: string, limit: number = 10): Observable<UserProfile[]> {

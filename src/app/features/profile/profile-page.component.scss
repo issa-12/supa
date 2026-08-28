@@ -118,7 +118,7 @@ section[id] { scroll-margin-top: 80px; }
 .avatar-menu {
   position: absolute;
   top: calc(100% + 6px);
-  inset-inline-end: 0;
+  inset-inline-start: 0;
   min-width: 150px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -199,8 +199,11 @@ section[id] { scroll-margin-top: 80px; }
   inset-inline-end: 32px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
-  padding: clamp(8px, 0.7vw, 10px) clamp(10px, 1.4vw, 20px);
+  width: 36px;
+  height: 36px;
+  padding: 0;
   background: var(--primary);
   color: #fff;
   border: none;
@@ -210,7 +213,7 @@ section[id] { scroll-margin-top: 80px; }
   cursor: pointer;
   transition: background 0.15s;
 
-  svg { width: 14px; height: 14px; }
+  svg { width: 16px; height: 16px; }
   &:hover { background: var(--primary-dark); }
 }
 
@@ -287,7 +290,7 @@ section[id] { scroll-margin-top: 80px; }
 // ── Stats row ────────────────────────────────────────────────────
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -373,7 +376,9 @@ section[id] { scroll-margin-top: 80px; }
 .edit-goal-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   font-size: clamp(10px, 0.83vw, 12px);
   color: $text-4;
   cursor: pointer;
@@ -480,30 +485,6 @@ section[id] { scroll-margin-top: 80px; }
   font-family: inherit;
 }
 
-.friends-list {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.friend-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 16px 9px 10px;
-  background: var(--surface-alt);
-  border-radius: 12px;
-  border: 0.5px solid $border-soft;
-  cursor: pointer;
-  text-decoration: none;
-  transition: border-color 0.15s, background 0.15s;
-
-  &:hover {
-    border-color: rgba(193, 85, 58, 0.3);
-    background: $brand-light;
-  }
-}
-
 .f-av {
   width: 32px;
   height: 32px;
@@ -545,33 +526,19 @@ section[id] { scroll-margin-top: 80px; }
   color: var(--foreground);
 }
 
-// Dashed "add" chip that sits with the friends so the card never feels empty.
-.find-readers-chip {
-  background: transparent;
-  border: 1px dashed rgba(193, 85, 58, 0.35);
+.fr-plus {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
   color: var(--primary);
-
-  &:hover {
-    background: $brand-light;
-    border-color: var(--primary);
-  }
-
-  .fr-plus {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: 400;
-    line-height: 1;
-    color: var(--primary);
-    background: $brand-light;
-    flex-shrink: 0;
-  }
-
-  .f-name { color: var(--primary); font-weight: 600; }
+  background: $brand-light;
+  flex-shrink: 0;
 }
 
 // Incoming requests list (reuses the friends card shell)
@@ -1481,7 +1448,7 @@ section[id] { scroll-margin-top: 80px; }
 @media (max-width: 768px) {
   .profile-content { padding: 24px 20px 56px; }
   .profile-card { padding: 24px; }
-  .stats-row { gap: 12px; }
+  .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .stat-card { padding: 16px 18px; }
   .stat-value { font-size: 26px; }
   .edit-profile-btn { position: static; margin-bottom: 18px; align-self: flex-start; }
@@ -1497,19 +1464,20 @@ section[id] { scroll-margin-top: 80px; }
 @media (max-width: 480px) {
   .profile-content { padding: 20px 12px 56px; }
   .profile-card { padding: 20px; border-radius: 16px; }
+  .stats-row { grid-template-columns: 1fr; }
   .books-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
   .activity-list { grid-template-columns: 1fr; }
   .shelf-sec-sub { width: 100%; margin-inline-start: 0; }
-  .edit-goal-btn .goal-btn-text { display: none; }
-  .edit-goal-btn { padding: 3px; }
-  .edit-profile-btn { padding: 6px 10px; top: 14px; inset-inline-end: 14px; }
+  .edit-profile-btn { width: 34px; height: 34px; top: 14px; inset-inline-end: 14px; }
 }
 
 // ── Friends modal ─────────────────────────────────────────────────
+.books-modal-overlay,
 .friends-modal-overlay {
   justify-content: flex-end;
 }
 
+.books-list-modal,
 .friends-modal {
   width: 380px;
   max-width: 100%;
@@ -1518,6 +1486,7 @@ section[id] { scroll-margin-top: 80px; }
   flex-direction: column;
 }
 
+.books-modal-body,
 .friends-modal-body {
   flex: 1;
   overflow-y: auto;
@@ -1525,6 +1494,79 @@ section[id] { scroll-margin-top: 80px; }
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.books-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+  text-align: start;
+  transition: background 0.14s;
+
+  &:hover:not(:disabled) { background: var(--surface-alt); }
+  &:disabled { cursor: default; opacity: 0.75; }
+}
+
+.books-modal-cover {
+  width: 42px;
+  height: 58px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: $brand-light;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  svg { width: 20px; height: 20px; }
+}
+
+.books-modal-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.books-modal-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.books-modal-author {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.books-modal-stars {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--primary);
+
+  .e { color: #d8cfc5; }
 }
 
 .friends-modal-loading {
@@ -1549,6 +1591,13 @@ section[id] { scroll-margin-top: 80px; }
   transition: background 0.14s;
 
   &:hover { background: var(--surface-alt); }
+}
+
+.friends-modal-find {
+  color: var(--primary);
+  text-decoration: none;
+
+  .friends-modal-name { color: var(--primary); }
 }
 
 .friends-modal-row-link {
@@ -1638,5 +1687,6 @@ section[id] { scroll-margin-top: 80px; }
 }
 
 @media (max-width: 480px) {
+  .books-list-modal,
   .friends-modal { width: 100%; }
 }

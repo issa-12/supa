@@ -162,9 +162,6 @@ interface NavSearchBook {
         />
 
         <div class="avatar-wrap" [class.avatar-wrap--active]="isProfileActive" (click)="$event.stopPropagation()">
-          @if (isProfileActive) {
-            <span class="avatar-active-label">{{ copy.myProfile }}</span>
-          }
           <img
             [src]="avatarUrl || avatarFallback"
             [alt]="copy.profileAvatarAlt"
@@ -514,13 +511,6 @@ interface NavSearchBook {
       gap: 8px;
     }
 
-    .avatar-active-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--primary);
-      white-space: nowrap;
-    }
-
     .nav-avatar {
       width: 34px;
       height: 34px;
@@ -626,8 +616,6 @@ interface NavSearchBook {
       /* logo mark only — the word-mark eats too much width on phones */
       .brand-text { display: none; }
       .nav-actions { gap: 4px; }
-      /* keep just the terracotta ring on phones — the text label eats width */
-      .avatar-active-label { display: none; }
       /* search drops onto its own full-width row so the action icons fit */
       .search-wrap {
         order: 3;

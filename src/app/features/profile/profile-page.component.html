@@ -64,12 +64,11 @@
       <div class="profile-card">
 
         @if (isOwnProfile) {
-          <button class="edit-profile-btn" (click)="onEditProfile()">
+          <button class="edit-profile-btn" (click)="onEditProfile()" [attr.aria-label]="copy.editProfileBtn" [title]="copy.editProfileBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
-            <span class="edit-btn-text">{{ copy.editProfileBtn }}</span>
           </button>
         }
 
@@ -227,7 +226,12 @@
       <!-- Stats Row -->
       @if (readingStats) {
         <div class="stats-row">
-          <div class="stat-card">
+          <div class="stat-card"
+               [class.stat-card--clickable]="readThisYearBooks.length > 0"
+               (click)="openBooksModal(copy.booksReadThisYearLabel, readThisYearBooks)"
+               [attr.role]="readThisYearBooks.length > 0 ? 'button' : null"
+               [attr.tabindex]="readThisYearBooks.length > 0 ? 0 : null"
+               (keydown.enter)="openBooksModal(copy.booksReadThisYearLabel, readThisYearBooks)">
             <div class="stat-label">{{ copy.booksReadThisYearLabel }}</div>
             <div class="stat-value">
               {{ readingStats.booksReadThisYear }}<span class="stat-denom"> / {{ readingStats.booksGoal }}</span>
@@ -247,19 +251,34 @@
                     <button class="goal-cancel-btn" (click)="cancelGoalEdit()">{{ copy.cancelBtn }}</button>
                   </span>
                 } @else {
-                  <button class="edit-goal-btn" (click)="startEditGoal()">
+                  <button class="edit-goal-btn" (click)="$event.stopPropagation(); startEditGoal()" [attr.aria-label]="copy.editGoalBtn" [title]="copy.editGoalBtn">
                     <svg class="edit-goal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    <span class="goal-btn-text">{{ copy.editGoalBtn }}</span>
                   </button>
                 }
               }
             </div>
           </div>
 
-          <div class="stat-card">
-            <div class="stat-label">{{ copy.totalRatedLabel }}</div>
-            <div class="stat-value">{{ mostLikedBooks.length + inBetweenBooks.length + leastLikedBooks.length }}</div>
+          <div class="stat-card"
+               [class.stat-card--clickable]="ratedBooks.length > 0"
+               (click)="openBooksModal(copy.ratedThisYearLabel, ratedBooks)"
+               [attr.role]="ratedBooks.length > 0 ? 'button' : null"
+               [attr.tabindex]="ratedBooks.length > 0 ? 0 : null"
+               (keydown.enter)="openBooksModal(copy.ratedThisYearLabel, ratedBooks)">
+            <div class="stat-label">{{ copy.ratedThisYearLabel }}</div>
+            <div class="stat-value">{{ ratedBooks.length }}</div>
             <div class="stat-sub">{{ copy.booksWithRatingsDesc }}</div>
+          </div>
+
+          <div class="stat-card"
+               [class.stat-card--clickable]="recentPosts.length > 0"
+               (click)="scrollToActivity()"
+               [attr.role]="recentPosts.length > 0 ? 'button' : null"
+               [attr.tabindex]="recentPosts.length > 0 ? 0 : null"
+               (keydown.enter)="scrollToActivity()">
+            <div class="stat-label">{{ copy.postsThisYearLabel }}</div>
+            <div class="stat-value">{{ postsThisYearCount }}</div>
+            <div class="stat-sub">{{ copy.postsThisYearDesc }}</div>
           </div>
 
           <div class="stat-card"
@@ -304,56 +323,6 @@
               </div>
             }
           </div>
-        </div>
-      }
-
-      <!-- Friends Card (own profile only) -->
-      @if (isOwnProfile && friends.length > 0) {
-        <div class="friends-card">
-          <div class="sec-hdr">
-            <div class="sec-title">{{ copy.friendsTitle }} <span class="sec-count">{{ friends.length }}</span></div>
-            @if (friends.length > friendChipLimit) {
-              <button class="see-all" (click)="toggleFriendsExpanded()">
-                {{ friendsExpanded ? copy.showLessBtn : copy.seeAllBtn }}
-              </button>
-            }
-          </div>
-          <div class="friends-list">
-            @for (friend of displayedFriends; track friend.friendshipId) {
-              <a class="friend-chip" [routerLink]="['/profile', friend.userId]">
-                <span class="f-av">
-                  <span class="f-av-inner">
-                    @if (friend.avatarUrl) {
-                      <img [src]="friend.avatarUrl" [alt]="friend.name" loading="lazy" />
-                    } @else {
-                      {{ friend.name[0].toUpperCase() }}
-                    }
-                  </span>
-                  @if (isOnline(friend.userId)) {
-                    <span class="online" [title]="copy.onlineLabel" [attr.aria-label]="copy.onlineLabel"></span>
-                  }
-                </span>
-                <span class="f-name">{{ friend.name }}</span>
-              </a>
-            }
-            <a class="friend-chip find-readers-chip" routerLink="/community">
-              <span class="fr-plus">+</span>
-              <span class="f-name">{{ copy.findReadersBtn }}</span>
-            </a>
-          </div>
-        </div>
-      }
-
-      @if (isOwnProfile && friends.length === 0 && incomingRequests.length === 0) {
-        <div class="empty-friends">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <p>{{ copy.noFriendsYetMsg }}</p>
-          <a routerLink="/books/search" class="btn btn-primary">{{ copy.discoverBooksBtn }}</a>
         </div>
       }
 
@@ -714,6 +683,49 @@
     }
   }
 
+  <!-- Books list modal -->
+  @if (showBooksModal) {
+    <div class="modal-overlay books-modal-overlay" (click)="closeBooksModal()">
+      <div class="modal books-list-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">{{ booksModalTitle }} <span class="sec-count">{{ booksModalBooks.length }}</span></span>
+          <button class="modal-close" (click)="closeBooksModal()" [attr.aria-label]="copy.closeAria">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="books-modal-body">
+          @for (book of booksModalBooks; track book.userBookId) {
+            <button class="books-modal-row" type="button" (click)="openBook(book); closeBooksModal()" [disabled]="!book.googleBooksId">
+              <span class="books-modal-cover">
+                @if (book.coverUrl) {
+                  <img [src]="book.coverUrl" [alt]="book.title" loading="lazy" />
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                }
+              </span>
+              <span class="books-modal-info">
+                <span class="books-modal-title">{{ book.title }}</span>
+                <span class="books-modal-author">{{ book.author }}</span>
+                @if (book.rating > 0) {
+                  <span class="books-modal-stars">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <span [class.e]="star > book.rating">★</span>
+                    }
+                  </span>
+                }
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Friends list modal -->
   @if (showFriendsModal) {
     <div class="modal-overlay friends-modal-overlay" (click)="closeFriendsModal()">
@@ -790,6 +802,12 @@
               </div>
             }
           }
+          <a class="friends-modal-row friends-modal-find" routerLink="/community" (click)="closeFriendsModal()">
+            <span class="fr-plus">+</span>
+            <span class="friends-modal-info">
+              <span class="friends-modal-name">{{ copy.findReadersBtn }}</span>
+            </span>
+          </a>
         </div>
       </div>
     </div>
