@@ -282,11 +282,11 @@
           </div>
 
           <div class="stat-card"
-               [class.stat-card--clickable]="friendCount > 0 && (isOwnProfile || friendshipStatus === 'accepted' || !profile?.isPrivate)"
-               (click)="friendCount > 0 && (isOwnProfile || friendshipStatus === 'accepted' || !profile?.isPrivate) ? openFriendsModal() : null"
-               [attr.role]="friendCount > 0 && (isOwnProfile || friendshipStatus === 'accepted' || !profile?.isPrivate) ? 'button' : null"
-               [attr.tabindex]="friendCount > 0 && (isOwnProfile || friendshipStatus === 'accepted' || !profile?.isPrivate) ? 0 : null"
-               (keydown.enter)="friendCount > 0 && (isOwnProfile || friendshipStatus === 'accepted' || !profile?.isPrivate) ? openFriendsModal() : null">
+               [class.stat-card--clickable]="isOwnProfile || (friendCount > 0 && (friendshipStatus === 'accepted' || !profile?.isPrivate))"
+               (click)="isOwnProfile || (friendCount > 0 && (friendshipStatus === 'accepted' || !profile?.isPrivate)) ? openFriendsModal() : null"
+               [attr.role]="isOwnProfile || (friendCount > 0 && (friendshipStatus === 'accepted' || !profile?.isPrivate)) ? 'button' : null"
+               [attr.tabindex]="isOwnProfile || (friendCount > 0 && (friendshipStatus === 'accepted' || !profile?.isPrivate)) ? 0 : null"
+               (keydown.enter)="isOwnProfile || (friendCount > 0 && (friendshipStatus === 'accepted' || !profile?.isPrivate)) ? openFriendsModal() : null">
             <div class="stat-label">{{ copy.friendsTitle }}</div>
             <div class="stat-value">{{ friendCount }}</div>
             <div class="stat-sub">{{ copy.friendCountDesc }}</div>

@@ -173,6 +173,10 @@ export class FriendsService {
 
     if (error) throw new InternalServerErrorException(error.message);
 
+    this.notifications
+      .deleteMatchingNotification(userId, f['requester_id'] as string, 'friend_request', friendshipId, 'friendship')
+      .catch(() => undefined);
+
     // Notify the original requester that their request was accepted (fire-and-forget)
     this.notifications
       .createNotification(f['requester_id'] as string, userId, 'friend_accepted', friendshipId, 'friendship')
@@ -186,7 +190,7 @@ export class FriendsService {
 
     const { data: f } = await admin
       .from('friendship')
-      .select('friendship_id, user_id1, user_id2')
+      .select('friendship_id, user_id1, user_id2, requester_id')
       .eq('friendship_id', friendshipId)
       .maybeSingle();
 
@@ -200,6 +204,9 @@ export class FriendsService {
       .eq('friendship_id', friendshipId);
 
     if (error) throw new InternalServerErrorException(error.message);
+    this.notifications
+      .deleteMatchingNotification(userId, f['requester_id'] as string, 'friend_request', friendshipId, 'friendship')
+      .catch(() => undefined);
     return { success: true };
   }
 
@@ -208,7 +215,7 @@ export class FriendsService {
 
     const { data: f } = await admin
       .from('friendship')
-      .select('friendship_id, user_id1, user_id2')
+      .select('friendship_id, user_id1, user_id2, requester_id')
       .eq('friendship_id', friendshipId)
       .maybeSingle();
 
@@ -217,6 +224,13 @@ export class FriendsService {
 
     const { error } = await admin.from('friendship').delete().eq('friendship_id', friendshipId);
     if (error) throw new InternalServerErrorException(error.message);
+    const requesterId = f['requester_id'] as string | null;
+    const recipientId = requesterId === f['user_id1'] ? (f['user_id2'] as string) : (f['user_id1'] as string);
+    if (requesterId) {
+      this.notifications
+        .deleteMatchingNotification(recipientId, requesterId, 'friend_request', friendshipId, 'friendship')
+        .catch(() => undefined);
+    }
     return { success: true };
   }
 

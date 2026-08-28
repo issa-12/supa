@@ -1,8 +1,9 @@
-import { Component, HostListener, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
+import type { RealtimeSubscription } from '../../core/services/supabase.service';
 import { UserService, UserProfile, ReadingStats, UserGenre } from '../../core/services/user.service';
 import { BookService, UserBook } from '../../core/services/book.service';
 import { ActivityService, ActivityPost } from '../../core/services/activity.service';
@@ -36,7 +37,7 @@ interface ProfileBook {
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.scss',
 })
-export class ProfilePageComponent implements OnInit {
+export class ProfilePageComponent implements OnInit, OnDestroy {
   private readonly supabaseService = inject(SupabaseService);
   private readonly userService = inject(UserService);
   private readonly bookService = inject(BookService);
@@ -144,6 +145,10 @@ export class ProfilePageComponent implements OnInit {
   myFriendshipMap = new Map<string, number>(); // userId -> friendshipId
   modalActionLoading = new Set<string>();
   modalSentRequests = new Set<string>();
+  private friendshipRealtimeSubs: RealtimeSubscription[] = [];
+  private friendshipRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private friendshipPollTimer: ReturnType<typeof setInterval> | null = null;
+  private destroyed = false;
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
@@ -236,6 +241,8 @@ export class ProfilePageComponent implements OnInit {
       // Load the profile first — needed for the privacy gate, and always shown.
       const profile = await firstValueFrom(this.userService.getUserProfileById(targetId));
       this.profile = profile;
+      void this.setupFriendshipRealtime();
+      this.startFriendshipPolling();
 
       // Privacy gate: a private account is locked to anyone who isn't an
       // accepted friend (own profile is never locked). We deliberately do NOT
@@ -300,6 +307,27 @@ export class ProfilePageComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.friendshipRefreshTimer) {
+      clearTimeout(this.friendshipRefreshTimer);
+      this.friendshipRefreshTimer = null;
+    }
+    if (this.friendshipPollTimer) {
+      clearInterval(this.friendshipPollTimer);
+      this.friendshipPollTimer = null;
+    }
+    for (const sub of this.friendshipRealtimeSubs) {
+      void sub.teardown();
+    }
+    this.friendshipRealtimeSubs = [];
+  }
+
+  @HostListener('window:focus')
+  onWindowFocus(): void {
+    this.scheduleFriendshipRefresh();
+  }
+
   private async refreshFriendshipStatus(): Promise<void> {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || targetId === this.currentUserId) return;
@@ -310,6 +338,88 @@ export class ProfilePageComponent implements OnInit {
       this.blockedByMe = status.blockedByMe ?? false;
     } catch {
       // best-effort re-sync; leave the existing button state untouched
+    }
+  }
+
+  private async setupFriendshipRealtime(): Promise<void> {
+    if (!this.currentUserId || this.friendshipRealtimeSubs.length > 0) return;
+
+    const idsToWatch = new Set([this.currentUserId]);
+    if (this.viewedUserId && this.viewedUserId !== this.currentUserId) {
+      idsToWatch.add(this.viewedUserId);
+    }
+
+    const filters = [...idsToWatch].flatMap((userId) => [
+      `user_id1=eq.${userId}`,
+      `user_id2=eq.${userId}`,
+    ]);
+
+    try {
+      this.friendshipRealtimeSubs = await Promise.all(
+        filters.map((filter) =>
+          this.supabaseService.createRealtimeSubscription('profile-friendship', {
+            tables: ['friendship'],
+            filter,
+            onChange: () => this.scheduleFriendshipRefresh(),
+            onReconnect: () => this.scheduleFriendshipRefresh(),
+          }),
+        ),
+      );
+    } catch {
+      this.friendshipRealtimeSubs = [];
+    }
+  }
+
+  private scheduleFriendshipRefresh(): void {
+    if (this.destroyed) return;
+    if (this.friendshipRefreshTimer) clearTimeout(this.friendshipRefreshTimer);
+    this.friendshipRefreshTimer = setTimeout(() => {
+      this.friendshipRefreshTimer = null;
+      void this.refreshFriendData();
+    }, 250);
+  }
+
+  private startFriendshipPolling(): void {
+    if (this.friendshipPollTimer || !this.currentUserId) return;
+    this.friendshipPollTimer = setInterval(() => this.scheduleFriendshipRefresh(), 5000);
+  }
+
+  private async refreshFriendData(): Promise<void> {
+    if (this.destroyed || !this.viewedUserId) return;
+
+    try {
+      if (this.isOwnProfile) {
+        const [friends, requests, count] = await Promise.all([
+          this.friendshipService.getFriends(),
+          this.friendshipService.getIncomingRequests(),
+          this.friendshipService.getFriendCount(this.viewedUserId),
+        ]);
+        this.friends = friends;
+        this.incomingRequests = requests;
+        this.friendCount = count.count;
+        if (this.showFriendsModal) {
+          this.modalFriends = [...friends];
+          this.myFriendIds = new Set(friends.map(f => f.userId));
+          this.myFriendshipMap = new Map(friends.map(f => [f.userId, f.friendshipId]));
+        }
+        void this.presenceService.loadPresenceForUsers(friends.map(f => f.userId));
+        return;
+      }
+
+      if (!this.currentUserId) return;
+      const [status, count] = await Promise.all([
+        this.friendshipService.getFriendshipStatus(this.viewedUserId),
+        this.friendshipService.getFriendCount(this.viewedUserId),
+      ]);
+      this.friendshipStatus = status.status;
+      this.friendshipId = status.friendshipId;
+      this.blockedByMe = status.blockedByMe ?? false;
+      this.friendCount = count.count;
+      if (this.showFriendsModal) {
+        await this.openFriendsModal();
+      }
+    } catch {
+      // best-effort realtime refresh; direct button actions still surface errors
     }
   }
 

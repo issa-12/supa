@@ -210,7 +210,9 @@
   background: #FFFFFF;
   border-radius: clamp(10px, 1.1vw, 16px);
   border: 0.5px solid rgba(100, 70, 50, 0.10);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 20;
 }
 
 .compose-trigger {
@@ -291,7 +293,13 @@
   &::placeholder { color: var(--muted-foreground); }
 }
 
-.book-picker { display: flex; flex-direction: column; gap: clamp(5px, 0.56vw, 8px); }
+.book-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.56vw, 8px);
+  z-index: 30;
+}
 
 .book-search-bar {
   display: flex;
@@ -331,13 +339,17 @@
 
 .book-results {
   list-style: none;
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline: 0;
+  z-index: 80;
   margin: 0;
   padding: clamp(2px, 0.28vw, 4px) 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
-  max-height: clamp(140px, 14vw, 200px);
+  box-shadow: 0 14px 32px rgba(28, 20, 16, 0.16);
+  max-height: min(260px, 42vh);
   overflow-y: auto;
 }
 
