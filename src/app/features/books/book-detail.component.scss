@@ -664,6 +664,45 @@
   margin-bottom: 14px;
 }
 
+// Save failures were console-only before; surface them next to the control the
+// user just pressed, keeping their text in the editor.
+.save-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--destructive, #c0392b);
+  background: rgba(193, 74, 74, 0.10);
+  border: 1px solid rgba(193, 74, 74, 0.20);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.note-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+// Transient save confirmation. Sits in the header so it survives the editor
+// collapsing into the saved-note card on save.
+.note-saved-flash {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #2a6644;
+  background: rgba(42, 102, 68, 0.12);
+  animation: note-saved-fade 0.18s ease-out;
+}
+
+@keyframes note-saved-fade {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+
 .note-card-title {
   font-size: 14px;
   font-weight: 600;

@@ -44,6 +44,7 @@ export interface BookDetailCopy {
   saveNotes: string;
   saving: string;
   saved: string;
+  saveFailed: string;
   myReview: string;
   reviewHint: string;
   reviewPlaceholder: string;
@@ -107,6 +108,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     saveNotes: 'Save Notes',
     saving: 'Saving…',
     saved: 'Saved!',
+    saveFailed: 'Could not save. Check your connection and try again.',
     myReview: 'My Review',
     reviewHint: 'Visible to the ReadTrack community',
     reviewPlaceholder: 'Share your thoughts about this book…',
@@ -168,6 +170,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     saveNotes: 'حفظ الملاحظات',
     saving: 'جاري الحفظ…',
     saved: 'تم الحفظ!',
+    saveFailed: 'تعذّر الحفظ. تحقّق من اتصالك وحاول مرة أخرى.',
     myReview: 'تقييمي',
     reviewHint: 'مرئي لمجتمع ReadTrack',
     reviewPlaceholder: 'شارك أفكارك حول هذا الكتاب…',
@@ -229,6 +232,7 @@ export const BOOK_DETAIL_COPY: Record<LanguageCode, BookDetailCopy> = {
     saveNotes: 'Enregistrer les notes',
     saving: 'Enregistrement en cours…',
     saved: 'Enregistré !',
+    saveFailed: 'Enregistrement impossible. Vérifiez votre connexion et réessayez.',
     myReview: 'Mon avis',
     reviewHint: 'Visible par la communauté ReadTrack',
     reviewPlaceholder: 'Partagez vos réflexions sur ce livre…',

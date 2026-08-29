@@ -5,6 +5,13 @@
     <div class="toast toast--error">{{ addError }}</div>
   }
 
+  @if (usingLocalCatalog && !isSearching) {
+    <div class="toast toast--notice" role="status">
+      <iconify-icon icon="lucide:info"></iconify-icon>
+      <span>{{ copy.localCatalogNotice }}</span>
+    </div>
+  }
+
   <div class="page-header">
     <div>
       <h1 class="page-title">{{ copy.title }}</h1>

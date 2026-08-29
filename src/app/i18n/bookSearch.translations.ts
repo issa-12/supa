@@ -47,6 +47,7 @@ export interface BookSearchCopy {
   noFilteredResults: string;
   noFilteredResultsHint: string;
   searchFailed: string;
+  localCatalogNotice: string;
   notSignedIn: string;
   addFailed: string;
 }
@@ -99,6 +100,7 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     noFilteredResults: 'No books match your search and filters.',
     noFilteredResultsHint: 'Try another search or clear one of the filters.',
     searchFailed: 'Search failed. Please try again.',
+    localCatalogNotice: 'Book search is temporarily unavailable, so these results come from ReadTrack’s own library only.',
     notSignedIn: 'Not signed in.',
     addFailed: 'Could not add book. Try again.',
   },
@@ -149,6 +151,7 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     noFilteredResults: 'لا توجد كتب تطابق البحث والمرشحات.',
     noFilteredResultsHint: 'جرّب بحثاً آخر أو امسح أحد المرشحات.',
     searchFailed: 'فشل البحث. حاول مرة أخرى.',
+    localCatalogNotice: 'خدمة البحث عن الكتب غير متاحة مؤقتاً، لذا تظهر النتائج من مكتبة ReadTrack فقط.',
     notSignedIn: 'لم يتم تسجيل الدخول.',
     addFailed: 'تعذرت إضافة الكتاب. حاول مرة أخرى.',
   },
@@ -199,6 +202,7 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     noFilteredResults: 'Aucun livre ne correspond à votre recherche et aux filtres.',
     noFilteredResultsHint: 'Essayez une autre recherche ou effacez un filtre.',
     searchFailed: 'La recherche a échoué. Réessayez.',
+    localCatalogNotice: 'La recherche de livres est momentanément indisponible : ces résultats proviennent uniquement de la bibliothèque ReadTrack.',
     notSignedIn: 'Vous n’êtes pas connecté.',
     addFailed: 'Impossible d’ajouter le livre. Réessayez.',
   },

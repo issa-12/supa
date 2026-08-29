@@ -89,6 +89,10 @@ export interface BookSearchResult {
   totalItems: number;
   nextStartIndex: number;
   hasMore: boolean;
+  // Where the results came from. 'local' means Google Books was unreachable or
+  // rejected the request and we served the local catalog instead, which the
+  // client surfaces to the user so unexpectedly thin results are explainable.
+  source: 'google' | 'local';
 }
 
 @Injectable()
@@ -123,6 +127,7 @@ export class BooksService {
     let totalItems = 0;
     let pagesScanned = 0;
     let exhausted = false;
+    let providerFailed = false;
 
     try {
       while (books.length < maxResults && pagesScanned < scanLimit) {
@@ -143,6 +148,7 @@ export class BooksService {
         if (!res.ok) {
           const body = await res.text().catch(() => '');
           console.error(`[BooksService] Google Books API ${res.status}:`, body.slice(0, 300));
+          providerFailed = true;
           break;
         }
 
@@ -173,6 +179,15 @@ export class BooksService {
         }
       }
 
+      // An HTTP error status from Google (429 over quota, 503 outage) is just
+      // as much a provider failure as a thrown network error, so it has to take
+      // the same fallback path — returning an empty page here made a working
+      // catalog look like "no results". Pages already collected before the
+      // failure are real Google data, so those are kept rather than discarded.
+      if (providerFailed && books.length === 0) {
+        return this.searchLocalBooks(query, maxResults, options);
+      }
+
       if (options.sort === 'newest') {
         books.sort((a, b) =>
           publicationYear(b.publishedDate) - publicationYear(a.publishedDate),
@@ -184,6 +199,7 @@ export class BooksService {
         totalItems,
         nextStartIndex: cursor,
         hasMore: books.length === maxResults && !exhausted && cursor < totalItems,
+        source: 'google',
       };
     } catch (err) {
       console.error('[BooksService] Google Books network error:', err);
@@ -198,11 +214,22 @@ export class BooksService {
     limit: number,
     options: BookSearchOptions,
   ): Promise<BookSearchResult> {
+    // Match title OR author: this is the path users land on whenever Google
+    // Books is down, and searching an author name (the second most common
+    // query after a title) previously returned nothing at all.
+    // PostgREST's `or` filter is comma-separated with parenthesised groups, so
+    // strip the characters that would break out of the expression.
+    const safe = query.replace(/[(),*]/g, ' ').trim();
+    // A query made up entirely of stripped characters would leave `%%`, which
+    // matches the whole catalog. Treat it as no results instead.
+    if (!safe) {
+      return { books: [], totalItems: 0, nextStartIndex: 0, hasMore: false, source: 'local' };
+    }
     let localQuery = this.supabase
       .getAdmin()
       .from('books')
       .select('*')
-      .ilike('title', `%${query}%`)
+      .or(`title.ilike.%${safe}%,author_name.ilike.%${safe}%`)
       .limit(limit);
     if (options.author?.trim()) {
       localQuery = localQuery.ilike('author_name', `%${options.author.trim()}%`);
@@ -238,6 +265,7 @@ export class BooksService {
       totalItems: books.length,
       nextStartIndex: books.length,
       hasMore: false,
+      source: 'local',
     };
   }
 

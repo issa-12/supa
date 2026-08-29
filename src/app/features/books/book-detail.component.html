@@ -258,14 +258,22 @@
                 <div class="note-card-title">{{ copy.myNotes }}</div>
                 <div class="note-card-sub">{{ copy.notesHint }}</div>
               </div>
-              @if (savedNote && !editingNote) {
-                <button class="icon-edit-btn" (click)="startEditNote()" [attr.aria-label]="copy.editReview">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
-              }
+              <div class="note-header-actions">
+                <!-- Saving collapses the editor (and its button) into the saved
+                     card, so the confirmation lives here instead — otherwise it
+                     renders on an element that no longer exists. -->
+                @if (noteSaved) {
+                  <span class="note-saved-flash" role="status">{{ copy.saved }}</span>
+                }
+                @if (savedNote && !editingNote) {
+                  <button class="icon-edit-btn" (click)="startEditNote()" [attr.aria-label]="copy.editReview">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                }
+              </div>
             </div>
             @if (savedNote && !editingNote) {
               <p class="note-saved-text">{{ savedNote }}</p>
@@ -282,11 +290,14 @@
                   @if (savedNote) {
                     <button class="save-btn save-btn--outline" (click)="cancelEditNote()" [disabled]="noteSaving">{{ copy.cancelEdit }}</button>
                   }
-                  <button class="save-btn" [class.save-btn--saved]="noteSaved" (click)="saveNote()" [disabled]="noteSaving || !note.trim()">
+                  <button class="save-btn" [class.save-btn--saved]="noteSaved" (click)="saveNote()" [disabled]="noteSaving || !canSaveNote">
                     {{ noteSaved ? copy.saved : noteSaving ? copy.saving : copy.saveNotes }}
                   </button>
                 </div>
               </div>
+              @if (noteError) {
+                <p class="save-error" role="alert">{{ noteError }}</p>
+              }
             }
           </div>
         }
@@ -350,6 +361,9 @@
                         </button>
                       </div>
                     </div>
+                    @if (reviewError) {
+                      <p class="save-error" role="alert">{{ reviewError }}</p>
+                    }
                   } @else if (savedReview) {
                     <p class="r-text">{{ savedReview }}</p>
                     <div class="r-actions">

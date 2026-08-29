@@ -58,6 +58,10 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   addingBookId: string | null = null;
   addedBooks = new Map<string, string>(); // googleId → status label
   addError: string | null = null;
+  // True when the backend served results from the local catalog because Google
+  // Books was unreachable or over quota. Drives the explanatory snackbar so a
+  // short result list doesn't read as "this book doesn't exist".
+  usingLocalCatalog = false;
 
   private startIndex = 0;
   private moreAvailable = false;
@@ -132,6 +136,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       this.hasSearched = false;
       this.totalItems = 0;
       this.moreAvailable = false;
+      this.usingLocalCatalog = false;
       return;
     }
 
@@ -177,6 +182,7 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     this.startIndex = 0;
     this.totalItems = 0;
     this.moreAvailable = false;
+    this.usingLocalCatalog = false;
 
     try {
       const response = await this.bookService.searchBooks(q, 0, this.searchOptions);
@@ -184,9 +190,11 @@ export class BookSearchComponent implements OnInit, OnDestroy {
       this.totalItems = response.totalItems;
       this.startIndex = response.nextStartIndex;
       this.moreAvailable = response.hasMore;
+      this.usingLocalCatalog = response.source === 'local';
     } catch (err) {
       this.searchError = this.copy.searchFailed;
       this.results = [];
+      this.usingLocalCatalog = false;
     } finally {
       this.isSearching = false;
     }

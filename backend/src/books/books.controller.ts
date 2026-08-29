@@ -58,6 +58,7 @@ export class BooksController {
         totalItems: 0,
         nextStartIndex: 0,
         hasMore: false,
+        source: 'google' as const,
       };
     }
 
