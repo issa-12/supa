@@ -256,10 +256,38 @@ export class SupabaseService {
     const supabase = await this.getClient();
     // Reaching here means an authenticated session (password login blocks
     // unverified accounts; OAuth accounts are inherently verified), so mark
-    // the public.users row verified — this also self-heals the flag.
+    // the public.users row verified. Preserve an existing display name: auth
+    // metadata can be stale after the user edits their profile.
+    const { data: existing, error: readError } = await supabase
+      .from('users')
+      .select('id, email, name')
+      .eq('id', profile.id)
+      .maybeSingle();
+
+    if (readError) {
+      throw readError;
+    }
+
+    if (existing) {
+      const { error } = await supabase
+        .from('users')
+        .update({ email: profile.email, verified: true })
+        .eq('id', profile.id);
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        id: existing['id'] as string,
+        email: (existing['email'] as string) ?? profile.email,
+        name: (existing['name'] as string) || profile.name,
+      };
+    }
+
     const { error } = await supabase
       .from('users')
-      .upsert({ ...profile, verified: true }, { onConflict: 'id' });
+      .insert({ ...profile, verified: true });
 
     if (error) {
       throw error;

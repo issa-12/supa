@@ -79,42 +79,15 @@ export class UserService {
 
   getUserReadingStats(userId: string): Observable<ReadingStats> {
     return from(
-      this.supabaseService.getClient().then(async (supabase) => {
-        const currentYear = new Date().getFullYear();
-
-        const { data: statusRow } = await supabase
-          .from('reading_statuses')
-          .select('status_id')
-          .eq('status_name', 'read')
-          .single();
-
-        const readStatusId = statusRow?.['status_id'] as number | undefined;
-
-        const [readRes, goalRes] = await Promise.all([
-          readStatusId
-            ? supabase
-                .from('user_books')
-                .select('user_book_id')
-                .eq('user_id', userId)
-                .eq('status_id', readStatusId)
-                .gte('updated_at', `${currentYear}-01-01`)
-            : Promise.resolve({ data: [], error: null }),
-          supabase
-            .from('reading_goals')
-            .select('target_books')
-            .eq('user_id', userId)
-            .eq('year', currentYear)
-            .maybeSingle(),
-        ]);
-
-        if (readRes.error) throw readRes.error;
-        if (goalRes.error) throw goalRes.error;
-
-        return {
-          booksReadThisYear: readRes.data?.length ?? 0,
-          booksGoal: (goalRes.data as { target_books?: number } | null)?.target_books ?? 20,
-          currentYear,
-        };
+      this.supabaseService.getCurrentSession().then(async (session) => {
+        const token = session?.access_token;
+        if (!token) throw new Error('Not authenticated');
+        const res = await fetch(`/api/stats/profile/${encodeURIComponent(userId)}/reading`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const payload = await res.json().catch(() => ({})) as ReadingStats & { message?: string };
+        if (!res.ok) throw new Error(payload.message ?? 'Failed to load reading stats.');
+        return payload;
       })
     ).pipe(catchError((error) => throwError(() => error)));
   }
@@ -180,10 +153,12 @@ export class UserService {
           .eq('user_id', userId)
           .then(({ data, error }) => {
             if (error) throw error;
-            return (data || []).map((item) => ({
-              id: item.genre?.genre_id || item.genre_id,
-              name: item.genre?.genre_name || '',
-            }));
+            return (data || [])
+              .map((item) => ({
+                id: item.genre?.genre_id || item.genre_id,
+                name: item.genre?.genre_name || '',
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name));
           })
       )
     ).pipe(catchError((error) => throwError(() => error)));

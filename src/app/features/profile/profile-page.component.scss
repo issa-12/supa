@@ -299,6 +299,8 @@ section[id] { scroll-margin-top: 80px; }
   border-radius: 16px;
   border: 0.5px solid $border-soft;
   padding: clamp(8px, 1.1vw, 18px) clamp(8px, 1.4vw, 22px);
+  min-width: 0;
+  container-type: inline-size;
 
   &--clickable {
     cursor: pointer;
@@ -330,7 +332,7 @@ section[id] { scroll-margin-top: 80px; }
   font-weight: 700;
   color: var(--foreground);
   line-height: 1;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 .stat-denom {
@@ -364,13 +366,17 @@ section[id] { scroll-margin-top: 80px; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .progress-label {
   font-size: 11px;
   color: var(--primary);
   font-weight: 500;
+  line-height: 1.25;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .edit-goal-btn {
@@ -395,11 +401,16 @@ section[id] { scroll-margin-top: 80px; }
 .goal-edit {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
+  flex: 1 1 148px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .goal-input {
   width: 56px;
+  max-width: 100%;
   padding: 4px 8px;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -422,6 +433,7 @@ section[id] { scroll-margin-top: 80px; }
   font-weight: 700;
   color: #fff;
   cursor: pointer;
+  min-width: 0;
 
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
@@ -435,6 +447,29 @@ section[id] { scroll-margin-top: 80px; }
   font-weight: 600;
   color: var(--muted-foreground);
   cursor: pointer;
+  min-width: 0;
+}
+
+@container (max-width: 220px) {
+  .progress-row:has(.goal-edit) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .progress-label {
+    max-width: 100%;
+  }
+
+  .goal-edit {
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .goal-save-btn,
+  .goal-cancel-btn {
+    padding-inline: 10px;
+  }
 }
 
 // ── Friends card ─────────────────────────────────────────────────
@@ -1403,7 +1438,7 @@ section[id] { scroll-margin-top: 80px; }
   &:disabled { opacity: 0.6; }
 }
 
-.report-modal__textarea { resize: vertical; min-height: 72px; }
+.report-modal__textarea { resize: none; min-height: 72px; }
 
 .report-modal__counter {
   position: absolute;

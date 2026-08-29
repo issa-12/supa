@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -57,6 +58,12 @@ export interface CommunitySummary {
   comments: number;
   reactions: number;
   reviews: number;
+}
+
+export interface ProfileReadingStats {
+  booksReadThisYear: number;
+  booksGoal: number;
+  currentYear: number;
 }
 
 export interface RankedBookMetric {
@@ -127,6 +134,9 @@ interface ShelfRow {
 
 @Injectable()
 export class StatsService {
+  private readonly readingStatusCache: Record<string, number> = {};
+  private readonly friendshipStatusCache: Record<string, number> = {};
+
   constructor(private readonly supabase: SupabaseService) {}
 
   async verifyUser(token: string): Promise<string> {
@@ -165,6 +175,59 @@ export class StatsService {
       to: toDate?.toISOString() ?? null,
       scope: normalizedScope,
       status: normalizedStatus,
+    };
+  }
+
+  async getProfileReadingStats(viewerId: string, targetUserId: string): Promise<ProfileReadingStats> {
+    const admin = this.supabase.getAdmin();
+    const { data: user, error: userError } = await admin
+      .from('users')
+      .select('id, is_private')
+      .eq('id', targetUserId)
+      .maybeSingle();
+
+    if (userError) throw new InternalServerErrorException(userError.message);
+    if (!user) throw new BadRequestException('User not found.');
+
+    if (viewerId !== targetUserId && user['is_private'] === true) {
+      const acceptedId = await this.getFriendshipStatusId('accepted');
+      const { data: friendship, error: friendshipError } = await admin
+        .from('friendship')
+        .select('friendship_id')
+        .eq('status_id', acceptedId)
+        .or(
+          `and(user_id1.eq.${viewerId},user_id2.eq.${targetUserId}),and(user_id1.eq.${targetUserId},user_id2.eq.${viewerId})`,
+        )
+        .maybeSingle();
+
+      if (friendshipError) throw new InternalServerErrorException(friendshipError.message);
+      if (!friendship) throw new ForbiddenException('Not allowed to view this profile.');
+    }
+
+    const currentYear = new Date().getFullYear();
+    const readStatusId = await this.getReadingStatusId('read');
+    const [readRes, goalRes] = await Promise.all([
+      admin
+        .from('user_books')
+        .select('user_book_id', { count: 'exact', head: true })
+        .eq('user_id', targetUserId)
+        .eq('status_id', readStatusId)
+        .gte('updated_at', `${currentYear}-01-01`),
+      admin
+        .from('reading_goals')
+        .select('target_books')
+        .eq('user_id', targetUserId)
+        .eq('year', currentYear)
+        .maybeSingle(),
+    ]);
+
+    if (readRes.error) throw new InternalServerErrorException(readRes.error.message);
+    if (goalRes.error) throw new InternalServerErrorException(goalRes.error.message);
+
+    return {
+      booksReadThisYear: readRes.count ?? 0,
+      booksGoal: (goalRes.data?.['target_books'] as number | undefined) ?? 20,
+      currentYear,
     };
   }
 
@@ -245,19 +308,12 @@ export class StatsService {
     }
 
     const admin = this.supabase.getAdmin();
-    const { data: accepted, error: statusError } = await admin
-      .from('friendship_status')
-      .select('status_id')
-      .eq('status_name', 'accepted')
-      .single();
-    if (statusError || !accepted) {
-      throw new InternalServerErrorException('Accepted friendship status is missing.');
-    }
+    const acceptedId = await this.getFriendshipStatusId('accepted');
 
     const { data, error } = await admin
       .from('friendship')
       .select('user_id1, user_id2')
-      .eq('status_id', accepted['status_id'])
+      .eq('status_id', acceptedId)
       .or(`user_id1.eq.${userId},user_id2.eq.${userId}`);
     if (error) throw new InternalServerErrorException(error.message);
 
@@ -266,6 +322,32 @@ export class StatsService {
         ? (friendship['user_id2'] as string)
         : (friendship['user_id1'] as string),
     );
+  }
+
+  private async getReadingStatusId(name: string): Promise<number> {
+    if (this.readingStatusCache[name] !== undefined) return this.readingStatusCache[name];
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .from('reading_statuses')
+      .select('status_id')
+      .eq('status_name', name)
+      .single();
+    if (error || !data) throw new InternalServerErrorException(`Reading status '${name}' is missing.`);
+    this.readingStatusCache[name] = data['status_id'] as number;
+    return this.readingStatusCache[name];
+  }
+
+  private async getFriendshipStatusId(name: string): Promise<number> {
+    if (this.friendshipStatusCache[name] !== undefined) return this.friendshipStatusCache[name];
+    const { data, error } = await this.supabase
+      .getAdmin()
+      .from('friendship_status')
+      .select('status_id')
+      .eq('status_name', name)
+      .single();
+    if (error || !data) throw new InternalServerErrorException(`Friendship status '${name}' is missing.`);
+    this.friendshipStatusCache[name] = data['status_id'] as number;
+    return this.friendshipStatusCache[name];
   }
 
   private async getAnalyticsStartDate(): Promise<string | null> {

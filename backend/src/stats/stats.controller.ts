@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, Query, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Headers, Param, Query, UnauthorizedException } from '@nestjs/common';
 import { StatsService } from './stats.service';
 
 @Controller('stats')
@@ -16,6 +16,15 @@ export class StatsController {
     const userId = await this.service.verifyUser(extractToken(auth));
     const filters = this.service.parseFilters(from, to, scope, status);
     return this.service.getDashboard(userId, filters);
+  }
+
+  @Get('profile/:userId/reading')
+  async getProfileReadingStats(
+    @Headers('authorization') auth: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const userId = await this.service.verifyUser(extractToken(auth));
+    return this.service.getProfileReadingStats(userId, targetUserId);
   }
 
   // Kept as a compatibility endpoint while older clients are phased out.

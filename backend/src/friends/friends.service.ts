@@ -377,13 +377,20 @@ export class FriendsService {
 
     const { data: existing } = await admin
       .from('friendship')
-      .select('friendship_id')
+      .select('friendship_id, requester_id, status_id')
       .or(
         `and(user_id1.eq.${blockerId},user_id2.eq.${blockedId}),and(user_id1.eq.${blockedId},user_id2.eq.${blockerId})`,
       )
       .maybeSingle();
 
     if (existing) {
+      if (existing['status_id'] === blockedStatusId) {
+        if (existing['requester_id'] === blockerId) {
+          throw new ConflictException('You already blocked this user.');
+        }
+        throw new ForbiddenException('Could not process this request.');
+      }
+
       const { error } = await admin
         .from('friendship')
         .update({ status_id: blockedStatusId, requester_id: blockerId })
