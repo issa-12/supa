@@ -1,8 +1,9 @@
-import { Component, HostListener, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { SupabaseService } from '../../core/services/supabase.service';
+import type { RealtimeSubscription } from '../../core/services/supabase.service';
 import { UserService, UserProfile, ReadingStats, UserGenre } from '../../core/services/user.service';
 import { BookService, UserBook } from '../../core/services/book.service';
 import { ActivityService, ActivityPost } from '../../core/services/activity.service';
@@ -36,7 +37,7 @@ interface ProfileBook {
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.scss',
 })
-export class ProfilePageComponent implements OnInit {
+export class ProfilePageComponent implements OnInit, OnDestroy {
   private readonly supabaseService = inject(SupabaseService);
   private readonly userService = inject(UserService);
   private readonly bookService = inject(BookService);
@@ -58,8 +59,10 @@ export class ProfilePageComponent implements OnInit {
   mostLikedBooks: ProfileBook[] = [];
   inBetweenBooks: ProfileBook[] = [];
   leastLikedBooks: ProfileBook[] = [];
+  readThisYearBooks: ProfileBook[] = [];
   currentlyReadingBooks: ProfileBook[] = [];
   recentPosts: ActivityPost[] = [];
+  postsThisYearCount = 0;
 
   editingGoal = false;
   goalInput = 20;
@@ -131,6 +134,9 @@ export class ProfilePageComponent implements OnInit {
   readonly friendChipLimit = 12;
   friendsExpanded = false;
   showFriendsModal = false;
+  showBooksModal = false;
+  booksModalTitle = '';
+  booksModalBooks: ProfileBook[] = [];
 
   // Friends modal state
   modalFriends: FriendUser[] = [];
@@ -139,6 +145,10 @@ export class ProfilePageComponent implements OnInit {
   myFriendshipMap = new Map<string, number>(); // userId -> friendshipId
   modalActionLoading = new Set<string>();
   modalSentRequests = new Set<string>();
+  private friendshipRealtimeSubs: RealtimeSubscription[] = [];
+  private friendshipRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private friendshipPollTimer: ReturnType<typeof setInterval> | null = null;
+  private destroyed = false;
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe(l => this.lang = l);
@@ -231,6 +241,8 @@ export class ProfilePageComponent implements OnInit {
       // Load the profile first — needed for the privacy gate, and always shown.
       const profile = await firstValueFrom(this.userService.getUserProfileById(targetId));
       this.profile = profile;
+      void this.setupFriendshipRealtime();
+      this.startFriendshipPolling();
 
       // Privacy gate: a private account is locked to anyone who isn't an
       // accepted friend (own profile is never locked). We deliberately do NOT
@@ -245,15 +257,18 @@ export class ProfilePageComponent implements OnInit {
         return;
       }
 
-      const [stats, genres, mostLiked, inBetween, leastLiked, currentlyReading, recentPosts] =
+      const currentYear = new Date().getFullYear();
+      const [stats, genres, mostLiked, inBetween, leastLiked, readThisYear, currentlyReading, recentPosts, postsThisYearCount] =
         await Promise.all([
           firstValueFrom(this.userService.getUserReadingStats(targetId)),
           firstValueFrom(this.userService.getUserGenres(targetId)),
-          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 5, 5)),
-          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 3, 4)),
-          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 1, 2)),
+          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 5, 5, currentYear)),
+          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 3, 4, currentYear)),
+          firstValueFrom(this.bookService.getUserBooksByRating(targetId, 1, 2, currentYear)),
+          firstValueFrom(this.bookService.getUserBooksReadThisYear(targetId, currentYear)),
           firstValueFrom(this.bookService.getUserBooksByStatus(targetId, 'currently_reading', 6)),
           firstValueFrom(this.activityService.getUserPosts(targetId, this.currentUserId ?? targetId, 5)),
+          firstValueFrom(this.activityService.getUserPostCountThisYear(targetId, currentYear)),
         ]);
 
       this.readingStats = stats;
@@ -262,8 +277,10 @@ export class ProfilePageComponent implements OnInit {
       this.mostLikedBooks = this.toProfileBooks(mostLiked);
       this.inBetweenBooks = this.toProfileBooks(inBetween);
       this.leastLikedBooks = this.toProfileBooks(leastLiked);
+      this.readThisYearBooks = this.toProfileBooks(readThisYear);
       this.currentlyReadingBooks = this.toProfileBooks(currentlyReading);
       this.recentPosts = recentPosts;
+      this.postsThisYearCount = postsThisYearCount;
 
       if (this.isOwnProfile) {
         const [friends, requests, count] = await Promise.all([
@@ -290,6 +307,27 @@ export class ProfilePageComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.friendshipRefreshTimer) {
+      clearTimeout(this.friendshipRefreshTimer);
+      this.friendshipRefreshTimer = null;
+    }
+    if (this.friendshipPollTimer) {
+      clearInterval(this.friendshipPollTimer);
+      this.friendshipPollTimer = null;
+    }
+    for (const sub of this.friendshipRealtimeSubs) {
+      void sub.teardown();
+    }
+    this.friendshipRealtimeSubs = [];
+  }
+
+  @HostListener('window:focus')
+  onWindowFocus(): void {
+    this.scheduleFriendshipRefresh();
+  }
+
   private async refreshFriendshipStatus(): Promise<void> {
     const targetId = this.route.snapshot.paramMap.get('id');
     if (!targetId || targetId === this.currentUserId) return;
@@ -300,6 +338,88 @@ export class ProfilePageComponent implements OnInit {
       this.blockedByMe = status.blockedByMe ?? false;
     } catch {
       // best-effort re-sync; leave the existing button state untouched
+    }
+  }
+
+  private async setupFriendshipRealtime(): Promise<void> {
+    if (!this.currentUserId || this.friendshipRealtimeSubs.length > 0) return;
+
+    const idsToWatch = new Set([this.currentUserId]);
+    if (this.viewedUserId && this.viewedUserId !== this.currentUserId) {
+      idsToWatch.add(this.viewedUserId);
+    }
+
+    const filters = [...idsToWatch].flatMap((userId) => [
+      `user_id1=eq.${userId}`,
+      `user_id2=eq.${userId}`,
+    ]);
+
+    try {
+      this.friendshipRealtimeSubs = await Promise.all(
+        filters.map((filter) =>
+          this.supabaseService.createRealtimeSubscription('profile-friendship', {
+            tables: ['friendship'],
+            filter,
+            onChange: () => this.scheduleFriendshipRefresh(),
+            onReconnect: () => this.scheduleFriendshipRefresh(),
+          }),
+        ),
+      );
+    } catch {
+      this.friendshipRealtimeSubs = [];
+    }
+  }
+
+  private scheduleFriendshipRefresh(): void {
+    if (this.destroyed) return;
+    if (this.friendshipRefreshTimer) clearTimeout(this.friendshipRefreshTimer);
+    this.friendshipRefreshTimer = setTimeout(() => {
+      this.friendshipRefreshTimer = null;
+      void this.refreshFriendData();
+    }, 250);
+  }
+
+  private startFriendshipPolling(): void {
+    if (this.friendshipPollTimer || !this.currentUserId) return;
+    this.friendshipPollTimer = setInterval(() => this.scheduleFriendshipRefresh(), 5000);
+  }
+
+  private async refreshFriendData(): Promise<void> {
+    if (this.destroyed || !this.viewedUserId) return;
+
+    try {
+      if (this.isOwnProfile) {
+        const [friends, requests, count] = await Promise.all([
+          this.friendshipService.getFriends(),
+          this.friendshipService.getIncomingRequests(),
+          this.friendshipService.getFriendCount(this.viewedUserId),
+        ]);
+        this.friends = friends;
+        this.incomingRequests = requests;
+        this.friendCount = count.count;
+        if (this.showFriendsModal) {
+          this.modalFriends = [...friends];
+          this.myFriendIds = new Set(friends.map(f => f.userId));
+          this.myFriendshipMap = new Map(friends.map(f => [f.userId, f.friendshipId]));
+        }
+        void this.presenceService.loadPresenceForUsers(friends.map(f => f.userId));
+        return;
+      }
+
+      if (!this.currentUserId) return;
+      const [status, count] = await Promise.all([
+        this.friendshipService.getFriendshipStatus(this.viewedUserId),
+        this.friendshipService.getFriendCount(this.viewedUserId),
+      ]);
+      this.friendshipStatus = status.status;
+      this.friendshipId = status.friendshipId;
+      this.blockedByMe = status.blockedByMe ?? false;
+      this.friendCount = count.count;
+      if (this.showFriendsModal) {
+        await this.openFriendsModal();
+      }
+    } catch {
+      // best-effort realtime refresh; direct button actions still surface errors
     }
   }
 
@@ -706,10 +826,10 @@ export class ProfilePageComponent implements OnInit {
       return;
     }
     // Normalize + validate the username (shared rule with the auto-generated
-    // ones: 3–30 chars, lowercase letters, digits, underscore). Empty clears it.
-    const username = this.editUsername.trim().toLowerCase();
+    // ones: 3-30 chars, lowercase letters, digits, underscore).
+    const username = this.normalizeUsername(this.editUsername);
     this.editUsername = username;
-    if (username && !/^[a-z0-9_]{3,30}$/.test(username)) {
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
       this.editProfileError = this.copy.usernameInvalid;
       return;
     }
@@ -719,7 +839,7 @@ export class ProfilePageComponent implements OnInit {
       const updated = await firstValueFrom(
         this.userService.updateUserProfile(this.currentUserId, {
           name: this.editName.trim() || this.profile!.name,
-          username: username || null,
+          username,
           bio: this.editBio.trim() || null,
           isPrivate: this.editIsPrivate,
         }),
@@ -754,6 +874,13 @@ export class ProfilePageComponent implements OnInit {
   private isUsernameTakenError(error: unknown): boolean {
     const e = error as { code?: string; message?: string } | null;
     return e?.code === '23505' || (e?.message ?? '').includes('users_username_key');
+  }
+
+  private normalizeUsername(value: string): string {
+    return value
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim()
+      .toLowerCase();
   }
 
   startEditGoal(): void {
@@ -801,6 +928,28 @@ export class ProfilePageComponent implements OnInit {
     if (book.googleBooksId) {
       this.router.navigate(['/books', book.googleBooksId]);
     }
+  }
+
+  get ratedBooks(): ProfileBook[] {
+    return [...this.mostLikedBooks, ...this.inBetweenBooks, ...this.leastLikedBooks];
+  }
+
+  openBooksModal(title: string, books: ProfileBook[]): void {
+    if (books.length === 0) return;
+    this.booksModalTitle = title;
+    this.booksModalBooks = books;
+    this.showBooksModal = true;
+  }
+
+  closeBooksModal(): void {
+    this.showBooksModal = false;
+    this.booksModalTitle = '';
+    this.booksModalBooks = [];
+  }
+
+  scrollToActivity(): void {
+    if (this.recentPosts.length === 0) return;
+    document.getElementById('activity')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // Recent activity: show a single row by default, expand to the rest on demand.

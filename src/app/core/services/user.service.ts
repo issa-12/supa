@@ -79,42 +79,15 @@ export class UserService {
 
   getUserReadingStats(userId: string): Observable<ReadingStats> {
     return from(
-      this.supabaseService.getClient().then(async (supabase) => {
-        const currentYear = new Date().getFullYear();
-
-        const { data: statusRow } = await supabase
-          .from('reading_statuses')
-          .select('status_id')
-          .eq('status_name', 'read')
-          .single();
-
-        const readStatusId = statusRow?.['status_id'] as number | undefined;
-
-        const [readRes, goalRes] = await Promise.all([
-          readStatusId
-            ? supabase
-                .from('user_books')
-                .select('user_book_id')
-                .eq('user_id', userId)
-                .eq('status_id', readStatusId)
-                .gte('updated_at', `${currentYear}-01-01`)
-            : Promise.resolve({ data: [], error: null }),
-          supabase
-            .from('reading_goals')
-            .select('target_books')
-            .eq('user_id', userId)
-            .eq('year', currentYear)
-            .maybeSingle(),
-        ]);
-
-        if (readRes.error) throw readRes.error;
-        if (goalRes.error) throw goalRes.error;
-
-        return {
-          booksReadThisYear: readRes.data?.length ?? 0,
-          booksGoal: (goalRes.data as { target_books?: number } | null)?.target_books ?? 20,
-          currentYear,
-        };
+      this.supabaseService.getCurrentSession().then(async (session) => {
+        const token = session?.access_token;
+        if (!token) throw new Error('Not authenticated');
+        const res = await fetch(`/api/stats/profile/${encodeURIComponent(userId)}/reading`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const payload = await res.json().catch(() => ({})) as ReadingStats & { message?: string };
+        if (!res.ok) throw new Error(payload.message ?? 'Failed to load reading stats.');
+        return payload;
       })
     ).pipe(catchError((error) => throwError(() => error)));
   }
@@ -180,10 +153,12 @@ export class UserService {
           .eq('user_id', userId)
           .then(({ data, error }) => {
             if (error) throw error;
-            return (data || []).map((item) => ({
-              id: item.genre?.genre_id || item.genre_id,
-              name: item.genre?.genre_name || '',
-            }));
+            return (data || [])
+              .map((item) => ({
+                id: item.genre?.genre_id || item.genre_id,
+                name: item.genre?.genre_name || '',
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name));
           })
       )
     ).pipe(catchError((error) => throwError(() => error)));
@@ -236,27 +211,59 @@ export class UserService {
     updates: Partial<UserProfile>
   ): Observable<UserProfile> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase
+      this.supabaseService.getClient().then(async (supabase) => {
+        const name = updates.name?.trim();
+        const payload: Record<string, string | boolean | null | undefined> = {
+          name,
+          about_me: updates.bio,
+          profile_picture_url: updates.avatarUrl,
+          is_private: updates.isPrivate,
+          updated_at: new Date().toISOString(),
+        };
+        if (updates.username !== undefined) {
+          const username = this.normalizeUsername(updates.username);
+          if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+            throw new Error('Invalid username');
+          }
+          payload['username'] = username;
+        }
+
+        const { data, error } = await supabase
           .from('users')
-          .update({
-            name: updates.name,
-            about_me: updates.bio,
-            profile_picture_url: updates.avatarUrl,
-            username: updates.username,
-            is_private: updates.isPrivate,
-            updated_at: new Date().toISOString(),
-          })
+          .update(payload)
           .eq('id', userId)
           .select('*')
-          .single()
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data) throw new Error('Failed to update profile');
-            return this.mapUserProfile(data);
-          })
-      )
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('Failed to update profile');
+
+        if (name) {
+          const { error: authError } = await supabase.auth.updateUser({
+            data: { name },
+          });
+          if (authError) throw authError;
+
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({ user_id: userId, name }, { onConflict: 'user_id' });
+          if (profileError) {
+            // Legacy mirror used by older auth/OTP flows. Do not fail the
+            // visible profile save if this optional table is not writable.
+            console.warn('Could not update legacy profile name mirror:', profileError);
+          }
+        }
+
+        return this.mapUserProfile(data);
+      })
     ).pipe(catchError((error) => throwError(() => error)));
+  }
+
+  private normalizeUsername(value: string | null): string {
+    return (value ?? '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim()
+      .toLowerCase();
   }
 
   searchUsers(query: string, limit: number = 10): Observable<UserProfile[]> {

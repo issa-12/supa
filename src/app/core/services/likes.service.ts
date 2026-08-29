@@ -24,10 +24,11 @@ export class LikesService {
         if (currentlyLiked) {
           const { error } = await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', userId);
           if (error) throw error;
+          void this.notificationsService.deleteMatchingNotification(postOwnerId, userId, 'post_liked', postId, 'post');
         } else {
           const { error } = await supabase.from('post_likes').insert({ post_id: postId, user_id: userId });
           if (error) throw error;
-          this.notificationsService.fireNotification(postOwnerId, userId, 'post_liked', postId, 'post');
+          await this.notificationsService.fireNotification(postOwnerId, userId, 'post_liked', postId, 'post');
         }
       }),
     ).pipe(catchError((err) => throwError(() => err)));
@@ -52,6 +53,9 @@ export class LikesService {
             .eq('user_book_id', userBookId)
             .eq('user_id', userId);
           if (error) throw error;
+          if (wantLike) {
+            void this.notificationsService.deleteMatchingNotification(reviewOwnerId, userId, 'review_liked', userBookId, 'review');
+          }
           return;
         }
         const { error } = await supabase
@@ -59,7 +63,9 @@ export class LikesService {
           .upsert({ user_book_id: userBookId, user_id: userId, is_like: wantLike }, { onConflict: 'user_book_id,user_id' });
         if (error) throw error;
         if (wantLike && currentReaction !== 'like') {
-          this.notificationsService.fireNotification(reviewOwnerId, userId, 'review_liked', userBookId, 'review');
+          await this.notificationsService.fireNotification(reviewOwnerId, userId, 'review_liked', userBookId, 'review');
+        } else if (!wantLike && currentReaction === 'like') {
+          void this.notificationsService.deleteMatchingNotification(reviewOwnerId, userId, 'review_liked', userBookId, 'review');
         }
       }),
     ).pipe(catchError((err) => throwError(() => err)));
@@ -122,10 +128,11 @@ export class LikesService {
         if (currentlyLiked) {
           const { error } = await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId);
           if (error) throw error;
+          void this.notificationsService.deleteMatchingNotification(commentOwnerId, userId, 'comment_liked', commentId, 'comment');
         } else {
           const { error } = await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: userId });
           if (error) throw error;
-          this.notificationsService.fireNotification(commentOwnerId, userId, 'comment_liked', commentId, 'comment');
+          await this.notificationsService.fireNotification(commentOwnerId, userId, 'comment_liked', commentId, 'comment');
         }
       }),
     ).pipe(catchError((err) => throwError(() => err)));
