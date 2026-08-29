@@ -180,6 +180,31 @@ export class NotificationsService {
     return { success: true };
   }
 
+  async deleteNotificationsForReference(
+    userId: string,
+    typeName: string,
+    referenceId?: number | null,
+    referenceType?: string | null,
+  ): Promise<{ success: boolean }> {
+    const typeId = await this.getTypeId(typeName);
+    let query = this.supabase
+      .getAdmin()
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .eq('notifications_typeid', typeId);
+
+    if (referenceId == null) query = query.is('reference_id', null);
+    else query = query.eq('reference_id', referenceId);
+
+    if (referenceType == null) query = query.is('reference_type', null);
+    else query = query.eq('reference_type', referenceType);
+
+    const { error } = await query;
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
+  }
+
   async deleteAllNotifications(userId: string): Promise<{ success: boolean }> {
     const { error } = await this.supabase
       .getAdmin()

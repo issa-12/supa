@@ -176,6 +176,7 @@
 }
 
 .tag-row-name {
+  unicode-bidi: isolate;
   font-size: clamp(11px, 0.97vw, 14px);
   font-weight: 500;
   color: #C1553A;
@@ -184,6 +185,7 @@
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+
 }
 
 .tag-row-count {
@@ -686,6 +688,7 @@
 }
 
 .post-content {
+  unicode-bidi: plaintext;
   font-size: clamp(12px, 0.97vw, 14px);
   font-style: normal;
   line-height: 1.65;
@@ -695,6 +698,9 @@
   word-break: break-word;
   transition: opacity 0.2s ease;
   &--translated { opacity: 0.95; }
+
+  &[dir="rtl"] { text-align: right; }
+  &[dir="ltr"] { text-align: left; }
 }
 
 // ── Tag pills on post cards ───────────────────────────────────────
@@ -705,6 +711,7 @@
 }
 
 .tag-pill {
+  unicode-bidi: isolate;
   padding: clamp(2px, 0.21vw, 3px) clamp(7px, 0.7vw, 10px);
   border-radius: 20px;
   border: 1px solid transparent;
@@ -714,6 +721,8 @@
   color: #8B3E2A;
   cursor: pointer;
   transition: all 0.15s;
+  &[dir="rtl"] { text-align: right; }
+  &[dir="ltr"] { text-align: left; }
   &:hover { background: #FAF0ED; border-color: rgba(193, 85, 58, 0.35); }
 }
 

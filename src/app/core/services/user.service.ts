@@ -211,9 +211,10 @@ export class UserService {
     updates: Partial<UserProfile>
   ): Observable<UserProfile> {
     return from(
-      this.supabaseService.getClient().then((supabase) => {
+      this.supabaseService.getClient().then(async (supabase) => {
+        const name = updates.name?.trim();
         const payload: Record<string, string | boolean | null | undefined> = {
-          name: updates.name,
+          name,
           about_me: updates.bio,
           profile_picture_url: updates.avatarUrl,
           is_private: updates.isPrivate,
@@ -227,17 +228,33 @@ export class UserService {
           payload['username'] = username;
         }
 
-        return supabase
+        const { data, error } = await supabase
           .from('users')
           .update(payload)
           .eq('id', userId)
           .select('*')
-          .single()
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data) throw new Error('Failed to update profile');
-            return this.mapUserProfile(data);
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('Failed to update profile');
+
+        if (name) {
+          const { error: authError } = await supabase.auth.updateUser({
+            data: { name },
           });
+          if (authError) throw authError;
+
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({ user_id: userId, name }, { onConflict: 'user_id' });
+          if (profileError) {
+            // Legacy mirror used by older auth/OTP flows. Do not fail the
+            // visible profile save if this optional table is not writable.
+            console.warn('Could not update legacy profile name mirror:', profileError);
+          }
+        }
+
+        return this.mapUserProfile(data);
       })
     ).pipe(catchError((error) => throwError(() => error)));
   }

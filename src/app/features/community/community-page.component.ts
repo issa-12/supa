@@ -482,6 +482,14 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
     return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
   }
 
+  textDirection(text: string): 'ltr' | 'rtl' {
+    return detectLang(text) === 'ar' ? 'rtl' : 'ltr';
+  }
+
+  contentTextAlign(text: string): 'left' | 'right' {
+    return this.lang === 'ar' || this.textDirection(text) === 'rtl' ? 'right' : 'left';
+  }
+
   async translatePost(post: ActivityPost): Promise<void> {
     const postId = post.id;
 

@@ -33,7 +33,11 @@ import { detectLang } from '../../../core/util/detect-lang';
                 <div class="comment-body">
                   <div class="comment-bubble">
                     <a class="comment-author" [routerLink]="['/profile', comment.userId]">{{ comment.userName }}</a>
-                    <p class="comment-text">{{ getCommentContent(comment) }}</p>
+                    <p
+                      class="comment-text"
+                      [attr.dir]="textDirection(getCommentContent(comment))"
+                      [style.text-align]="contentTextAlign(getCommentContent(comment))"
+                    >{{ getCommentContent(comment) }}</p>
                   </div>
                   <div class="comment-meta">
                     <span class="meta-like-group">
@@ -70,7 +74,11 @@ import { detectLang } from '../../../core/util/detect-lang';
                       <div class="comment-body">
                         <div class="comment-bubble">
                           <a class="comment-author" [routerLink]="['/profile', reply.userId]">{{ reply.userName }}</a>
-                          <p class="comment-text">{{ getCommentContent(reply) }}</p>
+                          <p
+                            class="comment-text"
+                            [attr.dir]="textDirection(getCommentContent(reply))"
+                            [style.text-align]="contentTextAlign(getCommentContent(reply))"
+                          >{{ getCommentContent(reply) }}</p>
                         </div>
                         <div class="comment-meta">
                           <span class="meta-like-group">
@@ -101,7 +109,11 @@ import { detectLang } from '../../../core/util/detect-lang';
                             <div class="comment-body">
                               <div class="comment-bubble">
                                 <a class="comment-author" [routerLink]="['/profile', deep.userId]">{{ deep.userName }}</a>
-                                <p class="comment-text">{{ getCommentContent(deep) }}</p>
+                                <p
+                                  class="comment-text"
+                                  [attr.dir]="textDirection(getCommentContent(deep))"
+                                  [style.text-align]="contentTextAlign(getCommentContent(deep))"
+                                >{{ getCommentContent(deep) }}</p>
                               </div>
                               <div class="comment-meta">
                                 <span class="meta-like-group">
@@ -294,6 +306,9 @@ import { detectLang } from '../../../core/util/detect-lang';
       font-style: normal;
       white-space: pre-wrap;
       word-break: break-word;
+
+      &[dir="rtl"] { text-align: right; }
+      &[dir="ltr"] { text-align: left; }
     }
 
     .comment-meta {
@@ -493,6 +508,14 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
   getCommentContent(comment: Comment): string {
     if (!this.activeTranslations.has(comment.id)) return comment.content;
     return this.translatedTexts.get(comment.id)?.get(this.lang) ?? comment.content;
+  }
+
+  textDirection(text: string): 'ltr' | 'rtl' {
+    return detectLang(text) === 'ar' ? 'rtl' : 'ltr';
+  }
+
+  contentTextAlign(text: string): 'left' | 'right' {
+    return this.lang === 'ar' || this.textDirection(text) === 'rtl' ? 'right' : 'left';
   }
 
   async translateComment(comment: Comment): Promise<void> {
