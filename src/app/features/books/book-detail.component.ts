@@ -95,11 +95,15 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   editingNote = false;
   noteSaving = false;
   noteSaved = false;
+  // A failed save used to be console-only: the button quietly reverted and the
+  // user had no way to tell the note hadn't been stored (most visible offline).
+  noteError: string | null = null;
 
   reviewText = '';
   savedReview = '';
   editingReview = false;
   reviewSaving = false;
+  reviewError: string | null = null;
 
   currentUserName: string | null = null;
   currentUserAvatar: string | null = null;
@@ -124,7 +128,12 @@ export class BookDetailComponent implements OnInit, OnDestroy {
 
     try {
       const [bookRes, user] = await Promise.all([
-        fetch(`/api/books/${googleId}`).then(async (r) => {
+        // nginx holds a request to a dead backend for its full 30s
+        // proxy_read_timeout, which left the page on "Loading book…" that whole
+        // time. Fail faster than that — but stay above the backend's own 10s
+        // Google Books timeout, otherwise a slow-but-successful upstream lookup
+        // gets cancelled at the moment it was about to return.
+        fetch(`/api/books/${googleId}`, { signal: AbortSignal.timeout(20_000) }).then(async (r) => {
           if (!r.ok) {
             await r.json().catch(() => ({}));
             throw new Error(this.copy.loadFailed);
@@ -359,8 +368,12 @@ export class BookDetailComponent implements OnInit, OnDestroy {
 
   async removeFromShelf(): Promise<void> {
     if (!this.userBook) return;
-    if (!(await this.confirmDialog.confirm({ message: this.copy.confirmRemove, danger: true }))) return;
+    // Close the dropdown before awaiting the dialog, not after confirming.
+    // Cancelling used to leave `showStatusDropdown` true behind the backdrop,
+    // so the user's next click on the status button toggled an already-open
+    // menu shut and appeared to do nothing.
     this.showStatusDropdown = false;
+    if (!(await this.confirmDialog.confirm({ message: this.copy.confirmRemove, danger: true }))) return;
 
     try {
       await firstValueFrom(this.bookService.removeFromShelf(this.userBook.id));
@@ -402,29 +415,45 @@ export class BookDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Blank input is only rejected when there is nothing saved yet. Once a note
+  // exists, clearing the box and saving is the only way to delete it — the
+  // previous `!note.trim()` guard made a saved note permanent.
+  get canSaveNote(): boolean {
+    return !!this.note.trim() || !!this.savedNote;
+  }
+
   startEditNote(): void {
     this.note = this.savedNote;
     this.editingNote = true;
+    this.noteError = null;
   }
 
   cancelEditNote(): void {
     this.note = this.savedNote;
     this.editingNote = false;
+    this.noteError = null;
   }
 
   async saveNote(): Promise<void> {
-    if (!this.userBook || this.noteSaving) return;
+    if (!this.userBook || this.noteSaving || !this.canSaveNote) return;
     this.noteSaving = true;
+    this.noteError = null;
+    // Trim so a whitespace-only note reads as "cleared" rather than rendering
+    // as an empty saved-note card.
+    const next = this.note.trim();
     try {
       this.userBook = await firstValueFrom(
-        this.bookService.saveNote(this.userBook.id, this.note),
+        this.bookService.saveNote(this.userBook.id, next),
       );
-      this.savedNote = this.note;
+      this.note = next;
+      this.savedNote = next;
       this.editingNote = false;
       this.noteSaved = true;
       setTimeout(() => { this.noteSaved = false; }, 2000);
     } catch (err) {
       console.error(err);
+      // Keep the editor open with the user's text intact so nothing is lost.
+      this.noteError = this.copy.saveFailed;
     } finally {
       this.noteSaving = false;
     }
@@ -433,16 +462,19 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   startEditReview(): void {
     this.reviewText = this.savedReview;
     this.editingReview = true;
+    this.reviewError = null;
   }
 
   cancelEditReview(): void {
     this.reviewText = this.savedReview;
     this.editingReview = false;
+    this.reviewError = null;
   }
 
   async saveReview(): Promise<void> {
     if (!this.userBook || this.reviewSaving) return;
     this.reviewSaving = true;
+    this.reviewError = null;
     try {
       this.userBook = await firstValueFrom(
         this.bookService.saveReview(this.userBook.id, this.reviewText.trim()),
@@ -453,6 +485,7 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       this.loadCommunityReviews(this.userBook!.bookId);
     } catch (err) {
       console.error(err);
+      this.reviewError = this.copy.saveFailed;
     } finally {
       this.reviewSaving = false;
     }

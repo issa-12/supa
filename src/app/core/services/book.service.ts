@@ -32,7 +32,6 @@ export interface GoogleBook {
 
 export interface BookSearchOptions {
   author?: string;
-  isbn?: string;
   language?: string;
   sort?: string;
 }
@@ -442,10 +441,10 @@ export class BookService {
     totalItems: number;
     nextStartIndex: number;
     hasMore: boolean;
+    source: 'google' | 'local';
   }> {
     const params = new URLSearchParams({ q: query, maxResults: '12', startIndex: String(startIndex) });
     if (options.author?.trim()) params.set('author', options.author.trim());
-    if (options.isbn?.trim()) params.set('isbn', options.isbn.trim());
     if (options.language) params.set('language', options.language);
     if (options.sort) params.set('sort', options.sort);
     const res = await fetch(`/api/books/search?${params}`);
@@ -454,6 +453,7 @@ export class BookService {
       totalItems?: number;
       nextStartIndex?: number;
       hasMore?: boolean;
+      source?: 'google' | 'local';
       message?: string;
     };
 
@@ -466,6 +466,7 @@ export class BookService {
       totalItems: payload.totalItems ?? 0,
       nextStartIndex: payload.nextStartIndex ?? startIndex,
       hasMore: payload.hasMore ?? false,
+      source: payload.source ?? 'google',
     };
   }
 
@@ -796,13 +797,23 @@ export class BookService {
     const userIds = reviews.map((r) => r['user_id'] as string);
     const userBookIds = reviews.map((r) => r['user_book_id'] as number);
 
-    const [usersRes, likesRes] = await Promise.all([
-      supabase.from('users').select('id, name, profile_picture_url').in('id', userIds),
+    // Reactions are supplementary — the reviews have to render without them.
+    // While this sat inside the Promise.all, a single failed review_likes
+    // request (missing table, network abort, RLS change) rejected the whole
+    // call and the caller's catch left the community review list empty, so
+    // users lost every review instead of just the counts.
+    const likeRowsPromise = Promise.resolve(
       supabase.from('review_likes').select('user_book_id, user_id, is_like').in('user_book_id', userBookIds),
+    )
+      .then((res) => res.data ?? [])
+      .catch(() => [] as Array<Record<string, unknown>>);
+
+    const [usersRes, likeRows] = await Promise.all([
+      supabase.from('users').select('id, name, profile_picture_url').in('id', userIds),
+      likeRowsPromise,
     ]);
 
     const userMap = new Map((usersRes.data ?? []).map((u) => [u['id'] as string, u]));
-    const likeRows = likesRes.data ?? [];
 
     return reviews
       .filter((r) => r['review_text'])

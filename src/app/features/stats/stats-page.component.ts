@@ -189,6 +189,10 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private realtimeRefreshTimer?: ReturnType<typeof setTimeout>;
   private realtimeChannel?: RealtimeChannel;
   private charts: Chart[] = [];
+  // Indices of doughnut segments the user has toggled off. Chart.js owns the
+  // real visibility state, but the legend needs it too so a hidden slice reads
+  // as hidden rather than looking identical to a visible one.
+  private hiddenStatusSegments = new Set<number>();
 
   get currentScopeLabel(): string {
     return this.scopeOptions.find((option) => option.value === this.scope)?.label ?? this.copy.scopePersonal;
@@ -433,6 +437,14 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!chart) return;
     chart.toggleDataVisibility(index);
     chart.update();
+    // Mirror Chart.js's own state rather than flipping a local flag, so the
+    // legend can't drift out of sync with what the doughnut actually shows.
+    if (chart.getDataVisibility(index)) this.hiddenStatusSegments.delete(index);
+    else this.hiddenStatusSegments.add(index);
+  }
+
+  isStatusSegmentHidden(index: number): boolean {
+    return this.hiddenStatusSegments.has(index);
   }
 
   trackByKey(_: number, item: AnalyticsBucket): string {
@@ -719,6 +731,9 @@ export class StatsPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroyCharts(): void {
     for (const chart of this.charts) chart.destroy();
     this.charts = [];
+    // Rebuilt charts start with every segment visible (a filter change can also
+    // reorder the buckets), so stale indices would strike out the wrong labels.
+    this.hiddenStatusSegments.clear();
   }
 
   private exportRangeName(): string {
