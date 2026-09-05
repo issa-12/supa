@@ -1,146 +1,43 @@
-_This project has been created as part of the 42 curriculum by `issabr`, `ratwi`, `skreik`._
+_This project has been created as part of the 42 curriculum by `isalayan`, `ratwi`, `skreik`._
 
-# ReadTrack
-
-A social reading platform — track the books you read, follow friends and see their online status, post about books in a moderated community feed, and get AI-powered, personalized recommendations.
-
-This is our team's take on the **ft_transcendence** "build your own web app" project: a Goodreads-style social reading network.
-
----
+# FT Transcendence - ReadTrack
 
 ## Description
 
-**ReadTrack** lets readers:
+ReadTrack is a co-developed social reading platform built as part of the 42 Beirut ft_transcendence project. It lets users discover books, manage a personal shelf, follow friends, see online status, post in a moderated community feed, and receive personalized AI-powered book recommendations.
 
-- **Authenticate securely** — email + one-time-code sign-up, Google OAuth, and optional two-factor authentication (2FA).
-- **Discover books** via the Google Books catalogue and build a personal **shelf** (Want to read / Currently reading / Read), with reading progress, private notes, ratings, and public reviews.
-- **Connect** — add friends, see their **online/offline status**, and view their profiles and reading activity.
-- **Engage in a community feed** — post about books, comment, like, and tag, with **AI content moderation and sentiment analysis** on every post.
-- **Get AI recommendations** — a Claude-powered engine suggests books based on the user's genres, ratings and history.
-- **See stats** — a personal/global analytics dashboard (top books, trending genres, top readers, reading pace).
-- Use the app in **English, Arabic (RTL) and French**, install it as a **PWA**, and run it over **HTTPS**.
+The project reimagines the ft_transcendence web application as a Goodreads-style reading network. It uses an Angular single-page frontend, a NestJS REST backend, Supabase for authentication/database/storage/realtime features, Google Books for book metadata, and Anthropic Claude for recommendations, moderation, and sentiment analysis.
 
-The whole app supports **multiple concurrent users** with real-time notifications.
+Key features:
 
----
-
-## Features list
-
-| Feature | Description |
-|---|---|
-| Authentication | Email OTP sign-up, login, Google OAuth, email verification, password reset |
-| Two-Factor Auth (2FA) | Optional 2FA toggle in profile |
-| Genre onboarding | First-run genre picker; gates the app via a route guard |
-| Book search & catalogue | Google Books proxy search with pagination; shared `books` catalogue |
-| Personal shelf | Status columns, reading progress bar, ratings, private notes, public reviews; filter & sort |
-| Book detail | Star rating, shelf status, community rating breakdown, reviews + helpful/not-helpful reactions, recommend-to-friend |
-| Friends system | Send/accept/reject/cancel requests, friends list, block/report, friendship status |
-| Online presence | Heartbeat-based online/offline status shown on friends & profiles |
-| Real-time notifications | Live bell + dropdown (friend requests, likes, comments, recommendations) via Supabase Realtime |
-| Community feed | Create posts (with book + tags), threaded comments, likes, trending tab, tag filtering |
-| AI content moderation | Posts **and comments** analysed and moderated via Claude (profanity/abuse blocked before publish) |
-| AI sentiment analysis | Each post tagged positive / negative / neutral / mixed |
-| AI recommendations | Personalized book suggestions (Claude), enriched with Google Books, cached 24h; powers the home hero + grid |
-| Stats dashboard | Top books, trending genres, top readers, personal monthly reading pace |
-| Profiles | Avatar upload (add / change / remove), bio, username, reading goal, currently reading, recent posts |
-| Private accounts | Make a profile private — shelf/stats/posts/comments visible to friends only; still findable in search (shows a locked state) |
-| i18n + RTL | English / Arabic (RTL) / French with a live language switcher |
-| PWA | Installable, offline app shell via service worker |
-| HTTPS | nginx TLS termination + HTTP→HTTPS redirect |
-| Responsive design | Mobile-first layouts down to 375px (iPhone SE) |
-| Privacy Policy / Terms | Dedicated, footer-linked legal pages |
-
----
-
-## Modules
-
-Total: **19 points** (4 Major × 2 = 8, 11 Minor × 1 = 11).
-
-### Web
-| Module | Type | Pts | How it's implemented |
-|---|---|---|---|
-| Framework — frontend **and** backend | Major | 2 | **Angular 19** SPA (standalone components) + **NestJS 10** REST backend |
-| Real-time features | Major | 2 | **Supabase Realtime** (`postgres_changes`) drives the live notification bell across clients |
-| Notification system | Minor | 1 | Notifications fired on friend requests, likes, comments, recommendations; live unread badge |
-| Advanced search | Minor | 1 | Book search with debounce, **filters, sorting and pagination**; unified top-nav search |
-| Progressive Web App | Minor | 1 | `@angular/service-worker` + manifest + icons; installable, offline app shell |
-
-### Accessibility & Internationalization
-| Module | Type | Pts | How it's implemented |
-|---|---|---|---|
-| Multiple languages (≥3) | Minor | 1 | Full **EN / AR / FR** translations + in-app language switcher |
-| Right-to-left (RTL) | Minor | 1 | Arabic RTL with logical-property layout mirroring; live LTR↔RTL switching |
-
-### User Management
-| Module | Type | Pts | How it's implemented |
-|---|---|---|---|
-| Standard user management | Major | 2 | Profile edit, **avatar upload** (Supabase Storage, default avatar), **friends + online status**, profile pages |
-| OAuth 2.0 | Minor | 1 | **Google** sign-in via Supabase Auth |
-| Two-Factor Authentication | Minor | 1 | Complete 2FA enable/disable flow |
-| Online presence | Minor | 1 | Heartbeat `last_seen_at`; online/offline status shown on friends & profiles |
-| User activity analytics dashboard | Minor | 1 | `/stats` — personal reading pace + global insights |
-
-### Artificial Intelligence
-| Module | Type | Pts | How it's implemented |
-|---|---|---|---|
-| Recommendation system | Major | 2 | **Claude** builds personalized suggestions from the user's genres/ratings/history; content-based, enriched with Google Books, cached 24h |
-| Content moderation AI | Minor | 1 | Community posts auto-moderated (approve / flag / reject) by Claude |
-| Sentiment analysis | Minor | 1 | Each post classified positive / negative / neutral / mixed |
-
-> **Note for the defense:** the team should be ready to demonstrate each module live (per the subject, non-functional modules score 0). The Real-time and Recommendation majors are implemented with Supabase Realtime and the Claude API respectively — be prepared to explain both.
-
----
-
-## Technical stack
-
-| Layer | Technology | Why |
-|---|---|---|
-| **Frontend** | Angular 19 (standalone components, no SSR), SCSS, RxJS | Mature framework with routing, DI, and a strong component model |
-| **Backend** | NestJS 10 (Node 20), global `api` prefix | Structured, modular Node framework (module-per-feature) with first-class TypeScript |
-| **Database / Auth / Storage** | Supabase (PostgreSQL + Auth + Storage + Realtime) | One managed platform for relational data, auth (OTP/OAuth/2FA), file storage (avatars), and websockets — with Row-Level Security |
-| **AI** | Anthropic Claude API (`claude-haiku-4-5`) | Recommendations, content moderation, and sentiment analysis |
-| **External data** | Google Books API | Book metadata, covers, and search |
-| **Styling** | SCSS with CSS-variable design tokens (warm cream/terracotta theme) | Lightweight, framework-agnostic, themeable |
-| **Deployment** | Docker Compose — nginx (frontend + TLS + `/api` proxy) + NestJS container | Single-command, reproducible; TLS terminates at nginx, backend stays on an internal network |
-
-Other notable libraries: `@supabase/supabase-js`, `@anthropic-ai/sdk`, `iconify-icon` (icons), `@angular/service-worker` (PWA).
-
-> **Note:** the project uses the Supabase client SDK rather than a standalone ORM.
-
----
-
-## Database schema
-
-PostgreSQL (Supabase). All tables have **Row-Level Security** enabled.
-
-Core tables and relationships:
-
-- **`users`** — mirrors `auth.users` (`id = auth.uid()`); `name`, `profile_picture_url`, `bio`, `username`, `last_seen_at`, `is_private`.
-- **`profiles`** — extended profile data.
-- **`books`** — shared catalogue; `google_books_id` UNIQUE, `title`, `author_name`, `description`, `cover_image_url`.
-- **`user_books`** — a user's shelf entry: → `users`, → `books`, → `reading_statuses`; `rating`, `note`, `review_text`, `current_page`, `total_pages`, `recommended_by`. UNIQUE `(user_id, book_id)`.
-- **`reading_statuses`** — reference: read / want_to_read / currently_reading / recommended_by_friend.
-- **`reading_goals`** — annual goal per user; UNIQUE `(user_id, year)`.
-- **`genres`** (20 seeded) ↔ **`user_genres`** (many-to-many user↔genre).
-- **`posts`** — community posts → `users`, optional → `books`; `tags[]`, `sentiment`, soft-delete.
-- **`comments`** — threaded (`parent_comment_id`, depth 0–3) → `posts`.
-- **`post_likes`**, **`comment_likes`**, **`review_likes`** (`UNIQUE(user_book_id, user_id)`).
-- **`friendship`** — `user_id1`, `user_id2`, `requester_id`, → `friendship_status` (pending/accepted/rejected/blocked); order-independent unique pair.
-- **`notifications`** → `users` (recipient + actor), → `notifications_type`.
-- **`ai_recommendations`** — cached Claude recommendations per user (JSONB, 24h TTL).
----
+- Secure authentication with email OTP, email verification, password reset, Google OAuth, and optional two-factor authentication.
+- Genre onboarding that personalizes the first user experience and gates the app until preferences are selected.
+- Google Books-powered search with pagination, shared book catalogue records, and book detail pages.
+- Personal shelf with Want to read, Currently reading, Read, and friend-recommended states.
+- Reading progress, ratings, private notes, public reviews, and review reactions.
+- Friend requests, friend lists, profile privacy controls, blocking/reporting, and online/offline presence.
+- Real-time notifications for friend requests, likes, comments, and recommendations using Supabase Realtime.
+- Community posts with book tagging, threaded comments, likes, tag filtering, and trending content.
+- AI content moderation and sentiment analysis for community posts and comments.
+- Claude-powered personalized book recommendations enriched with Google Books data and cached per user.
+- Personal and global reading statistics, including top books, trending genres, top readers, and reading pace.
+- English, Arabic, and French translations with Arabic RTL support.
+- PWA support, responsive layouts, HTTPS through nginx, and Docker-based deployment.
 
 ## Instructions
 
-### Prerequisites
-- **Docker** + **Docker Compose** (recommended), or **Node.js 20** for local dev.
-- A **Supabase** project, a **Google Books API** key, and an **Anthropic (Claude) API** key.
-- *(Optional, for warning-free HTTPS + PWA)* **[mkcert](https://github.com/FiloSottile/mkcert)**.
+Prerequisites:
 
-### 1. Environment variables
-Copy `.env.example` to `.env` (root, used by Docker) and `backend/.env` (used by local NestJS), then fill in:
+- Docker and Docker Compose, recommended for the full HTTPS deployment.
+- Node.js 20 and npm, if running the frontend/backend locally.
+- A Supabase project.
+- A Google Books API key.
+- An Anthropic Claude API key.
+- Optional: mkcert for a locally trusted HTTPS certificate.
 
-```
+Environment variables:
+
+```env
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_ANON_KEY=
@@ -150,93 +47,257 @@ ANTHROPIC_API_KEY=
 FRONTEND_URL=https://localhost
 PORT=3000
 ```
-Both `.env` files are git-ignored.
 
-### 2. Database
-Apply the migrations in `supabase/migrations/` to your Supabase project (Supabase SQL editor or CLI). Make sure these are applied: the Day-12 `user_books` columns, `review_likes`, and `user_last_seen` (`last_seen_at`).
+Copy `.env.example` to `.env` at the repository root for Docker. For local backend development, also create `backend/.env` with the same required backend values. Both files are ignored by Git and must contain evaluator or local project secrets only.
 
-### 3. (Recommended) Trust a local certificate for HTTPS + PWA
-A self-signed cert works out of the box but Chrome shows a warning and won't register the service worker. For a clean console + installable PWA:
-```bash
+Apply the Supabase migrations from `supabase/migrations/` to your Supabase project. The project also includes SQL setup files such as `database.sql` and `supabase-auth-setup.sql` for schema/auth context.
+
+Recommended HTTPS certificate setup:
+
+```sh
 mkcert -install
 mkcert -cert-file certs/selfsigned.crt -key-file certs/selfsigned.key localhost 127.0.0.1
 ```
 
-### 4. Run with Docker (single command)
-```bash
+Run with Docker:
+
+```sh
 docker compose up --build
 ```
-Then open **https://localhost**. The backend is not exposed publicly — it's reached only through the nginx `/api` proxy on the internal Docker network.
 
-### 5. Local development (alternative)
-```bash
+Open the app at `https://localhost`. The NestJS backend is reached through the nginx `/api` proxy.
+
+Run locally without Docker:
+
+```sh
 npm install
-npm run dev          # Angular dev server (http://localhost:4200) + NestJS together
-# or run them separately:
-npm start            # Angular  → http://localhost:4200
-cd backend && npm run start:dev   # NestJS → http://localhost:3000
+npm run dev
 ```
 
-### Verify
-```bash
-curl -k https://localhost/api/health   # → {"status":"ok"}
+This starts the Angular dev server and the NestJS backend together. You can also run them separately:
+
+```sh
+npm start
+cd backend
+npm run start:dev
 ```
 
----
+Useful checks:
 
-## Team information
+```sh
+npm run build
+npm run test:i18n
+curl -k https://localhost/api/health
+```
 
-A three-person team; every member was a full-stack developer, with one additional role each.
+## Team Information
 
-| Member (login) | Role(s) | Responsibilities |
-|---|---|---|
-| `ratwi` | Product Owner / Developer | Product vision, feature validation and acceptance |
-| `skreik` | Project Manager (Scrum Master) / Developer | Planning, task tracking, coordination |
-| `issabr` | Technical Lead / Developer | Architecture, tech-stack decisions, code review, deployment (Docker/nginx/HTTPS) |
+- `ratwi`: Product Owner and full-stack developer.
+- `skreik`: Project Manager/Scrum Master and full-stack developer.
+- `isalayan`: Technical Lead and full-stack developer.
 
----
+Every team member contributed across the stack, with additional ownership areas for product validation, planning/coordination, architecture, database work, QA, AI features, and deployment.
 
-## Project management
+## Project Management
 
-- **Task organization:** Notion board for the backlog, per-feature tasks, specs, the module breakdown, and meeting notes.
-- **Workflow:** feature branches merged to `main` (current working branch: `issabr`).
+- Work was organized around the main product areas: authentication, books/shelf, profiles, friends, community, notifications, recommendations, statistics, localization, and deployment.
+- Notion was used for backlog planning, feature tasks, module tracking, specifications, and meeting notes.
+- Development used feature branches merged into `main`.
+- The team reviewed functionality against the 42 subject modules and prepared live demonstrations for each claimed module.
+- QA included manual feature testing, responsive layout checks, i18n parity checks, Supabase policy validation, and defense-focused verification.
 
----
+## Technical Stack
 
-## Individual contributions
+- Frontend: Angular 19, standalone components, TypeScript, SCSS, RxJS, Angular Router, Angular service worker.
+- Backend: NestJS 10, Node.js 20, REST controllers, modular services, Swagger tooling.
+- Database/auth/storage/realtime: Supabase Postgres, Supabase Auth, Supabase Storage, Supabase Realtime, Row-Level Security.
+- AI: Anthropic Claude API using `@anthropic-ai/sdk`.
+- External data: Google Books API.
+- Charts and exports: Chart.js, html2canvas, jsPDF.
+- Deployment/runtime: Docker Compose, nginx, TLS certificates, internal backend proxying.
+- PWA: `@angular/service-worker`, web manifest, generated app icons, offline app shell.
 
-Detailed breakdown per member of the main areas each person worked on.
+Supabase was chosen to centralize authentication, relational data, file storage, realtime notifications, and database security policies. NestJS owns server-side API logic, protected service-role operations, third-party API proxying, recommendation generation, moderation, statistics, and public API endpoints. Angular owns the interactive client experience, routing, localization, responsive UI, and PWA behavior.
 
-- **`ratwi` — Full-stack & AI.** Full-stack feature work (Angular components + NestJS endpoints) across the app, plus ownership of the three AI modules: the Claude-powered **recommendation engine**, **content moderation** of posts and comments, and **sentiment analysis**.
-- **`issabr` — Full-stack & DevOps.** Full-stack feature work plus the deployment and infrastructure: **Docker Compose**, **nginx** (TLS termination + `/api` proxy), **HTTPS** setup, and the **PWA** (service worker + manifest).
-- **`skreik` — QA, Supabase & database schema.** Designed and maintained the **Supabase** database — schema, tables and relationships, **Row-Level Security** policies, and the migrations in `supabase/migrations/`. Also handled QA: manual testing and verification of features, bug reporting and tracking, and validating each module against the subject requirements ahead of the defense.
+## Database Schema
 
----
+The application uses Supabase Auth with public Postgres tables protected by Row-Level Security.
+
+Core tables and relationships:
+
+- `users`: mirrors Supabase Auth users and stores profile-facing user data such as email, name, username, profile image, bio/about text, preferred language, timestamps, and soft deletion metadata.
+- `profiles`: additional profile data linked to an authenticated user.
+- `books`: shared catalogue records with title, author, description, publish date, and cover image URL.
+- `user_books`: a user's shelf entry linked to `users`, `books`, and `reading_statuses`; stores reading status, rating, note, visibility, progress, timestamps, and friend recommendation metadata.
+- `reading_statuses`: reference data for shelf states.
+- `reading_goals`: annual user reading targets.
+- `genres`, `book_genres`, and `user_genres`: genre reference data and many-to-many relationships for books and user preferences.
+- `posts`: community posts linked to users and books, with moderation/deletion flags and timestamps.
+- `comments`: comments linked to posts and users, with moderation/deletion flags.
+- `post_likes`, `comment_likes`, and `book_note_likes`: reaction tables for social engagement.
+- `post_moderation` and `comment_moderation`: AI moderation/sentiment records linked to moderation actions.
+- `tags` and `post_tags`: tag reference data and many-to-many post tagging.
+- `friendship` and `friendship_status`: friend request, accepted, rejected, and blocked states.
+- `notifications` and `notifications_type`: recipient/actor notification records and notification type reference data.
+- `user_reports`: report records for user safety workflows.
+- `badges`, `achievements`, `badge_achievements`, and `user_badges`: gamified achievement metadata.
+- `language` and `user_preferred_languages`: language preference support.
+- `user_sessions`: user activity session tracking.
+- `ai_recommendations`: cached personalized recommendation data created by the backend.
+
+Security and integrity notes:
+
+- Row-Level Security policies protect user data and social interactions.
+- Authenticated users can manage their own profile, shelf, preferences, and social actions within policy limits.
+- Server-only service-role operations are kept in the backend and are never exposed to browser code.
+- Migrations add hardening for book writes, private accounts, private notes, avatar storage, review likes, online presence, stats RPCs, API keys, and community realtime behavior.
+- Uniqueness and foreign-key constraints protect user/book relationships, friend pairs, likes, tags, and recommendation state.
+
+## Features List
+
+### Frontend
+
+- Authentication pages, OAuth callback, email verification, reset password, and route guards.
+- Home dashboard with hero content, continue-reading card, recommendations, trending books, posts feed, and notifications panel.
+- Book search and book detail pages with shelf actions, reviews, ratings, reactions, and friend recommendations.
+- Personal shelf with reading statuses, progress, notes, ratings, reviews, filtering, and sorting.
+- Community feed with posts, comments, likes, tags, moderation results, and translated UI text.
+- Profile pages with avatar management, bio, username, reading goal, privacy, recent activity, and friend actions.
+- Stats dashboard for personal reading pace and global reading insights.
+- Settings page for public API keys.
+- Responsive SCSS design system, shared dialogs/popups, icon usage, and PWA shell.
+- English, Arabic, and French translations with RTL-aware Arabic layouts.
+
+### Backend
+
+- NestJS modules for auth, books, community, friends, notifications, recommendations, reports, stats, Supabase integration, health checks, and public API access.
+- Google Books proxying and book catalogue enrichment.
+- Claude-powered personalized recommendations, content moderation, and sentiment analysis.
+- Supabase service integration for secure database operations and storage workflows.
+- Friend request and notification business logic.
+- Public shelf API guarded by API keys and rate limiting.
+- Health endpoint for deployment verification.
+
+### Database
+
+- Supabase migrations for core reading/social tables, storage, RLS policies, private account behavior, reports, stats, API keys, realtime notifications, and performance indexes.
+- Seed scripts for development and community test data.
+- Row-Level Security and policy hardening across user-facing data.
+
+### Deployment
+
+- Dockerfile and Docker Compose setup for reproducible local/full deployment.
+- nginx configuration for HTTPS termination, frontend serving, and `/api` proxying.
+- Certificate helper script and bundled self-signed certificate path for local HTTPS.
+- Vercel configuration for frontend-oriented deployment experiments.
+
+## Modules
+
+Official module set:
+
+- Major: Advanced analytics dashboard with data visualization.
+  - Interactive charts and graphs (line, bar, pie, etc.).
+  - Real-time data updates.
+  - Export functionality (PDF, CSV, etc.).
+  - Customizable date ranges and filters.
+
+- Major: Recommendation system using machine learning.
+  - Personalized recommendations based on user behavior.
+  - Collaborative filtering or content-based filtering.
+  - Continuously improve recommendations over time.
+
+- Major: Standard user management and authentication.
+  - Users can update their profile information.
+  - Users can upload an avatar, with a default avatar if none is provided.
+  - Users can add other users as friends and see their online status.
+  - Users have a profile page displaying their information.
+
+- Major: Use a framework for both the frontend and backend.
+  - Use a frontend framework (React, Vue, Angular, Svelte, etc.).
+  - Use a backend framework (Express, NestJS, Django, Flask, Ruby on Rails, etc.).
+
+- Major: Implement real-time features using WebSockets or similar technology.
+  - Real-time updates across clients.
+  - Handle connection/disconnection gracefully.
+  - Efficient message broadcasting.
+
+- Major: Public database API with security and documentation.
+  - Use a secured API key.
+  - Add rate limiting.
+  - Provide documentation.
+  - Include at least 5 endpoints: GET, POST, PUT, PATCH, and DELETE.
+
+- Minor: Content moderation AI.
+  - Auto moderation, auto deletion, auto warning, or similar moderation tools.
+
+- Minor: Sentiment analysis for user-generated content.
+
+- Minor: Implement remote authentication with OAuth 2.0.
+  - Support a provider such as Google, GitHub, or 42.
+
+- Minor: Advanced search with filters, sorting, and pagination.
+
+- Minor: Support for multiple languages.
+  - Implement an i18n system.
+  - Provide at least 3 complete language translations.
+  - Add a language switcher.
+  - Make all user-facing text translatable.
+
+- Minor: Right-to-left language support.
+  - Support at least one RTL language such as Arabic or Hebrew.
+  - Mirror the complete layout, not only text direction.
+  - Include RTL-specific UI adjustments.
+  - Allow seamless switching between LTR and RTL.
+
+Additional module set:
+
+- Additional: Advanced user safety and privacy controls.
+  - Users can make their profile private.
+  - Users can block and unblock other users.
+  - Blocked users' profiles, posts, comments, and reviews are hidden.
+
+- Additional: Advanced book tracking and social reading features.
+  - Users can track reading progress.
+  - Users can save private notes for books.
+  - Users can rate and review books.
+  - Users can like or dislike public reviews.
+
+Total: 18 points.
+
+## Individual Contributions
+
+`ratwi`, acting as Product Owner and full-stack developer, contributed product vision, feature validation, acceptance criteria, Angular/NestJS feature work, and ownership of the AI modules: personalized recommendations, content moderation, and sentiment analysis.
+
+`skreik`, acting as Project Manager/Scrum Master and full-stack developer, contributed planning, task tracking, team coordination, QA, manual verification, Supabase schema work, Row-Level Security policies, migrations, and module validation ahead of the defense.
+
+`issabr`, acting as Technical Lead and full-stack developer, contributed architecture, technology decisions, code review, Angular/NestJS feature work, Docker Compose, nginx, HTTPS setup, deployment flow, and PWA configuration.
+
+Main challenges included coordinating Supabase Auth with application user records, keeping Row-Level Security strict while preserving the social reading experience, making realtime notifications reliable, supporting privacy rules across shelf/profile/community views, integrating AI features safely, and maintaining responsive translated layouts across LTR and RTL languages.
 
 ## Resources
 
-References used:
-- [Angular documentation](https://angular.dev)
-- [NestJS documentation](https://docs.nestjs.com)
-- [Supabase documentation](https://supabase.com/docs) (Auth, Realtime, Storage, RLS)
-- [Anthropic Claude API documentation](https://docs.anthropic.com)
-- [Google Books API](https://developers.google.com/books)
-- [MDN Web Docs](https://developer.mozilla.org) (CSS grid/flexbox, service workers, CSP)
-- [Angular service worker / PWA guide](https://angular.dev/ecosystem/service-workers)
-- [mkcert](https://github.com/FiloSottile/mkcert) for locally-trusted HTTPS
+- Angular documentation: https://angular.dev
+- NestJS documentation: https://docs.nestjs.com
+- Supabase documentation: https://supabase.com/docs
+- Anthropic Claude API documentation: https://docs.anthropic.com
+- Google Books API documentation: https://developers.google.com/books
+- RxJS documentation: https://rxjs.dev
+- Chart.js documentation: https://www.chartjs.org/docs
+- Docker documentation: https://docs.docker.com
+- Nginx documentation: https://nginx.org/en/docs/
+- Angular service worker/PWA guide: https://angular.dev/ecosystem/service-workers
+- mkcert: https://github.com/FiloSottile/mkcert
+- MDN Web Docs: https://developer.mozilla.org
 
-### How AI was used
-AI was used in two distinct ways:
+AI usage: AI was used in two ways. As product functionality, the Anthropic Claude API powers recommendations, moderation, and sentiment analysis. As a development assistant, AI helped with debugging, documentation drafting, boilerplate support, refactoring suggestions, responsive-layout fixes, and review of edge cases. The team reviewed, tested, and kept responsibility for the final code.
 
-1. **As product features** (the AI modules): the **Anthropic Claude API** powers the book **recommendation engine** (personalized suggestions from a user's genres/ratings/history), **content moderation** of community posts, and **sentiment analysis** of post text.
-2. **As a development assistant**: we used an AI coding assistant to help scaffold boilerplate, debug issues (e.g. CSS responsive-layout bugs, service-worker/HTTPS configuration), and draft documentation. All AI-assisted code was reviewed, tested, and is understood by the team — per the curriculum guidance, we only kept what we can explain and take responsibility for.
+## Known Limitations
 
----
-
-## Known limitations
-- The bundled TLS certificate is **self-signed**; for a warning-free experience (and PWA install) provide a locally-trusted cert via mkcert (see Instructions).
-- AI recommendations are **cached for 24h** per user; clearing the `ai_recommendations` row forces a refresh.
-- When the Anthropic or Google Books API key is missing/exhausted, the app degrades gracefully (mock recommendations / local title search) rather than failing.
+- The included TLS certificate is self-signed; use mkcert for a warning-free local HTTPS/PWA experience.
+- AI recommendations are cached for 24 hours per user.
+- Missing or exhausted Google Books or Anthropic keys cause the app to fall back or degrade gracefully where supported.
+- Live module demonstrations still require a correctly configured Supabase project, API keys, and applied migrations.
 
 ## License
+
 For educational use as part of the 42 curriculum.

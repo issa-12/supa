@@ -1,12 +1,10 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
 import {
   NotificationsService,
   AppNotification,
 } from '../../../core/services/notifications.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
-import { BookService } from '../../../core/services/book.service';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog.service';
 import { timeAgo } from '../../../core/util/time-ago';
 import { TranslationService, NOTIFICATIONS_COPY, NotificationsCopy, LanguageCode } from '../../../i18n';
@@ -99,12 +97,6 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
               <div class="notif-body">
                 <p class="notif-text"><strong>{{ n.actorName }}</strong></p>
                 <time class="notif-time">{{ timeAgo(n.createdAt, lang) }}</time>
-                @if (n.type === 'book_recommended' && n.referenceId && pendingRecBookIds.has(n.referenceId) && !handledRecIds.has(n.id)) {
-                  <div class="notif-actions" (click)="$event.stopPropagation()">
-                    <button class="notif-accept" (click)="acceptRec(n, $event)" [disabled]="processingRecId === n.id">{{ copy.acceptBtn }}</button>
-                    <button class="notif-decline" (click)="declineRec(n, $event)" [disabled]="processingRecId === n.id">{{ copy.declineBtn }}</button>
-                  </div>
-                }
               </div>
 
               <div class="notif-aside">
@@ -316,37 +308,6 @@ const TYPE_ICON: Record<string, { path: string; color: string }> = {
       color: var(--muted-foreground);
     }
 
-    .notif-actions {
-      display: flex;
-      gap: clamp(5px, 0.56vw, 8px);
-      margin-top: clamp(5px, 0.56vw, 8px);
-    }
-
-    .notif-accept,
-    .notif-decline {
-      padding: clamp(3px, 0.35vw, 5px) clamp(8px, 0.97vw, 14px);
-      font-size: clamp(10px, 0.83vw, 12px);
-      font-weight: 600;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: opacity 0.15s, background 0.15s;
-      &:disabled { opacity: 0.55; cursor: default; }
-    }
-
-    .notif-accept {
-      background: var(--primary);
-      color: #fff;
-      border: 1px solid var(--primary);
-      &:hover:not(:disabled) { opacity: 0.9; }
-    }
-
-    .notif-decline {
-      background: transparent;
-      color: var(--muted-foreground);
-      border: 1px solid var(--border);
-      &:hover:not(:disabled) { background: var(--border); }
-    }
-
     .notif-aside {
       display: flex;
       flex-direction: column;
@@ -398,16 +359,10 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   private readonly notificationsService = inject(NotificationsService);
   private readonly supabaseService = inject(SupabaseService);
-  private readonly bookService = inject(BookService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly cdr = inject(ChangeDetectorRef);
-
-  private currentUserId: string | null = null;
-  protected readonly handledRecIds = new Set<number>();
-  protected processingRecId: number | null = null;
-  protected pendingRecBookIds = new Set<number>();
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return NOTIFICATIONS_COPY[this.lang]; }
@@ -443,19 +398,6 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tickInterval = setInterval(() => this.cdr.markForCheck(), 60_000);
-    void this.resolveCurrentUser();
-  }
-
-  private async resolveCurrentUser(): Promise<void> {
-    try {
-      const supabase = await this.supabaseService.getClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      this.currentUserId = user?.id ?? null;
-      if (this.currentUserId) {
-        this.pendingRecBookIds = await this.bookService.getPendingRecommendationBookIds(this.currentUserId);
-        this.cdr.markForCheck();
-      }
-    } catch { /* best-effort */ }
   }
 
   typeIcon(type: string): { path: string; color: string } | null {
@@ -465,40 +407,6 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
   dismiss(n: AppNotification, event: Event): void {
     event.stopPropagation();
     void this.notificationsService.deleteNotification(n.id);
-  }
-
-  async acceptRec(n: AppNotification, event: Event): Promise<void> {
-    event.stopPropagation();
-    if (!n.referenceId || !this.currentUserId || this.processingRecId === n.id) return;
-    this.processingRecId = n.id;
-    try {
-      const userBookId = await this.bookService.findPendingRecommendationUserBookId(this.currentUserId, n.referenceId);
-      if (userBookId != null) await firstValueFrom(this.bookService.acceptFriendRecommendation(userBookId));
-      this.handledRecIds.add(n.id);
-      if (!n.isRead) void this.notificationsService.markAsRead(n.id);
-    } catch (err) {
-      console.error('[Notifications] accept recommendation failed:', err);
-    } finally {
-      this.processingRecId = null;
-      this.cdr.markForCheck();
-    }
-  }
-
-  async declineRec(n: AppNotification, event: Event): Promise<void> {
-    event.stopPropagation();
-    if (!n.referenceId || !this.currentUserId || this.processingRecId === n.id) return;
-    this.processingRecId = n.id;
-    try {
-      const userBookId = await this.bookService.findPendingRecommendationUserBookId(this.currentUserId, n.referenceId);
-      if (userBookId != null) await firstValueFrom(this.bookService.declineFriendRecommendation(userBookId));
-      this.handledRecIds.add(n.id);
-      if (!n.isRead) void this.notificationsService.markAsRead(n.id);
-    } catch (err) {
-      console.error('[Notifications] decline recommendation failed:', err);
-    } finally {
-      this.processingRecId = null;
-      this.cdr.markForCheck();
-    }
   }
 
   ngOnDestroy(): void {

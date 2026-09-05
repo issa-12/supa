@@ -116,24 +116,24 @@ interface NavSearchBook {
       }
 
       <div class="nav-actions">
-        <a routerLink="/home" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.homeAriaLabel">
+        <a routerLink="/home" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.homeAriaLabel" [title]="copy.homeAriaLabel">
           <iconify-icon icon="lucide:home" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/shelf" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
+        <a routerLink="/shelf" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel" [title]="copy.myShelfAriaLabel">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/community" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel">
+        <a routerLink="/community" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel" [title]="copy.communityAriaLabel">
           <iconify-icon icon="lucide:users" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/stats" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel">
+        <a routerLink="/stats" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel" [title]="copy.statsAriaLabel">
           <iconify-icon icon="lucide:bar-chart-2" style="font-size: 20px"></iconify-icon>
         </a>
 
         <div class="bell-wrapper">
-          <button class="nav-icon-btn" [attr.aria-label]="copy.notificationsAriaLabel" (click)="togglePanel()">
+          <button class="nav-icon-btn" [attr.aria-label]="copy.notificationsAriaLabel" [title]="copy.notificationsAriaLabel" (click)="togglePanel()">
             <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
             @if (unreadCount$ | async; as count) {
               @if (count > 0) {
@@ -167,6 +167,7 @@ interface NavSearchBook {
             [alt]="copy.profileAvatarAlt"
             class="nav-avatar"
             [attr.aria-current]="isProfileActive ? 'page' : null"
+            [title]="copy.profileAvatarAlt"
             (click)="toggleUserMenu()"
           />
           @if (userMenuOpen) {
