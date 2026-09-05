@@ -60,11 +60,6 @@
         <input class="fb-input" type="text" [(ngModel)]="authorFilter" (ngModelChange)="onFiltersChange()" [placeholder]="copy.anyAuthor" />
       </div>
 
-      <div class="filter-block">
-        <span class="fb-label">{{ copy.isbn }}</span>
-        <input class="fb-input" type="text" [(ngModel)]="isbnFilter" (ngModelChange)="onFiltersChange()" [placeholder]="copy.isbnPlaceholder" />
-      </div>
-
       <button class="reset-full" type="button" (click)="resetFilters()" [disabled]="activeFilterCount === 0">
         <iconify-icon icon="lucide:rotate-ccw"></iconify-icon>
         {{ copy.reset }}
@@ -112,8 +107,17 @@
           <div class="state-icon">
             <iconify-icon icon="lucide:book-x"></iconify-icon>
           </div>
-          <p class="state-text">{{ copy.noResults.replace('{{ query }}', query) }}</p>
-          <p class="state-hint">{{ copy.noResultsHint }}</p>
+          <!-- With a filter applied the fix is usually to clear the filter, not
+               to retype the query — Google frequently ignores langRestrict and
+               returns nothing matching, so the generic hint sent users down the
+               wrong path. -->
+          @if (activeFilterCount > 0) {
+            <p class="state-text">{{ copy.noFilteredResults }}</p>
+            <p class="state-hint">{{ copy.noFilteredResultsHint }}</p>
+          } @else {
+            <p class="state-text">{{ copy.noResults.replace('{{ query }}', query) }}</p>
+            <p class="state-hint">{{ copy.noResultsHint }}</p>
+          }
         </div>
       } @else if (!hasSearched && results.length === 0) {
         <div class="state-box idle">

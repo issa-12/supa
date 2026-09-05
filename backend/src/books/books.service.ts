@@ -79,7 +79,6 @@ export interface SearchedBook {
 
 interface BookSearchOptions {
   author?: string;
-  isbn?: string;
   language?: string;
   sort?: string;
 }
@@ -105,15 +104,7 @@ export class BooksService {
     startIndex: number,
     options: BookSearchOptions = {},
   ): Promise<BookSearchResult> {
-    const titleQuery = query
-      .trim()
-      .split(/\s+/)
-      .map((term) => `intitle:${term}`)
-      .join(' ');
-    const qualifiedQuery = [
-      titleQuery,
-      options.isbn?.trim() ? `isbn:${options.isbn.trim()}` : '',
-    ].filter(Boolean).join(' ');
+    const qualifiedQuery = buildProviderQuery(query, options);
     const apiKey = process.env['GOOGLE_BOOKS_API_KEY'];
     const author = options.author?.trim().toLocaleLowerCase() ?? '';
     const language = options.language?.trim().toLowerCase() ?? '';
@@ -141,9 +132,8 @@ export class BooksService {
         if (options.sort === 'newest') params.set('orderBy', 'newest');
         if (apiKey) params.set('key', apiKey);
 
-        const res = await fetchWithTimeout(
+        const res = await fetchGoogleBooks(
           `https://www.googleapis.com/books/v1/volumes?${params}`,
-          10_000,
         );
         if (!res.ok) {
           const body = await res.text().catch(() => '');
@@ -255,7 +245,6 @@ export class BooksService {
       const language = options.language.toLowerCase();
       books = books.filter((book) => matchesLanguage(book, language));
     }
-    if (options.isbn?.trim()) books = [];
     if (options.sort === 'newest') {
       books.sort((a, b) => publicationYear(b.publishedDate) - publicationYear(a.publishedDate));
     }
@@ -458,6 +447,35 @@ export class BooksService {
   }
 }
 
+// The search box is advertised as "title, author, or ISBN", so the free-text
+// query goes to Google unqualified — its default index covers title, author and
+// subject. Qualifying every term with `intitle:` (as this used to) ANDed them
+// all against the title alone, so an author-only query like "Colleen Hoover"
+// matched nothing and silently fell through to the local-catalog fallback.
+function buildProviderQuery(query: string, options: BookSearchOptions): string {
+  // An ISBN identifies exactly one volume, so it wins outright — AND-ing it with
+  // the free text could only narrow that single hit down to nothing.
+  const typedIsbn = normalizeIsbn(query);
+  if (typedIsbn) return `isbn:${typedIsbn}`;
+
+  // The author filter has to be pushed down to Google as `inauthor:`. Scanning
+  // pages of a generic result set and post-filtering on the author name found
+  // almost nothing, because the author's books simply aren't in the first few
+  // pages for a broad term: "dune" + herbert, "love" + austen and "it" + king
+  // all came back empty. Quoted so multi-word names stay one term.
+  const author = options.author?.trim();
+  return [query.trim(), author ? `inauthor:"${author.replace(/"/g, '')}"` : '']
+    .filter(Boolean)
+    .join(' ');
+}
+
+// Accepts ISBN-10 (9 digits + digit or X check char) and ISBN-13, with the
+// hyphens/spaces people paste from a copyright page.
+function normalizeIsbn(value: string | null | undefined): string | null {
+  const compact = (value ?? '').replace(/[\s-]/g, '');
+  return /^(\d{9}[\dXx]|\d{13})$/.test(compact) ? compact.toUpperCase() : null;
+}
+
 function publicationYear(value: string | null): number {
   const year = Number(value?.slice(0, 4));
   return Number.isFinite(year) ? year : 0;
@@ -486,6 +504,25 @@ function normalizePublishedDate(value: string | null | undefined): string | null
   if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
   if (/^\d{4}$/.test(value)) return `${value}-01-01`;
   return null;
+}
+
+// Google Books returns a transient 503 "Service temporarily unavailable" on a
+// noticeable fraction of otherwise-valid requests. A single failure used to
+// abandon the whole search and fall back to the local catalog, so the same
+// query would show a full page of results one moment and "no results" the next.
+// Retry 5xx (and network errors) a couple of times before giving up. 4xx —
+// quota exhausted, bad key, malformed query — is not retried; it won't change.
+async function fetchGoogleBooks(url: string): Promise<Response> {
+  const backoffMs = [200, 500];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, 10_000);
+      if (res.status < 500 || attempt >= backoffMs.length) return res;
+    } catch (err) {
+      if (attempt >= backoffMs.length) throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, backoffMs[attempt]));
+  }
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {

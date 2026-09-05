@@ -27,8 +27,6 @@ export interface BookSearchCopy {
   filterBy: string;
   author: string;
   anyAuthor: string;
-  isbn: string;
-  isbnPlaceholder: string;
   language: string;
   anyLanguage: string;
   languageEnglish: string;
@@ -80,8 +78,6 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     filterBy: 'Filter by',
     author: 'Author',
     anyAuthor: 'Any author',
-    isbn: 'ISBN',
-    isbnPlaceholder: 'ISBN-10 or ISBN-13',
     language: 'Language',
     anyLanguage: 'Any language',
     languageEnglish: 'English',
@@ -131,8 +127,6 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     filterBy: 'تصفية حسب',
     author: 'المؤلف',
     anyAuthor: 'أي مؤلف',
-    isbn: 'ISBN',
-    isbnPlaceholder: 'ISBN-10 أو ISBN-13',
     language: 'اللغة',
     anyLanguage: 'أي لغة',
     languageEnglish: 'الإنجليزية',
@@ -182,8 +176,6 @@ export const BOOK_SEARCH_COPY: Record<LanguageCode, BookSearchCopy> = {
     filterBy: 'Filtrer par',
     author: 'Auteur',
     anyAuthor: 'Tous les auteurs',
-    isbn: 'ISBN',
-    isbnPlaceholder: 'ISBN-10 ou ISBN-13',
     language: 'Langue',
     anyLanguage: 'Toutes les langues',
     languageEnglish: 'Anglais',

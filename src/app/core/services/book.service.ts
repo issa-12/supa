@@ -32,7 +32,6 @@ export interface GoogleBook {
 
 export interface BookSearchOptions {
   author?: string;
-  isbn?: string;
   language?: string;
   sort?: string;
 }
@@ -421,7 +420,6 @@ export class BookService {
   }> {
     const params = new URLSearchParams({ q: query, maxResults: '12', startIndex: String(startIndex) });
     if (options.author?.trim()) params.set('author', options.author.trim());
-    if (options.isbn?.trim()) params.set('isbn', options.isbn.trim());
     if (options.language) params.set('language', options.language);
     if (options.sort) params.set('sort', options.sort);
     const res = await fetch(`/api/books/search?${params}`);

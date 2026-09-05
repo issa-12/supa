@@ -43,7 +43,6 @@ export class BooksController {
     @Query('maxResults') maxResults = '20',
     @Query('startIndex') startIndex = '0',
     @Query('author') author?: string,
-    @Query('isbn') isbn?: string,
     @Query('language') language?: string,
     @Query('sort') sort?: string,
   ) {
@@ -67,7 +66,6 @@ export class BooksController {
 
     return this.booksService.searchGoogleBooks(query, max, offset, {
       author,
-      isbn,
       language,
       sort,
     });

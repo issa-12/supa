@@ -225,9 +225,14 @@
             </div>
             <div class="chart-legend" [attr.aria-label]="copy.toggleStatusAria">
               @for (bucket of dashboard.statusDistribution; track trackByKey($index, bucket); let index = $index) {
-                <button type="button" (click)="toggleStatusSegment(index)">
+                <button
+                  type="button"
+                  (click)="toggleStatusSegment(index)"
+                  [class.legend-item--hidden]="isStatusSegmentHidden(index)"
+                  [attr.aria-pressed]="isStatusSegmentHidden(index)"
+                >
                   <span class="legend-dot legend-dot--{{ index % 4 }}"></span>
-                  {{ bucketLabel(bucket) }} <strong>{{ bucket.count }}</strong>
+                  <span class="legend-text">{{ bucketLabel(bucket) }} <strong>{{ bucket.count }}</strong></span>
                 </button>
               }
             </div>

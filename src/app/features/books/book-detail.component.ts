@@ -130,8 +130,10 @@ export class BookDetailComponent implements OnInit, OnDestroy {
       const [bookRes, user] = await Promise.all([
         // nginx holds a request to a dead backend for its full 30s
         // proxy_read_timeout, which left the page on "Loading book…" that whole
-        // time. Give up after 10s and show the error state instead.
-        fetch(`/api/books/${googleId}`, { signal: AbortSignal.timeout(10_000) }).then(async (r) => {
+        // time. Fail faster than that — but stay above the backend's own 10s
+        // Google Books timeout, otherwise a slow-but-successful upstream lookup
+        // gets cancelled at the moment it was about to return.
+        fetch(`/api/books/${googleId}`, { signal: AbortSignal.timeout(20_000) }).then(async (r) => {
           if (!r.ok) {
             await r.json().catch(() => ({}));
             throw new Error(this.copy.loadFailed);

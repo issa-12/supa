@@ -635,7 +635,25 @@
     gap: 6px;
     cursor: pointer;
     font-size: 11px;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
   }
+
+  button:hover { border-color: var(--brand); }
+
+  // A hidden slice has to read as hidden. Without this the only feedback was the
+  // doughnut itself redrawing, which doesn't say *which* category went away.
+  button.legend-item--hidden {
+    opacity: 0.55;
+    border-style: dashed;
+
+    .legend-text { text-decoration: line-through; }
+    // Index-agnostic, so it desaturates whichever palette colour the dot has.
+    .legend-dot { filter: grayscale(1); }
+  }
+
+  // Deliberately not a flex container — plain inline text so `line-through`
+  // strikes the label and its count as one continuous rule.
+  .legend-text { white-space: nowrap; }
 
   strong { color: var(--text-1); }
 }

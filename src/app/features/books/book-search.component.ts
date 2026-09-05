@@ -50,7 +50,6 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   searchError: string | null = null;
   totalItems = 0;
   authorFilter = '';
-  isbnFilter = '';
   languageFilter = '';
   sortBy = 'relevance';
 
@@ -104,10 +103,10 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     await this.loadStatuses();
     const q = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
-    if (q.length >= 2) {
-      this.query = q;
-      void this.runSearch();
-    }
+    // Prefill even a 1-char term so the box reflects the URL the user arrived
+    // on; only a searchable term actually fires a request.
+    this.query = q;
+    if (this.canSearch) void this.runSearch();
   }
 
   private async loadStatuses(): Promise<void> {
@@ -203,8 +202,11 @@ export class BookSearchComponent implements OnInit, OnDestroy {
   get activeFilterCount(): number {
     return [
       this.authorFilter.trim(),
-      this.isbnFilter.trim(),
       this.languageFilter,
+      // Sort sits inside the same card and Reset restores it, so a non-default
+      // sort has to count — otherwise changing only the sort left Reset greyed
+      // out with no way to get back to Relevance in one click.
+      this.sortBy === 'relevance' ? '' : this.sortBy,
     ].filter(Boolean).length;
   }
 
@@ -220,15 +222,14 @@ export class BookSearchComponent implements OnInit, OnDestroy {
 
   resetFilters(): void {
     this.authorFilter = '';
-    this.isbnFilter = '';
     this.languageFilter = '';
-    if (this.query.trim().length >= 2) void this.runSearch();
+    this.sortBy = 'relevance';
+    if (this.canSearch) void this.runSearch();
   }
 
   private get searchOptions(): BookSearchOptions {
     return {
       author: this.authorFilter,
-      isbn: this.isbnFilter,
       language: this.languageFilter,
       sort: this.sortBy,
     };
