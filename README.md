@@ -1,4 +1,4 @@
-_This project has been created as part of the 42 curriculum by `issabr`, `ratwi`, `skreik`._
+_This project has been created as part of the 42 curriculum by `isalayan`, `ratwi`, `skreik`._
 
 # FT Transcendence - ReadTrack
 
@@ -94,7 +94,7 @@ curl -k https://localhost/api/health
 
 - `ratwi`: Product Owner and full-stack developer.
 - `skreik`: Project Manager/Scrum Master and full-stack developer.
-- `issabr`: Technical Lead and full-stack developer.
+- `isalayan`: Technical Lead and full-stack developer.
 
 Every team member contributed across the stack, with additional ownership areas for product validation, planning/coordination, architecture, database work, QA, AI features, and deployment.
 
@@ -232,8 +232,6 @@ Official module set:
 
 - Minor: Sentiment analysis for user-generated content.
 
-- Minor: User activity analytics and insights dashboard.
-
 - Minor: Implement remote authentication with OAuth 2.0.
   - Support a provider such as Google, GitHub, or 42.
 
@@ -251,7 +249,20 @@ Official module set:
   - Include RTL-specific UI adjustments.
   - Allow seamless switching between LTR and RTL.
 
-Total: 19 points.
+Additional module set:
+
+- Additional: Advanced user safety and privacy controls.
+  - Users can make their profile private.
+  - Users can block and unblock other users.
+  - Blocked users' profiles, posts, comments, and reviews are hidden.
+
+- Additional: Advanced book tracking and social reading features.
+  - Users can track reading progress.
+  - Users can save private notes for books.
+  - Users can rate and review books.
+  - Users can like or dislike public reviews.
+
+Total: 18 points.
 
 ## Individual Contributions
 
