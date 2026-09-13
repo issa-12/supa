@@ -1,7 +1,10 @@
 import {
+  BadRequestException,
   Controller,
   Delete,
   Get,
+  Body,
+  ForbiddenException,
   Headers,
   Param,
   Patch,
@@ -53,6 +56,34 @@ export class NotificationsController {
     const token = extractToken(auth);
     const userId = await this.notificationsService.verifyUser(token);
     return this.notificationsService.deleteAllNotifications(userId);
+  }
+
+  @Delete('matching')
+  async deleteMatching(
+    @Headers('authorization') auth: string,
+    @Body() body: {
+      userId?: string;
+      actorId?: string;
+      type?: string;
+      referenceId?: number | null;
+      referenceType?: string | null;
+    } = {},
+  ) {
+    const token = extractToken(auth);
+    const currentUserId = await this.notificationsService.verifyUser(token);
+    if (!body.userId || !body.actorId || !body.type) {
+      throw new BadRequestException('Missing notification match fields.');
+    }
+    if (body.actorId !== currentUserId) {
+      throw new ForbiddenException('Can only remove notifications caused by your own action.');
+    }
+    return this.notificationsService.deleteMatchingNotification(
+      body.userId,
+      body.actorId,
+      body.type,
+      body.referenceId ?? null,
+      body.referenceType ?? null,
+    );
   }
 
   @Delete(':id')

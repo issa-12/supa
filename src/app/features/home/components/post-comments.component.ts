@@ -33,7 +33,11 @@ import { detectLang } from '../../../core/util/detect-lang';
                 <div class="comment-body">
                   <div class="comment-bubble">
                     <a class="comment-author" [routerLink]="['/profile', comment.userId]">{{ comment.userName }}</a>
-                    <p class="comment-text">{{ getCommentContent(comment) }}</p>
+                    <p
+                      class="comment-text"
+                      [attr.dir]="textDirection(getCommentContent(comment))"
+                      [style.text-align]="contentTextAlign(getCommentContent(comment))"
+                    >{{ getCommentContent(comment) }}</p>
                   </div>
                   <div class="comment-meta">
                     <span class="meta-like-group">
@@ -70,7 +74,11 @@ import { detectLang } from '../../../core/util/detect-lang';
                       <div class="comment-body">
                         <div class="comment-bubble">
                           <a class="comment-author" [routerLink]="['/profile', reply.userId]">{{ reply.userName }}</a>
-                          <p class="comment-text">{{ getCommentContent(reply) }}</p>
+                          <p
+                            class="comment-text"
+                            [attr.dir]="textDirection(getCommentContent(reply))"
+                            [style.text-align]="contentTextAlign(getCommentContent(reply))"
+                          >{{ getCommentContent(reply) }}</p>
                         </div>
                         <div class="comment-meta">
                           <span class="meta-like-group">
@@ -101,7 +109,11 @@ import { detectLang } from '../../../core/util/detect-lang';
                             <div class="comment-body">
                               <div class="comment-bubble">
                                 <a class="comment-author" [routerLink]="['/profile', deep.userId]">{{ deep.userName }}</a>
-                                <p class="comment-text">{{ getCommentContent(deep) }}</p>
+                                <p
+                                  class="comment-text"
+                                  [attr.dir]="textDirection(getCommentContent(deep))"
+                                  [style.text-align]="contentTextAlign(getCommentContent(deep))"
+                                >{{ getCommentContent(deep) }}</p>
                               </div>
                               <div class="comment-meta">
                                 <span class="meta-like-group">
@@ -294,6 +306,9 @@ import { detectLang } from '../../../core/util/detect-lang';
       font-style: normal;
       white-space: pre-wrap;
       word-break: break-word;
+
+      &[dir="rtl"] { text-align: right; }
+      &[dir="ltr"] { text-align: left; }
     }
 
     .comment-meta {
@@ -445,7 +460,9 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
   private readonly translationService = inject(TranslationService);
 
   private realtimeSub: RealtimeSubscription | null = null;
+  private commentLikesRealtimeSub: RealtimeSubscription | null = null;
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private destroyed = false;
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
@@ -493,6 +510,14 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
     return this.translatedTexts.get(comment.id)?.get(this.lang) ?? comment.content;
   }
 
+  textDirection(text: string): 'ltr' | 'rtl' {
+    return detectLang(text) === 'ar' ? 'rtl' : 'ltr';
+  }
+
+  contentTextAlign(text: string): 'left' | 'right' {
+    return this.lang === 'ar' || this.textDirection(text) === 'rtl' ? 'right' : 'left';
+  }
+
   async translateComment(comment: Comment): Promise<void> {
     const id = comment.id;
     if (this.activeTranslations.has(id)) {
@@ -533,6 +558,7 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadComments();
     void this.setupRealtime();
+    this.startPollingFallback();
   }
 
   private loadComments(silent = false): void {
@@ -543,24 +569,35 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Live-update this post's comments when anyone adds/removes one. Scoped to
-  // this post via the row filter so an open panel only reacts to its own thread.
-  // Silent reload keeps the server-side block/privacy filtering + tree-build
-  // authoritative.
+  // Live-update this post's comments when anyone adds/removes one, and refresh
+  // open threads when comment-like rows change so counts stay current.
   private async setupRealtime(): Promise<void> {
-    if (this.realtimeSub) return;
-    const sub = await this.supabaseService.createRealtimeSubscription('post-comments', {
-      tables: ['comments'],
-      filter: `post_id=eq.${this.postId}`,
-      onChange: () => this.scheduleRealtimeRefresh(),
-      onReconnect: () => this.scheduleRealtimeRefresh(),
-    });
-    // The panel can be toggled shut before the channel resolves — don't leak it.
-    if (this.destroyed) { void sub.teardown(); return; }
-    this.realtimeSub = sub;
+    if (this.realtimeSub || this.commentLikesRealtimeSub) return;
+    const [commentsSub, commentLikesSub] = await Promise.all([
+      this.supabaseService.createRealtimeSubscription('post-comments', {
+        tables: ['comments'],
+        filter: `post_id=eq.${this.postId}`,
+        onChange: () => this.scheduleRealtimeRefresh(),
+        onReconnect: () => this.scheduleRealtimeRefresh(),
+      }),
+      this.supabaseService.createRealtimeSubscription('post-comment-likes', {
+        tables: ['comment_likes'],
+        onChange: () => this.scheduleRealtimeRefresh(),
+        onReconnect: () => this.scheduleRealtimeRefresh(),
+      }),
+    ]);
+    // The panel can be toggled shut before the channels resolve — don't leak them.
+    if (this.destroyed) {
+      void commentsSub.teardown();
+      void commentLikesSub.teardown();
+      return;
+    }
+    this.realtimeSub = commentsSub;
+    this.commentLikesRealtimeSub = commentLikesSub;
   }
 
   private scheduleRealtimeRefresh(): void {
+    if (this.destroyed) return;
     if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
     this.realtimeTimer = setTimeout(() => {
       this.realtimeTimer = null;
@@ -568,10 +605,17 @@ export class PostCommentsComponent implements OnInit, OnDestroy {
     }, 600);
   }
 
+  private startPollingFallback(): void {
+    if (this.pollTimer) return;
+    this.pollTimer = setInterval(() => this.scheduleRealtimeRefresh(), 5000);
+  }
+
   ngOnDestroy(): void {
     this.destroyed = true;
     if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    if (this.pollTimer) clearInterval(this.pollTimer);
     void this.realtimeSub?.teardown();
+    void this.commentLikesRealtimeSub?.teardown();
   }
 
   submitComment(): void {

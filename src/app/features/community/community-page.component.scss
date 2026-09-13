@@ -176,6 +176,7 @@
 }
 
 .tag-row-name {
+  unicode-bidi: isolate;
   font-size: clamp(11px, 0.97vw, 14px);
   font-weight: 500;
   color: #C1553A;
@@ -184,6 +185,7 @@
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+
 }
 
 .tag-row-count {
@@ -210,7 +212,9 @@
   background: #FFFFFF;
   border-radius: clamp(10px, 1.1vw, 16px);
   border: 0.5px solid rgba(100, 70, 50, 0.10);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 20;
 }
 
 .compose-trigger {
@@ -291,7 +295,13 @@
   &::placeholder { color: var(--muted-foreground); }
 }
 
-.book-picker { display: flex; flex-direction: column; gap: clamp(5px, 0.56vw, 8px); }
+.book-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.56vw, 8px);
+  z-index: 30;
+}
 
 .book-search-bar {
   display: flex;
@@ -331,13 +341,17 @@
 
 .book-results {
   list-style: none;
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline: 0;
+  z-index: 80;
   margin: 0;
   padding: clamp(2px, 0.28vw, 4px) 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
-  max-height: clamp(140px, 14vw, 200px);
+  box-shadow: 0 14px 32px rgba(28, 20, 16, 0.16);
+  max-height: min(260px, 42vh);
   overflow-y: auto;
 }
 
@@ -674,6 +688,7 @@
 }
 
 .post-content {
+  unicode-bidi: plaintext;
   font-size: clamp(12px, 0.97vw, 14px);
   font-style: normal;
   line-height: 1.65;
@@ -683,6 +698,9 @@
   word-break: break-word;
   transition: opacity 0.2s ease;
   &--translated { opacity: 0.95; }
+
+  &[dir="rtl"] { text-align: right; }
+  &[dir="ltr"] { text-align: left; }
 }
 
 // ── Tag pills on post cards ───────────────────────────────────────
@@ -693,6 +711,7 @@
 }
 
 .tag-pill {
+  unicode-bidi: isolate;
   padding: clamp(2px, 0.21vw, 3px) clamp(7px, 0.7vw, 10px);
   border-radius: 20px;
   border: 1px solid transparent;
@@ -702,6 +721,8 @@
   color: #8B3E2A;
   cursor: pointer;
   transition: all 0.15s;
+  &[dir="rtl"] { text-align: right; }
+  &[dir="ltr"] { text-align: left; }
   &:hover { background: #FAF0ED; border-color: rgba(193, 85, 58, 0.35); }
 }
 

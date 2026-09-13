@@ -282,7 +282,14 @@ Respond ONLY with valid JSON, no markdown, no code fences, no extra text:
 Rules:
 - approved: normal book discussion — reviews and opinions (INCLUDING harsh, negative, or passionate criticism of a book, author, plot, or character), debates, recommendations, and frustration about a story. Strong wording ABOUT a book is fine.
 - flagged: contains actual profanity/swear words, a direct insult aimed at another person, or obvious spam/advertising
-- rejected: hate speech, sexual or explicit content, harassment or threats against a person, or content completely unrelated to books
+- rejected: hate speech, sexual or explicit content, harassment, threats, or harmful content against a person
+
+Sentiment:
+- Judge the overall meaning and tone of the post, not isolated keywords.
+- positive: the writer's overall opinion is favorable, approving, appreciative, or recommending.
+- negative: the writer's overall opinion is unfavorable, disappointed, critical, or warning others away.
+- mixed: meaningful positive and negative opinions are both present.
+- neutral: factual, descriptive, or question-only text with no clear opinion.
 
 Default to "approved". Only choose flagged or rejected when the text clearly matches. A negative or critical book opinion is always approved.`,
         messages: [{ role: 'user', content: `<<<USER_POST>>>\n${content}\n<<<END_USER_POST>>>` }],
@@ -428,5 +435,61 @@ Default to "approved". Only choose flagged or rejected when the text clearly mat
       isLikedByMe: false,
       replies: [] as unknown[],
     };
+  }
+
+  async deleteComment(userId: string, commentId: number): Promise<{ success: boolean }> {
+    const sb = this.supabase.getAdmin();
+    const { data: comment, error: readError } = await sb
+      .from('comments')
+      .select('comment_id, user_id, post_id, parent_comment_id')
+      .eq('comment_id', commentId)
+      .maybeSingle();
+
+    if (readError) throw readError;
+    if (!comment) {
+      const err = new Error('Comment not found.');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+    if (comment['user_id'] !== userId) {
+      const err = new Error('Not authorized.');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    const { error } = await sb
+      .from('comments')
+      .update({ is_deleted: true })
+      .eq('comment_id', commentId);
+    if (error) throw error;
+
+    const actorId = comment['user_id'] as string;
+    const postId = comment['post_id'] as number;
+    const parentCommentId = comment['parent_comment_id'] as number | null;
+
+    if (parentCommentId != null) {
+      const { data: parent } = await sb
+        .from('comments')
+        .select('user_id')
+        .eq('comment_id', parentCommentId)
+        .maybeSingle();
+      const parentOwnerId = parent?.['user_id'] as string | undefined;
+      if (parentOwnerId) {
+        this.notifications
+          .deleteMatchingNotification(parentOwnerId, actorId, 'comment_replied', parentCommentId, 'comment')
+          .catch(() => undefined);
+      }
+    } else {
+      const { data: post } = await sb.from('posts').select('user_id').eq('post_id', postId).maybeSingle();
+      const ownerId = post?.['user_id'] as string | undefined;
+      if (ownerId) {
+        this.notifications
+          .deleteMatchingNotification(ownerId, actorId, 'post_commented', postId, 'post')
+          .catch(() => undefined);
+      }
+    }
+
+    await this.notifications.deleteNotificationsForReference(userId, 'comment_liked', commentId, 'comment');
+    return { success: true };
   }
 }

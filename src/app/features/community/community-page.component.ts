@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ActivityService, ActivityPost } from '../../core/services/activity.service';
 import { LikesService } from '../../core/services/likes.service';
 import { BookService } from '../../core/services/book.service';
@@ -19,6 +20,7 @@ interface BookResult {
   title: string;
   author: string;
   coverUrl: string | null;
+  source?: 'library' | 'api';
 }
 
 interface TrendingTag {
@@ -81,6 +83,7 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   submitting = false;
   submitError: string | null = null;
   private bookSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private bookSearchSeq = 0;
 
   trendingTags: TrendingTag[] = [];
   tagSearchQuery = '';
@@ -100,6 +103,8 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
 
   private realtimeSub: RealtimeSubscription | null = null;
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+  private realtimeStarted = false;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private destroyed = false;
 
   get canPost(): boolean {
@@ -126,6 +131,8 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
     this.focusPostId = postParam ? Number(postParam) || null : null;
 
     await Promise.all([this.loadPosts(), this.loadTrendingTags()]);
+    void this.setupRealtime();
+    this.startPollingFallback();
 
     if (this.focusPostId !== null) await this.focusOnPost(this.focusPostId);
   }
@@ -162,25 +169,29 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
     };
     setTimeout(() => tryScroll(8), 50);
     setTimeout(() => { this.highlightedPostId = null; }, 2600);
-    void this.setupRealtime();
   }
 
-  // Live-update the community feed when anyone posts/removes a post. The raw
-  // event only signals "posts changed", so we silently re-fetch the first page
-  // of the current tab/tag — the backend keeps all block/privacy/moderation
-  // filtering authoritative. (Mirrors the home feed.)
+  // Live-update the community feed when shared feed state changes. The raw
+  // event only signals "something changed", so we re-fetch through the backend
+  // and keep privacy/block/moderation/tag filtering authoritative there.
   private async setupRealtime(): Promise<void> {
-    if (this.realtimeSub) return;
-    const sub = await this.supabaseService.createRealtimeSubscription('community-feed', {
-      tables: ['posts'],
-      onChange: () => this.scheduleRealtimeRefresh(),
-      onReconnect: () => this.scheduleRealtimeRefresh(),
-    });
-    if (this.destroyed) { void sub.teardown(); return; }
-    this.realtimeSub = sub;
+    if (this.realtimeStarted || !this.currentUserId) return;
+    this.realtimeStarted = true;
+    try {
+      const sub = await this.supabaseService.createRealtimeSubscription('community-feed', {
+        tables: ['posts', 'post_likes', 'comments', 'comment_likes', 'friendship'],
+        onChange: () => this.scheduleRealtimeRefresh(),
+        onReconnect: () => this.scheduleRealtimeRefresh(),
+      });
+      if (this.destroyed) { void sub.teardown(); return; }
+      this.realtimeSub = sub;
+    } catch {
+      this.realtimeStarted = false;
+    }
   }
 
   private scheduleRealtimeRefresh(): void {
+    if (this.destroyed) return;
     if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
     this.realtimeTimer = setTimeout(() => {
       this.realtimeTimer = null;
@@ -188,36 +199,49 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
     }, 700);
   }
 
-  // Re-fetch the first page without the loading spinner or clearing the list
-  // (avoids flicker; `track post.id` preserves open comment panels).
+  @HostListener('window:focus')
+  onWindowFocus(): void {
+    this.scheduleRealtimeRefresh();
+  }
+
+  private startPollingFallback(): void {
+    if (this.pollTimer || !this.currentUserId) return;
+    this.pollTimer = setInterval(() => this.scheduleRealtimeRefresh(), 5000);
+  }
+
+  // Re-fetch the currently loaded pages without the loading spinner or clearing
+  // the list (avoids flicker; `track post.id` preserves open comment panels).
   private async silentRefresh(): Promise<void> {
     if (!this.currentUserId) return;
-    // Don't yank the user back to the top if they've paged past the first page —
-    // resetting to page 0 would drop their loaded pages. They'll get fresh
-    // content on their next tab switch / manual action instead.
-    if (this.page > 1) return;
+    if (this.loading || this.loadingMore) return;
     try {
       const scope =
         this.activeTab === 'friends' ? 'friends' :
         this.activeTab === 'mine' ? 'mine' : undefined;
-      const fresh =
-        this.activeTab === 'trending'
-          ? await this.activityService.getCommunityTrendingPosts(this.currentUserId)
-          : await this.activityService.getCommunityPosts(
-              this.currentUserId,
-              this.activeTag ?? undefined,
-              0,
-              scope,
-            );
+      const loadedPages = Math.max(this.page, 1);
+      const fresh = this.activeTab === 'trending'
+        ? await this.activityService.getCommunityTrendingPosts(this.currentUserId)
+        : (await Promise.all(
+            Array.from({ length: loadedPages }, (_, page) =>
+              this.activityService.getCommunityPosts(
+                this.currentUserId!,
+                this.activeTag ?? undefined,
+                page,
+                scope,
+              ),
+            ),
+          )).flat();
       this.posts = fresh;
-      this.page = 1;
-      this.hasMore = fresh.length >= 20 && this.activeTab !== 'trending';
+      this.page = this.activeTab === 'trending' ? 1 : loadedPages;
+      this.hasMore = fresh.length >= loadedPages * 20 && this.activeTab !== 'trending';
+      void this.loadTrendingTags();
     } catch { /* silently ignore */ }
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
     if (this.realtimeTimer) clearTimeout(this.realtimeTimer);
+    if (this.pollTimer) clearInterval(this.pollTimer);
     void this.realtimeSub?.teardown();
   }
 
@@ -317,15 +341,54 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   }
 
   private async searchBooks(q: string): Promise<void> {
+    const seq = ++this.bookSearchSeq;
     try {
-      const session = await this.supabaseService.getCurrentSession();
-      const res = await fetch(`/api/books/search?q=${encodeURIComponent(q)}&maxResults=5`, {
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as { books?: BookResult[] };
-      this.bookResults = data.books ?? [];
-    } catch { this.bookResults = []; }
+      const [libraryBooks, apiBooks] = await Promise.all([
+        this.searchLibraryBooks(q),
+        this.searchApiBooks(q),
+      ]);
+      if (seq !== this.bookSearchSeq) return;
+      const seen = new Set<string>();
+      this.bookResults = [...libraryBooks, ...apiBooks]
+        .filter((book) => {
+          if (!book.googleId || seen.has(book.googleId)) return false;
+          seen.add(book.googleId);
+          return true;
+        })
+        .slice(0, 8);
+    } catch {
+      if (seq === this.bookSearchSeq) this.bookResults = [];
+    }
+  }
+
+  private async searchLibraryBooks(q: string): Promise<BookResult[]> {
+    if (!this.currentUserId) return [];
+    const needle = q.trim().toLowerCase();
+    const shelf = await firstValueFrom(this.bookService.getUserShelf(this.currentUserId));
+    return shelf
+      .filter((item) => {
+        const book = item.book;
+        if (!book?.googleBooksId) return false;
+        return `${book.title} ${book.author}`.toLowerCase().includes(needle);
+      })
+      .map((item) => ({
+        googleId: item.book!.googleBooksId!,
+        title: item.book!.title,
+        author: item.book!.author,
+        coverUrl: item.book!.coverUrl,
+        source: 'library' as const,
+      }))
+      .slice(0, 8);
+  }
+
+  private async searchApiBooks(q: string): Promise<BookResult[]> {
+    const session = await this.supabaseService.getCurrentSession();
+    const res = await fetch(`/api/books/search?q=${encodeURIComponent(q)}&maxResults=8`, {
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { books?: BookResult[] };
+    return (data.books ?? []).map((book) => ({ ...book, source: 'api' as const }));
   }
 
   selectBook(book: BookResult): void {
@@ -417,6 +480,14 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
   getPostContent(post: ActivityPost): string {
     if (!this.activeTranslations.has(post.id)) return post.content;
     return this.translatedTexts.get(post.id)?.get(this.lang) ?? post.content;
+  }
+
+  textDirection(text: string): 'ltr' | 'rtl' {
+    return detectLang(text) === 'ar' ? 'rtl' : 'ltr';
+  }
+
+  contentTextAlign(text: string): 'left' | 'right' {
+    return this.lang === 'ar' || this.textDirection(text) === 'rtl' ? 'right' : 'left';
   }
 
   async translatePost(post: ActivityPost): Promise<void> {

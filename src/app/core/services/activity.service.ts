@@ -252,6 +252,22 @@ export class ActivityService {
     ).pipe(catchError((err) => throwError(() => err)));
   }
 
+  getUserPostCountThisYear(userId: string, year = new Date().getFullYear()): Observable<number> {
+    return from(
+      this.supabaseService.getClient().then(async (supabase) => {
+        const { count, error } = await supabase
+          .from('posts')
+          .select('post_id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .neq('is_deleted', true)
+          .gte('created_at', `${year}-01-01`);
+
+        if (error) throw error;
+        return count ?? 0;
+      }),
+    ).pipe(catchError((err) => throwError(() => err)));
+  }
+
   getBookPosts(bookId: number, userId: string, limit = 20): Observable<ActivityPost[]> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {

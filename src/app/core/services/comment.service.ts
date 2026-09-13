@@ -188,10 +188,20 @@ export class CommentService {
 
   deleteComment(commentId: number): Observable<void> {
     return from(
-      this.supabaseService.getClient().then((supabase) =>
-        supabase.from('comments').update({ is_deleted: true }).eq('comment_id', commentId)
-          .then(({ error }) => { if (error) throw error; }),
-      ),
+      (async () => {
+        const session = await this.supabaseService.getCurrentSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('Not authenticated');
+
+        const res = await fetch(`/api/community/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { message?: string };
+          throw new Error(body.message ?? 'Failed to delete comment.');
+        }
+      })(),
     ).pipe(catchError((err) => throwError(() => err)));
   }
 }

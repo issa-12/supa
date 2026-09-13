@@ -119,6 +119,29 @@ export class NotificationsService {
     }
   }
 
+  async deleteMatchingNotification(
+    recipientId: string,
+    actorId: string,
+    typeName: string,
+    referenceId?: number,
+    referenceType?: string,
+  ): Promise<void> {
+    try {
+      await this.apiFetch('/matching', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          userId: recipientId,
+          actorId,
+          type: typeName,
+          referenceId: referenceId ?? null,
+          referenceType: referenceType ?? null,
+        }),
+      });
+    } catch {
+      // best-effort cleanup for undo actions
+    }
+  }
+
   async markAllAsRead(): Promise<void> {
     const prev = this.notifications$.value;
     const prevCount = this.unreadCount$.value;
@@ -144,13 +167,11 @@ export class NotificationsService {
     this.subscribedUserId = userId;
     const sub = await this.supabaseService.createRealtimeSubscription('notifications', {
       tables: ['notifications'],
-      event: 'INSERT',
+      event: '*',
       filter: `user_id=eq.${userId}`,
       onChange: () => {
-        // Reconcile the badge against the exact server count rather than a
-        // blind +1 — that way the bell can never show a number with no
-        // matching row behind it. Debounce the full list refetch so a burst
-        // of inserts collapses into a single round-trip.
+        // Reconcile instead of assuming insert/update/delete semantics; this
+        // keeps the bell and panel in sync when an action is undone elsewhere.
         void this.loadUnreadCount();
         if (this.refetchTimer) clearTimeout(this.refetchTimer);
         this.refetchTimer = setTimeout(() => {

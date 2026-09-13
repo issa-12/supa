@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { CommunityService } from './community.service';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -141,6 +141,27 @@ export class CommunityController {
       if (err?.code === '23503') return res.status(400).json({ message: 'That post could not be found.' });
       console.error('[Community] createComment error:', err);
       return res.status(500).json({ message: 'Failed to post comment.' });
+    }
+  }
+
+  @Delete('comments/:id')
+  async deleteComment(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const userId = await this.getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const commentId = Number(id);
+    if (!Number.isInteger(commentId) || commentId <= 0) {
+      return res.status(400).json({ message: 'Invalid comment id.' });
+    }
+
+    try {
+      await this.communityService.deleteComment(userId, commentId);
+      return res.json({ success: true });
+    } catch (err: any) {
+      if (err.statusCode === 403) return res.status(403).json({ message: err.message });
+      if (err.statusCode === 404) return res.status(404).json({ message: err.message });
+      console.error('[Community] deleteComment error:', err);
+      return res.status(500).json({ message: 'Failed to delete comment.' });
     }
   }
 }

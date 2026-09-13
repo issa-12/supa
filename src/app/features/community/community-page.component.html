@@ -9,7 +9,6 @@
     </a>
     <div>
       <h1 class="community-title">{{ copy.title }}</h1>
-      <p class="community-subtitle">{{ copy.subtitle }}</p>
     </div>
   </div>
 
@@ -55,7 +54,7 @@
                 [class.tag-row-btn--active]="activeTag === t.tag"
                 (click)="filterByTag(t.tag)"
               >
-                <span class="tag-row-name">#{{ t.tag }}</span>
+                <span class="tag-row-name" [attr.dir]="textDirection(t.tag)">#{{ t.tag }}</span>
                 <span class="tag-row-count">{{ t.count }}</span>
               </button>
             }
@@ -254,13 +253,18 @@
               </div>
 
               <!-- Content -->
-              <p class="post-content" [class.post-content--translated]="activeTranslations.has(post.id)">{{ getPostContent(post) }}</p>
+              <p
+                class="post-content"
+                [class.post-content--translated]="activeTranslations.has(post.id)"
+                [attr.dir]="textDirection(getPostContent(post))"
+                [style.text-align]="contentTextAlign(getPostContent(post))"
+              >{{ getPostContent(post) }}</p>
 
               <!-- Tag pills -->
               @if (post.tags && post.tags.length > 0) {
                 <div class="post-tags">
                   @for (tag of post.tags; track tag) {
-                    <button class="tag-pill" (click)="filterByTag(tag)">#{{ tag }}</button>
+                    <button class="tag-pill" [attr.dir]="textDirection(tag)" (click)="filterByTag(tag)">#{{ tag }}</button>
                   }
                 </div>
               }

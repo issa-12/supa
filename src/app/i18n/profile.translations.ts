@@ -57,8 +57,12 @@ export interface ProfileCopy {
   cancelBtn: string;
   totalRated: string;
   totalRatedLabel: string;
+  ratedThisYearLabel: string;
   booksWithRatings: string;
   booksWithRatingsDesc: string;
+  postsThisYear: string;
+  postsThisYearLabel: string;
+  postsThisYearDesc: string;
   currentlyReading: string;
   currentlyReadingTitle: string;
   currentlyReadingDesc: string;
@@ -217,8 +221,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     cancelBtn: 'Cancel',
     totalRated: 'Total Rated',
     totalRatedLabel: 'Total Rated',
+    ratedThisYearLabel: 'Rated This Year',
     booksWithRatings: 'Books with ratings',
     booksWithRatingsDesc: 'Books with ratings',
+    postsThisYear: 'Posts This Year',
+    postsThisYearLabel: 'Posts This Year',
+    postsThisYearDesc: 'Community posts',
     currentlyReading: 'Currently Reading',
     currentlyReadingTitle: 'Currently Reading',
     currentlyReadingDesc: 'Books in progress right now.',
@@ -375,8 +383,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     cancelBtn: 'إلغاء',
     totalRated: 'إجمالي المقيمة',
     totalRatedLabel: 'إجمالي المقيمة',
+    ratedThisYearLabel: 'المقيمة هذا العام',
     booksWithRatings: 'الكتب المقيمة',
     booksWithRatingsDesc: 'الكتب المقيمة',
+    postsThisYear: 'منشورات هذا العام',
+    postsThisYearLabel: 'منشورات هذا العام',
+    postsThisYearDesc: 'منشورات المجتمع',
     currentlyReading: 'قيد القراءة حالياً',
     currentlyReadingTitle: 'قيد القراءة حالياً',
     currentlyReadingDesc: 'الكتب التي تقرأها الآن.',
@@ -533,8 +545,12 @@ export const PROFILE_COPY: Record<LanguageCode, ProfileCopy> = {
     cancelBtn: 'Annuler',
     totalRated: 'Total noté',
     totalRatedLabel: 'Total noté',
+    ratedThisYearLabel: 'Notés cette année',
     booksWithRatings: 'Livres notés',
     booksWithRatingsDesc: 'Livres notés',
+    postsThisYear: 'Messages cette année',
+    postsThisYearLabel: 'Messages cette année',
+    postsThisYearDesc: 'Messages communautaires',
     currentlyReading: 'En cours de lecture',
     currentlyReadingTitle: 'En cours de lecture',
     currentlyReadingDesc: 'Les livres que vous lisez actuellement.',
