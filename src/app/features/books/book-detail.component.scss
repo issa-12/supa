@@ -361,13 +361,6 @@
   &--danger { color: #c0392b; &:hover { background: rgba(192, 57, 43, 0.08); } }
 }
 
-.dropdown-item-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  color: var(--brand);
-}
-
 .dropdown-divider {
   height: 1px;
   background: var(--bd-soft);

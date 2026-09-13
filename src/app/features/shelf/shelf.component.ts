@@ -77,7 +77,8 @@ export class ShelfComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     try {
-      const user = await this.supabaseService.getCurrentUser();
+      const supabase = await this.supabaseService.getClient();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) { this.router.navigate(['/']); return; }
 
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user.id));
@@ -261,7 +262,7 @@ export class ShelfComponent implements OnInit {
       await firstValueFrom(this.bookService.changeShelfStatus(book.id, statusRow['status_id']));
 
       // Rebuild sections
-      const user = await this.supabaseService.getCurrentUser();
+      const { data: { user } } = await supabase.auth.getUser();
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user!.id));
       this.buildSections(allBooks);
     } catch (err) {
@@ -301,7 +302,8 @@ export class ShelfComponent implements OnInit {
     this.savingId = book.id;
     try {
       await firstValueFrom(this.bookService.acceptFriendRecommendation(book.id));
-      const user = await this.supabaseService.getCurrentUser();
+      const supabase = await this.supabaseService.getClient();
+      const { data: { user } } = await supabase.auth.getUser();
       const allBooks = await firstValueFrom(this.bookService.getUserShelf(user!.id));
       this.buildSections(allBooks);
       this.resetFilterIfNoRecs();

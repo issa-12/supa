@@ -738,7 +738,7 @@ export class BookService {
   saveNote(userBookId: number, note: string): Observable<UserBook> {
     return from(
       this.supabaseService.getClient().then(async (supabase) => {
-        const user = await this.supabaseService.getCurrentUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
         // Notes are stored in the owner-only user_book_notes table (RLS:

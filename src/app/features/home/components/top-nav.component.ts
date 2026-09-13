@@ -158,7 +158,6 @@ interface NavSearchBook {
           [languages]="languages"
           [selectedLanguage]="selectedLanguage"
           [label]="copy.languageLabel"
-          [title]="copy.languageLabel"
           [compact]="false"
         />
 
@@ -166,7 +165,6 @@ interface NavSearchBook {
           <img
             [src]="avatarUrl || avatarFallback"
             [alt]="copy.profileAvatarAlt"
-            [title]="copy.myProfile"
             class="nav-avatar"
             [attr.aria-current]="isProfileActive ? 'page' : null"
             [title]="copy.profileAvatarAlt"
@@ -698,13 +696,9 @@ export class TopNavComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(url => { this.avatarUrl = url; });
 
-    this.userService.currentUserName$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(name => { this.userName = name; });
-
     try {
       const supabase = await this.supabaseService.getClient();
-      const user = await this.supabaseService.getCurrentUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data: profile } = await supabase
@@ -713,7 +707,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
         .eq('id', user.id)
         .maybeSingle();
 
-      this.userService.setCurrentUserName(profile?.['name'] ?? '');
+      this.userName = profile?.['name'] ?? '';
       const avatarUrl = profile?.['profile_picture_url'] ?? null;
       this.userService.setCurrentUserAvatar(avatarUrl);
 
