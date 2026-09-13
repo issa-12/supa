@@ -36,7 +36,7 @@ export class ApiKeysController {
     const userId = await this.requireUser(auth);
     const name = (body?.name ?? '').trim() || 'Default key';
     if (name.length > 60) throw new BadRequestException('Name must be 60 characters or fewer.');
-    return this.apiKeys.create(userId, name);
+    return this.apiKeys.create(userId, name, body?.readOnly === true);
   }
 
   @Get()

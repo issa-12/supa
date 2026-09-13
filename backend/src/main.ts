@@ -8,6 +8,7 @@ loadEnvFile('.env.local');
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { PublicApiModule } from './public-api/public-api.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,8 +16,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // OpenAPI / Swagger UI for the public API. Served at /api/docs (the JSON at
-  // /api/docs-json) — reachable through the nginx /api proxy. Documents both the
-  // API-key-authenticated public endpoints and the JWT key-management endpoints.
+  // /api/docs-json) — reachable through the nginx /api proxy. Scoped to only
+  // PublicApiModule (shelf CRUD + key management) so it documents exactly the
+  // public API surface the API key is valid for — the rest of the backend is
+  // the SPA's internal API, authenticated separately, and isn't public docs.
   const openApiConfig = new DocumentBuilder()
     .setTitle('ReadTrack Public API')
     .setDescription(
@@ -26,7 +29,9 @@ async function bootstrap() {
     .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'apiKey')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'jwt')
     .build();
-  const document = SwaggerModule.createDocument(app, openApiConfig);
+  const document = SwaggerModule.createDocument(app, openApiConfig, {
+    include: [PublicApiModule],
+  });
   SwaggerModule.setup('api/docs', app, document);
 
   // Baseline security headers directly on the backend (defense-in-depth — nginx

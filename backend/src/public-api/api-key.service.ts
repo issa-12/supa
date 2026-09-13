@@ -23,7 +23,7 @@ export class ApiKeyService {
 
   // Mint a new key for a user. The plaintext is returned exactly once here and
   // never stored — only its SHA-256 hash is persisted.
-  async create(userId: string, name: string): Promise<CreatedApiKeyDto> {
+  async create(userId: string, name: string, readOnly: boolean): Promise<CreatedApiKeyDto> {
     const fullKey = `${KEY_PREFIX}${randomBytes(32).toString('base64url')}`;
     const { data, error } = await this.supabase
       .getAdmin()
@@ -33,7 +33,7 @@ export class ApiKeyService {
         name,
         key_prefix: fullKey.slice(0, 12),
         key_hash: this.hash(fullKey),
-        scopes: ['read', 'write'],
+        scopes: readOnly ? ['read'] : ['read', 'write'],
       })
       .select('id, name, key_prefix, scopes, created_at, last_used_at, revoked_at, expires_at')
       .single();

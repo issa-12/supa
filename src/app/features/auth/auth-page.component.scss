@@ -23,13 +23,13 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: auto;
-  inset: 0;
+  height: 100%;
+  width: 100%;
   justify-content: center;
   min-height: 0;
   overflow-y: auto;
   padding: 22px 40px;
-  position: fixed;
+  position: relative;
 }
 
 .background,
