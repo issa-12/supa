@@ -398,6 +398,18 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tickInterval = setInterval(() => this.cdr.markForCheck(), 60_000);
+    void this.resolveCurrentUser();
+  }
+
+  private async resolveCurrentUser(): Promise<void> {
+    try {
+      const user = await this.supabaseService.getCurrentUser();
+      this.currentUserId = user?.id ?? null;
+      if (this.currentUserId) {
+        this.pendingRecBookIds = await this.bookService.getPendingRecommendationBookIds(this.currentUserId);
+        this.cdr.markForCheck();
+      }
+    } catch { /* best-effort */ }
   }
 
   typeIcon(type: string): { path: string; color: string } | null {

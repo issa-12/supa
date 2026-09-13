@@ -6,6 +6,7 @@ import { takeUntil } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BookService } from '../../core/services/book.service';
 import { UserService, UserProfile } from '../../core/services/user.service';
+import { SupabaseService } from '../../core/services/supabase.service';
 import { TopNavComponent } from './components/top-nav.component';
 import { HeroSectionComponent } from './components/hero-section.component';
 import { RecommendedBooksComponent } from './components/recommended-books.component';
@@ -48,6 +49,7 @@ interface ContinueReadingBook extends Book {
 export class HomePageComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly userService = inject(UserService);
+  private readonly supabaseService = inject(SupabaseService);
   private readonly router = inject(Router);
   private readonly translationService = inject(TranslationService);
   private readonly destroy$ = new Subject<void>();
@@ -87,49 +89,46 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   private loadHomePageData(): void {
-    this.userService
-      .getCurrentUserProfile()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (basicUser) => {
-          // getCurrentUserProfile only reads auth.users — fetch the full
-          // public.users row so avatar + bio + username are available
-          // for the top-nav and post composer.
-          this.userService
-            .getUserProfileById(basicUser.id)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: (full) => {
-                this.currentUser = full;
-                this.currentUserAvatar = full.avatarUrl;
-              },
-              error: () => {
-                this.currentUser = basicUser;
-                this.currentUserAvatar = basicUser.avatarUrl;
-              },
-            });
+    this.supabaseService.getCurrentUser().then((user) => {
+      if (!user) {
+        this.error = this.copy.loadProfileError;
+        this.isLoading = false;
+        return;
+      }
 
-          this.currentUserId = basicUser.id;
-          this.isLoading = false;
+      const userId = user.id;
+      this.currentUserId = userId;
+      this.isLoading = false;
 
-          this.userService
-            .getUserGenres(basicUser.id)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: (genres) => { this.favoriteGenre = genres[0]?.name ?? null; },
-              error: () => { /* non-critical — hero falls back to a generic label */ },
-            });
+      // Fetch the full public.users row (not just the auth user) so avatar,
+      // bio and username are available for the top-nav and post composer.
+      this.userService
+        .getUserProfileById(userId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (full) => {
+            this.currentUser = full;
+            this.currentUserAvatar = full.avatarUrl;
+          },
+          error: () => { /* non-critical — top-nav fetches its own copy independently */ },
+        });
 
-          this.loadContinueReadingBooks();
-          this.loadRecommendedBooks();
-          this.loadTrendingBooks();
-        },
-        error: (err) => {
-          console.error('Failed to load user profile:', err);
-          this.error = this.copy.loadProfileError;
-          this.isLoading = false;
-        },
-      });
+      this.userService
+        .getUserGenres(userId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (genres) => { this.favoriteGenre = genres[0]?.name ?? null; },
+          error: () => { /* non-critical — hero falls back to a generic label */ },
+        });
+
+      this.loadContinueReadingBooks();
+      this.loadRecommendedBooks();
+      this.loadTrendingBooks();
+    }).catch((err) => {
+      console.error('Failed to load user profile:', err);
+      this.error = this.copy.loadProfileError;
+      this.isLoading = false;
+    });
   }
 
   private loadContinueReadingBooks(): void {

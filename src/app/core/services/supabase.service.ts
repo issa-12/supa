@@ -94,6 +94,24 @@ export class SupabaseService {
   private supabaseClientPromise?: Promise<SupabaseClient>;
   private readonly authRedirectPath = '/auth/callback';
 
+  // auth.getUser() round-trips to the Supabase Auth server on every call (unlike
+  // getSession(), which reads the already-verified session out of local storage
+  // and only hits the network to silently refresh a token nearing expiry). The
+  // route guard, the destination page, and the per-page top-nav (rebuilt fresh
+  // on every navigation, since it's embedded per-page rather than a persistent
+  // shell) each used to call getUser() independently, firing 2-3 "user" network
+  // requests per navigation. None of these call sites need server-revalidated
+  // identity — they just need "who is signed in" to render the UI; every actual
+  // read/write is already authorized server-side by the JWT via RLS. So this
+  // reads the id off the local session instead, which costs no network request
+  // at all in the common case.
+  async getCurrentUser(): Promise<User | null> {
+    const supabase = await this.getClient();
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session?.user ?? null;
+  }
+
   async getBooks() {
     const supabase = await this.getClient();
 

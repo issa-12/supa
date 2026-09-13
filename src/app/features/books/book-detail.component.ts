@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -38,9 +38,9 @@ interface BookDetail {
 }
 
 const SHELF_STATUSES = [
-  { name: 'currently_reading', label: '', icon: '📖' },
-  { name: 'want_to_read', label: '', icon: '📚' },
-  { name: 'read', label: '', icon: '✓' },
+  { name: 'currently_reading', label: '' },
+  { name: 'want_to_read', label: '' },
+  { name: 'read', label: '' },
 ];
 
 @Component({
@@ -60,6 +60,7 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   private readonly likesService = inject(LikesService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly translationService = inject(TranslationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return BOOK_DETAIL_COPY[this.lang]; }
@@ -121,9 +122,56 @@ export class BookDetailComponent implements OnInit, OnDestroy {
   private realtimeSubs: RealtimeSubscription[] = [];
   private realtimeTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
+  // Bumped on every navigation to a new googleId so a slow-resolving fetch for
+  // a book the user has already navigated away from can't clobber the newer
+  // book's state when it finally settles.
+  private loadToken = 0;
 
-  async ngOnInit(): Promise<void> {
-    const googleId = this.route.snapshot.paramMap.get('googleId');
+  ngOnInit(): void {
+    // Angular reuses this component instance across /books/:googleId
+    // navigations (same route config, different params) — searching for a
+    // different book from the book page changed the URL but never re-ran
+    // ngOnInit, so the page kept showing the previous book until a manual
+    // refresh. Subscribing to paramMap (which emits immediately with the
+    // current value, then again on every param change) instead of reading
+    // route.snapshot once fixes that.
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      void this.loadBook(params.get('googleId'));
+    });
+  }
+
+  private async loadBook(googleId: string | null): Promise<void> {
+    const token = ++this.loadToken;
+
+    if (this.realtimeTimer) { clearTimeout(this.realtimeTimer); this.realtimeTimer = null; }
+    this.realtimeSubs.forEach((s) => void s.teardown());
+    this.realtimeSubs = [];
+
+    this.isLoading = true;
+    this.error = null;
+    this.book = null;
+    this.userBook = null;
+    this.showStatusDropdown = false;
+    this.showRecommendPicker = false;
+    this.friends = [];
+    this.recommendFeedback = null;
+    this.note = '';
+    this.savedNote = '';
+    this.editingNote = false;
+    this.noteSaved = false;
+    this.noteError = null;
+    this.reviewText = '';
+    this.savedReview = '';
+    this.editingReview = false;
+    this.reviewError = null;
+    this.currentUserName = null;
+    this.currentUserAvatar = null;
+    this.myReviewUserBookId = null;
+    this.myReviewReaction = null;
+    this.myReviewLikeCount = 0;
+    this.myReviewDislikeCount = 0;
+    this.communityReviews = [];
+
     if (!googleId) { this.error = this.copy.bookNotFound; this.isLoading = false; return; }
 
     try {
@@ -140,12 +188,13 @@ export class BookDetailComponent implements OnInit, OnDestroy {
           }
           return r.json() as Promise<BookDetail>;
         }),
-        this.supabaseService.getClient().then((s) => s.auth.getUser()),
+        this.supabaseService.getCurrentUser(),
       ]);
+      if (token !== this.loadToken) return;
 
       this.book = bookRes;
       this.descriptionText = this.toPlainText(bookRes.description);
-      this.userId = user.data.user?.id ?? null;
+      this.userId = user?.id ?? null;
 
       if (this.userId) {
         const supabase = await this.supabaseService.getClient();
@@ -153,6 +202,8 @@ export class BookDetailComponent implements OnInit, OnDestroy {
           firstValueFrom(this.bookService.getUserBookByGoogleId(this.userId, googleId)),
           supabase.from('users').select('name, profile_picture_url').eq('id', this.userId).single(),
         ]);
+        if (token !== this.loadToken) return;
+
         this.userBook = ubResult;
         this.currentUserName = (profileResult.data?.['name'] as string) ?? null;
         this.currentUserAvatar = (profileResult.data?.['profile_picture_url'] as string) ?? null;
@@ -169,9 +220,9 @@ export class BookDetailComponent implements OnInit, OnDestroy {
         void this.setupRealtime();
       }
     } catch {
-      this.error = this.copy.loadFailed;
+      if (token === this.loadToken) this.error = this.copy.loadFailed;
     } finally {
-      this.isLoading = false;
+      if (token === this.loadToken) this.isLoading = false;
     }
   }
 
