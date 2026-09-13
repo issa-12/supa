@@ -11,7 +11,7 @@ export const onboardingRedirectGuard: CanActivateFn = async () => {
 
   try {
     const supabase = await supabaseService.getClient();
-    const user = await supabaseService.getCurrentUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return router.createUrlTree(['/']);
 
     const { data: genres } = await supabase

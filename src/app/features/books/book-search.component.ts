@@ -246,7 +246,8 @@ export class BookSearchComponent implements OnInit, OnDestroy {
     this.addError = null;
 
     try {
-      const user = await this.supabaseService.getCurrentUser();
+      const supabase = await this.supabaseService.getClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) throw new Error(this.copy.notSignedIn);
 
