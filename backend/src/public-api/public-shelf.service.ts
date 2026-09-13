@@ -84,7 +84,7 @@ export class PublicShelfService {
     const statusId = byName.get(this.assertStatus(body.status));
     if (!statusId) throw new BadRequestException('Unknown status.');
 
-    const { bookId } = await this.books.ensureBook({ googleId });
+    const bookId = await this.resolveBookId(googleId);
 
     const admin = this.supabase.getAdmin();
     // One shelf row per (user, book): reject a duplicate with a clear 400.
@@ -193,6 +193,17 @@ export class PublicShelfService {
     if (error) throw error;
     if (!data) throw new NotFoundException('Shelf item not found.');
     return asRow(data);
+  }
+
+  // Validates the id resolves to a real book (our DB, or Google Books) before
+  // touching the shared catalog. Calling ensureBook() alone would silently
+  // insert an "Untitled"/"Unknown Author" stub for any garbage id — this
+  // rejects that case with a proper 404 instead of polluting public.books.
+  private async resolveBookId(googleId: string): Promise<number> {
+    const detail = await this.books.getBookByGoogleId(googleId);
+    if (detail.dbBookId) return detail.dbBookId;
+    const { bookId } = await this.books.ensureBook({ googleId });
+    return bookId;
   }
 
   private assertStatus(status: string): ShelfStatus {

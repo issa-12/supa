@@ -7,6 +7,7 @@ export interface ApiKeysCopy {
 
   createTitle: string;
   namePlaceholder: string;
+  readOnlyLabel: string;
   createBtn: string;
   creating: string;
 
@@ -35,6 +36,11 @@ export interface ApiKeysCopy {
   usageIntro: string;
   docsLink: string;
 
+  quickstartTitle: string;
+  quickstartListLabel: string;
+  quickstartCreateLabel: string;
+  scopeNote: string;
+
   loadError: string;
   createError: string;
   revokeError: string;
@@ -48,6 +54,7 @@ export const API_KEYS_COPY: Record<LanguageCode, ApiKeysCopy> = {
 
     createTitle: 'Create a new key',
     namePlaceholder: 'Key name (e.g. My integration)',
+    readOnlyLabel: 'Read-only (blocks POST/PUT/PATCH/DELETE on this key)',
     createBtn: 'Create key',
     creating: 'Creating…',
 
@@ -76,6 +83,11 @@ export const API_KEYS_COPY: Record<LanguageCode, ApiKeysCopy> = {
     usageIntro: 'Send your key in the X-API-Key header. Full reference and a try-it console are in the API docs.',
     docsLink: 'Open API docs',
 
+    quickstartTitle: 'Quick start',
+    quickstartListLabel: 'List your shelf',
+    quickstartCreateLabel: 'Add a book to your shelf',
+    scopeNote: 'A key created with only the "read" scope can call GET endpoints but gets a 403 on POST/PUT/PATCH/DELETE.',
+
     loadError: 'Could not load your API keys. Please try again.',
     createError: 'Could not create the key. Please try again.',
     revokeError: 'Could not revoke the key. Please try again.',
@@ -87,6 +99,7 @@ export const API_KEYS_COPY: Record<LanguageCode, ApiKeysCopy> = {
 
     createTitle: 'إنشاء مفتاح جديد',
     namePlaceholder: 'اسم المفتاح (مثال: تكاملي)',
+    readOnlyLabel: 'للقراءة فقط (يمنع POST/PUT/PATCH/DELETE لهذا المفتاح)',
     createBtn: 'إنشاء مفتاح',
     creating: 'جارٍ الإنشاء…',
 
@@ -115,6 +128,11 @@ export const API_KEYS_COPY: Record<LanguageCode, ApiKeysCopy> = {
     usageIntro: 'أرسل مفتاحك في ترويسة X-API-Key. المرجع الكامل ووحدة التجربة موجودان في وثائق الواجهة.',
     docsLink: 'فتح وثائق الواجهة',
 
+    quickstartTitle: 'بداية سريعة',
+    quickstartListLabel: 'عرض مكتبتك',
+    quickstartCreateLabel: 'إضافة كتاب إلى مكتبتك',
+    scopeNote: 'المفتاح الذي يملك صلاحية "القراءة" فقط يمكنه استدعاء طلبات GET، لكنه يحصل على خطأ 403 عند POST/PUT/PATCH/DELETE.',
+
     loadError: 'تعذّر تحميل مفاتيح API. حاول مرة أخرى.',
     createError: 'تعذّر إنشاء المفتاح. حاول مرة أخرى.',
     revokeError: 'تعذّر إلغاء المفتاح. حاول مرة أخرى.',
@@ -126,6 +144,7 @@ export const API_KEYS_COPY: Record<LanguageCode, ApiKeysCopy> = {
 
     createTitle: 'Créer une nouvelle clé',
     namePlaceholder: 'Nom de la clé (ex. Mon intégration)',
+    readOnlyLabel: 'Lecture seule (bloque POST/PUT/PATCH/DELETE pour cette clé)',
     createBtn: 'Créer la clé',
     creating: 'Création…',
 
@@ -153,6 +172,11 @@ export const API_KEYS_COPY: Record<LanguageCode, ApiKeysCopy> = {
     usageTitle: 'Utiliser l’API',
     usageIntro: 'Envoyez votre clé dans l’en-tête X-API-Key. La référence complète et une console d’essai sont dans la documentation.',
     docsLink: 'Ouvrir la documentation',
+
+    quickstartTitle: 'Démarrage rapide',
+    quickstartListLabel: 'Lister votre étagère',
+    quickstartCreateLabel: 'Ajouter un livre à votre étagère',
+    scopeNote: 'Une clé créée avec uniquement la portée « read » peut appeler les endpoints GET, mais reçoit une erreur 403 sur POST/PUT/PATCH/DELETE.',
 
     loadError: 'Impossible de charger vos clés API. Veuillez réessayer.',
     createError: 'Impossible de créer la clé. Veuillez réessayer.',

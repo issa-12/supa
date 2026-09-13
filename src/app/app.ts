@@ -3,11 +3,12 @@ import { RouterOutlet } from '@angular/router';
 import { APP_COPY, LanguageCode, TranslationService } from './i18n';
 import { PresenceService } from './core/services/presence.service';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
+import { AppFooterComponent } from './shared/app-footer.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ConfirmDialogComponent],
+  imports: [RouterOutlet, ConfirmDialogComponent, AppFooterComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

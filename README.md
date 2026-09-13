@@ -119,6 +119,9 @@ Every team member contributed across the stack, with additional ownership areas 
 
 Supabase was chosen to centralize authentication, relational data, file storage, realtime notifications, and database security policies. NestJS owns server-side API logic, protected service-role operations, third-party API proxying, recommendation generation, moderation, statistics, and public API endpoints. Angular owns the interactive client experience, routing, localization, responsive UI, and PWA behavior.
 
+## Testing 
+  to test a curl request curl apuUrl -H "apikey: <your-anon-or-service-key>" -H "Authorization: Bearer <user-access-token>"
+
 ## Database Schema
 
 The application uses Supabase Auth with public Postgres tables protected by Row-Level Security.

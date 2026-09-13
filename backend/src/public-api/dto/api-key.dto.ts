@@ -3,6 +3,13 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateApiKeyDto {
   @ApiProperty({ example: 'My integration', maxLength: 60, description: 'A label to recognise this key later.' })
   name!: string;
+
+  @ApiProperty({
+    required: false,
+    default: false,
+    description: 'When true, the key is created with only the "read" scope. When false/omitted, it gets "read" and "write".',
+  })
+  readOnly?: boolean;
 }
 
 export class ApiKeyDto {

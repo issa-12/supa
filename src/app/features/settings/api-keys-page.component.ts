@@ -44,6 +44,10 @@ import { TopNavComponent } from '../home/components/top-nav.component';
             {{ creating ? copy.creating : copy.createBtn }}
           </button>
         </div>
+        <label class="readonly-toggle">
+          <input type="checkbox" [(ngModel)]="newReadOnly" />
+          {{ copy.readOnlyLabel }}
+        </label>
         @if (createError) { <p class="error">{{ createError }}</p> }
 
         <!-- One-time reveal of the new secret -->
@@ -107,6 +111,21 @@ import { TopNavComponent } from '../home/components/top-nav.component';
         <h2>{{ copy.usageTitle }}</h2>
         <p class="muted">{{ copy.usageIntro }}</p>
         <code class="usage-example">X-API-Key: rt_live_…</code>
+
+        <h3 class="quickstart-title">{{ copy.quickstartTitle }}</h3>
+
+        <p class="quickstart-label">{{ copy.quickstartListLabel }}</p>
+        <pre class="code-block">curl {{ baseUrl }}/api/public/v1/shelf \
+  -H "X-API-Key: YOUR_API_KEY"</pre>
+
+        <p class="quickstart-label">{{ copy.quickstartCreateLabel }}</p>
+        <pre class="code-block">curl -X POST {{ baseUrl }}/api/public/v1/shelf \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{{ '{' }}"googleBooksId":"zyTCAlFPjgYC","status":"want_to_read"{{ '}' }}'</pre>
+
+        <p class="scope-note">{{ copy.scopeNote }}</p>
+
         <a class="btn-ghost docs-link" href="/api/docs" target="_blank" rel="noopener">
           {{ copy.docsLink }}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -151,6 +170,11 @@ import { TopNavComponent } from '../home/components/top-nav.component';
     }
 
     .create-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .readonly-toggle {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 10px; font-size: 12.5px; color: var(--muted-foreground); cursor: pointer;
+      input { cursor: pointer; }
+    }
     .text-input {
       flex: 1; min-width: 200px;
       padding: 10px 14px;
@@ -235,6 +259,18 @@ import { TopNavComponent } from '../home/components/top-nav.component';
       font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px;
       background: var(--surface-alt); border-radius: 8px; padding: 8px 12px; color: var(--foreground);
     }
+    .quickstart-title { font-size: 13px; font-weight: 700; color: var(--foreground); margin: 4px 0 8px; }
+    .quickstart-label { font-size: 12px; font-weight: 600; color: var(--muted-foreground); margin: 0 0 4px; }
+    .code-block {
+      display: block; margin: 0 0 12px;
+      font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; line-height: 1.5;
+      background: var(--surface-alt); border-radius: 8px; padding: 10px 12px; color: var(--foreground);
+      white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+      direction: ltr; text-align: left;
+    }
+    .scope-note {
+      font-size: 12px; color: var(--muted-foreground); margin: 0 0 14px;
+    }
     .docs-link { width: fit-content; }
 
     .muted { font-size: 13px; color: var(--muted-foreground); margin: 0; }
@@ -257,6 +293,9 @@ export class ApiKeysPageComponent implements OnInit {
 
   protected lang: LanguageCode = this.translationService.getCurrentLanguage();
   protected get copy() { return API_KEYS_COPY[this.lang]; }
+  // Matches whatever host/port actually serves the app (e.g. https://localhost:8443
+  // in this Docker setup) instead of assuming the default port.
+  protected readonly baseUrl = window.location.origin;
 
   constructor() {
     this.translationService.getCurrentLanguage$().pipe(takeUntilDestroyed()).subscribe((l) => (this.lang = l));
@@ -267,6 +306,7 @@ export class ApiKeysPageComponent implements OnInit {
   loadError: string | null = null;
 
   newName = '';
+  newReadOnly = false;
   creating = false;
   createError: string | null = null;
   newKey: CreatedApiKey | null = null;
@@ -300,9 +340,10 @@ export class ApiKeysPageComponent implements OnInit {
     this.createError = null;
     this.copied = false;
     try {
-      const created = await this.apiKeyService.create(name);
+      const created = await this.apiKeyService.create(name, this.newReadOnly);
       this.newKey = created;
       this.newName = '';
+      this.newReadOnly = false;
       // Prepend to the list (CreatedApiKey is a superset of ApiKey).
       this.keys = [created, ...this.keys];
     } catch {

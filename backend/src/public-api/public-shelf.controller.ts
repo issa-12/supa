@@ -19,6 +19,7 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiSecurity,
   ApiTags,
@@ -33,12 +34,20 @@ import {
   UpdateShelfItemDto,
 } from './dto/shelf-item.dto';
 
+// The path :id on every route below is the shelf item id (ShelfItemDto.id,
+// i.e. user_book_id) — NOT the catalog book id nested at ShelfItemDto.book.bookId.
+const SHELF_ITEM_ID_PARAM = {
+  name: 'id',
+  description: 'Shelf item id — the "id" field from list/create, not "book.bookId".',
+  example: 101,
+} as const;
+
 @ApiTags('Shelf')
 @ApiSecurity('apiKey')
 @UseGuards(ApiKeyGuard)
 @Controller('public/v1/shelf')
 export class PublicShelfController {
-  constructor(private readonly shelf: PublicShelfService) {}
+  constructor(private readonly shelf: PublicShelfService) { }
 
   @Get()
   @ApiOperation({ summary: 'List the authenticated consumer’s shelf items' })
@@ -61,6 +70,7 @@ export class PublicShelfController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single shelf item' })
+  @ApiParam(SHELF_ITEM_ID_PARAM)
   @ApiOkResponse({ type: ShelfItemDto })
   get(@Req() req: AuthedRequest, @Param('id') id: string): Promise<ShelfItemDto> {
     return this.shelf.get(this.userId(req), +id);
@@ -77,6 +87,7 @@ export class PublicShelfController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Replace a shelf item (idempotent full update)' })
+  @ApiParam(SHELF_ITEM_ID_PARAM)
   @ApiOkResponse({ type: ShelfItemDto })
   replace(
     @Req() req: AuthedRequest,
@@ -89,6 +100,7 @@ export class PublicShelfController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Partially update a shelf item' })
+  @ApiParam(SHELF_ITEM_ID_PARAM)
   @ApiOkResponse({ type: ShelfItemDto })
   update(
     @Req() req: AuthedRequest,
@@ -102,6 +114,7 @@ export class PublicShelfController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove a book from the shelf' })
+  @ApiParam(SHELF_ITEM_ID_PARAM)
   @ApiNoContentResponse()
   async remove(@Req() req: AuthedRequest, @Param('id') id: string): Promise<void> {
     this.requireWrite(req);

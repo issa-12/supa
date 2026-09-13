@@ -34,11 +34,11 @@ export class ApiKeyService {
     return res.json() as Promise<ApiKey[]>;
   }
 
-  async create(name: string): Promise<CreatedApiKey> {
+  async create(name: string, readOnly: boolean): Promise<CreatedApiKey> {
     const res = await fetch('/api/keys', {
       method: 'POST',
       headers: await this.authHeaders(),
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, readOnly }),
     });
     const body = (await res.json().catch(() => ({}))) as CreatedApiKey & { message?: string };
     if (!res.ok) throw new Error(body.message ?? 'Failed to create API key.');
