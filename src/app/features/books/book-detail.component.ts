@@ -38,9 +38,9 @@ interface BookDetail {
 }
 
 const SHELF_STATUSES = [
-  { name: 'currently_reading', label: '', icon: '📖' },
-  { name: 'want_to_read', label: '', icon: '📚' },
-  { name: 'read', label: '', icon: '✓' },
+  { name: 'currently_reading', label: '' },
+  { name: 'want_to_read', label: '' },
+  { name: 'read', label: '' },
 ];
 
 @Component({
