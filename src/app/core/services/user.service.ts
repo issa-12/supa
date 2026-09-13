@@ -34,30 +34,17 @@ export class UserService {
   private readonly translationService = inject(TranslationService);
 
   readonly currentUserAvatar$ = new BehaviorSubject<string | null>(null);
+  // Persisted across top-nav rebuilds (it's recreated fresh on every page, not
+  // a shared shell) so the avatar-initial fallback shows the right letter
+  // immediately instead of flashing a generic "U" while it re-fetches the name.
+  readonly currentUserName$ = new BehaviorSubject<string>('');
 
   setCurrentUserAvatar(url: string | null): void {
     this.currentUserAvatar$.next(url);
   }
 
-  getCurrentUserProfile(): Observable<UserProfile> {
-    return from(this.supabaseService.syncCurrentUser()).pipe(
-      map((user) => {
-        if (!user) {
-          throw new Error('User not authenticated');
-        }
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          bio: null,
-          avatarUrl: null,
-          joinDate: new Date().getFullYear().toString(),
-          username: null,
-          isPrivate: false,
-        };
-      }),
-      catchError((error) => throwError(() => error))
-    );
+  setCurrentUserName(name: string): void {
+    this.currentUserName$.next(name);
   }
 
   getUserProfileById(userId: string): Observable<UserProfile> {

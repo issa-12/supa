@@ -448,8 +448,7 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   private async resolveCurrentUser(): Promise<void> {
     try {
-      const supabase = await this.supabaseService.getClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await this.supabaseService.getCurrentUser();
       this.currentUserId = user?.id ?? null;
       if (this.currentUserId) {
         this.pendingRecBookIds = await this.bookService.getPendingRecommendationBookIds(this.currentUserId);

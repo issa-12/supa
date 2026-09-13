@@ -108,7 +108,7 @@ export class CommunityPageComponent implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     const supabase = await this.supabaseService.getClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await this.supabaseService.getCurrentUser();
     this.currentUserId = user?.id ?? null;
 
     if (user) {

@@ -140,12 +140,12 @@ export class BookDetailComponent implements OnInit, OnDestroy {
           }
           return r.json() as Promise<BookDetail>;
         }),
-        this.supabaseService.getClient().then((s) => s.auth.getUser()),
+        this.supabaseService.getCurrentUser(),
       ]);
 
       this.book = bookRes;
       this.descriptionText = this.toPlainText(bookRes.description);
-      this.userId = user.data.user?.id ?? null;
+      this.userId = user?.id ?? null;
 
       if (this.userId) {
         const supabase = await this.supabaseService.getClient();

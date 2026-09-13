@@ -33,7 +33,7 @@ export class PresenceService {
       });
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await this.supabaseService.getCurrentUser();
     if (user) await this.startHeartbeat(user.id);
   }
 

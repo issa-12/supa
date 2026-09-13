@@ -116,24 +116,24 @@ interface NavSearchBook {
       }
 
       <div class="nav-actions">
-        <a routerLink="/home" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.homeAriaLabel">
+        <a routerLink="/home" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.homeAriaLabel" [title]="copy.homeAriaLabel">
           <iconify-icon icon="lucide:home" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/shelf" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel">
+        <a routerLink="/shelf" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.myShelfAriaLabel" [title]="copy.myShelfAriaLabel">
           <iconify-icon icon="lucide:library" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/community" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel">
+        <a routerLink="/community" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.communityAriaLabel" [title]="copy.communityAriaLabel">
           <iconify-icon icon="lucide:users" style="font-size: 20px"></iconify-icon>
         </a>
 
-        <a routerLink="/stats" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel">
+        <a routerLink="/stats" routerLinkActive="nav-icon-btn--active" class="nav-icon-btn" [attr.aria-label]="copy.statsAriaLabel" [title]="copy.statsAriaLabel">
           <iconify-icon icon="lucide:bar-chart-2" style="font-size: 20px"></iconify-icon>
         </a>
 
         <div class="bell-wrapper">
-          <button class="nav-icon-btn" [attr.aria-label]="copy.notificationsAriaLabel" (click)="togglePanel()">
+          <button class="nav-icon-btn" [attr.aria-label]="copy.notificationsAriaLabel" [title]="copy.notificationsAriaLabel" (click)="togglePanel()">
             <iconify-icon icon="lucide:bell" style="font-size: 20px"></iconify-icon>
             @if (unreadCount$ | async; as count) {
               @if (count > 0) {
@@ -158,6 +158,7 @@ interface NavSearchBook {
           [languages]="languages"
           [selectedLanguage]="selectedLanguage"
           [label]="copy.languageLabel"
+          [title]="copy.languageLabel"
           [compact]="false"
         />
 
@@ -168,6 +169,7 @@ interface NavSearchBook {
           <img
             [src]="avatarUrl || avatarFallback"
             [alt]="copy.profileAvatarAlt"
+            [title]="copy.myProfile"
             class="nav-avatar"
             [attr.aria-current]="isProfileActive ? 'page' : null"
             (click)="toggleUserMenu()"
@@ -707,9 +709,13 @@ export class TopNavComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(url => { this.avatarUrl = url; });
 
+    this.userService.currentUserName$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(name => { this.userName = name; });
+
     try {
       const supabase = await this.supabaseService.getClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await this.supabaseService.getCurrentUser();
       if (!user) return;
 
       const { data: profile } = await supabase
@@ -718,7 +724,7 @@ export class TopNavComponent implements OnInit, OnDestroy {
         .eq('id', user.id)
         .maybeSingle();
 
-      this.userName = profile?.['name'] ?? '';
+      this.userService.setCurrentUserName(profile?.['name'] ?? '');
       const avatarUrl = profile?.['profile_picture_url'] ?? null;
       this.userService.setCurrentUserAvatar(avatarUrl);
 

@@ -8,7 +8,7 @@ export const genreOnboardingGuard: CanActivateFn = async () => {
 
   try {
     const supabase = await supabaseService.getClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await supabaseService.getCurrentUser();
 
     if (!user) return router.createUrlTree(['/']);
 
